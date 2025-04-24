@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agendamento - Salão de Beleza</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
+  <style>
+    .step {
+      display: none;
+    }
+    .step.active {
+      display: block;
+    }
+    .time-slot {
+      cursor: pointer;
+      padding: 10px;
+      margin: 5px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      text-align: center;
+    }
+    .time-slot:hover {
+      background-color: #f8f9fa;
+    }
+    .time-slot.selected {
+      background-color: #0d6efd;
+      color: white;
+    }
+    .time-slot.unavailable {
+      background-color: #f8d7da;
+      color: #842029;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div class="container py-5">
+    <h1 class="text-center mb-5">Agende seu horário</h1>
+    
+    <div class="card">
+      <div class="card-header">
+        <ul class="nav nav-pills card-header-pills justify-content-center">
+          <li class="nav-item">
+            <a class="nav-link step-indicator" data-step="1">Serviço</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link step-indicator" data-step="2">Profissional</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link step-indicator" data-step="3">Data</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link step-indicator" data-step="4">Horário</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link step-indicator" data-step="5">Confirmar</a>
+          </li>
+        </ul>
+      </div>
+      
+      <div class="card-body">
+        <form id="appointmentForm">
+          <!-- Passo 1: Selecionar Categoria e Serviço -->
+          <div class="step active" id="step1">
+            <h3>Selecione o serviço desejado</h3>
+            <div class="mb-3">
+              <label for="category" class="form-label">Categoria</label>
+              <select class="form-select" id="category" required>
+                <option value="" selected disabled>Selecione uma categoria</option>
+                <!-- Categorias serão carregadas via JavaScript -->
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="service" class="form-label">Serviço</label>
+              <select class="form-select" id="service" disabled required>
+                <option value="" selected disabled>Primeiro selecione uma categoria</option>
+              </select>
+            </div>
+            <div class="d-flex justify-content-between">
+              <button type="button" class="btn btn-secondary" disabled>Voltar</button>
+              <button type="button" class="btn btn-primary next-step" data-next="2">Próximo</button>
+            </div>
+          </div>
+          
+          <!-- Passo 2: Selecionar Profissional -->
+          <div class="step" id="step2">
+            <h3>Selecione o profissional</h3>
+            <div class="mb-3">
+              <label for="employee" class="form-label">Profissional</label>
+              <select class="form-select" id="employee" required>
+                <option value="" selected disabled>Selecione um profissional</option>
+                <!-- Profissionais serão carregados via JavaScript -->
+              </select>
+            </div>
+            <div class="d-flex justify-content-between">
+              <button type="button" class="btn btn-secondary prev-step" data-prev="1">Voltar</button>
+              <button type="button" class="btn btn-primary next-step" data-next="3">Próximo</button>
+            </div>
+          </div>
+          
+          <!-- Passo 3: Selecionar Data -->
+          <div class="step" id="step3">
+            <h3>Selecione a data</h3>
+            <div class="mb-3">
+              <label for="appointmentDate" class="form-label">Data</label>
+              <input type="text" class="form-control" id="appointmentDate" required>
+            </div>
+            <div class="d-flex justify-content-between">
+              <button type="button" class="btn btn-secondary prev-step" data-prev="2">Voltar</button>
+              <button type="button" class="btn btn-primary next-step" data-next="4">Próximo</button>
+            </div>
+          </div>
+          
+          <!-- Passo 4: Selecionar Horário -->
+          <div class="step" id="step4">
+            <h3>Selecione o horário</h3>
+            <div class="mb-3">
+              <label class="form-label">Horários disponíveis</label>
+              <div id="timeSlots" class="d-flex flex-wrap">
+                <!-- Horários serão carregados via JavaScript -->
+              </div>
+            </div>
+            <input type="hidden" id="selectedTime" required>
+            <div class="d-flex justify-content-between">
+              <button type="button" class="btn btn-secondary prev-step" data-prev="3">Voltar</button>
+              <button type="button" class="btn btn-primary next-step" data-next="5">Próximo</button>
+            </div>
+          </div>
+          
+          <!-- Passo 5: Confirmar Agendamento -->
+          <div class="step" id="step5">
+            <h3>Confirme seu agendamento</h3>
+            <div class="mb-3">
+              <label for="clientName" class="form-label">Nome completo</label>
+              <input type="text" class="form-control" id="clientName" required>
+            </div>
+            <div class="mb-3">
+              <label for="clientEmail" class="form-label">E-mail</label>
+              <input type="email" class="form-control" id="clientEmail" required>
+            </div>
+            <div class="mb-3">
+              <label for="clientPhone" class="form-label">Telefone</label>
+              <input type="tel" class="form-control" id="clientPhone" required>
+            </div>
+            
+            <div class="card mb-4">
+              <div class="card-header">
+                Detalhes do Agendamento
+              </div>
+              <div class="card-body">
+                <p><strong>Serviço:</strong> <span id="confirmService"></span></p>
+                <p><strong>Profissional:</strong> <span id="confirmEmployee"></span></p>
+                <p><strong>Data:</strong> <span id="confirmDate"></span></p>
+                <p><strong>Horário:</strong> <span id="confirmTime"></span></p>
+              </div>
+            </div>
+            
+            <div class="d-flex justify-content-between">
+              <button type="button" class="btn btn-secondary prev-step" data-prev="4">Voltar</button>
+              <button type="submit" class="btn btn-success">Confirmar Agendamento</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmação -->
+  <div class="modal fade" id="confirmationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Agendamento Confirmado!</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Seu agendamento foi confirmado com sucesso!</p>
+          <p>Detalhes:</p>
+          <ul id="appointmentDetails">
+          </ul>
+          <p>Você receberá um e-mail de confirmação em breve.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Fechar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
