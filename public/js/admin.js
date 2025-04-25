@@ -1,15 +1,38 @@
 document.addEventListener('DOMContentLoaded', function() {
+  // Verificar se estamos na página admin
+  if (!document.getElementById('categoriesTable')) return;
+  
+  // Inicializar componentes
+  initDatePickers();
+  
+  // Carregar dados iniciais
   loadCategories();
   loadServices();
   loadEmployees();
   loadAppointments();
   setupEventListeners();
+  
+  // Adicionar listener para tabs
+  document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => {
+    tab.addEventListener('shown.bs.tab', function() {
+      const target = this.getAttribute('data-bs-target');
+      if (target === '#categories') loadCategories();
+      if (target === '#services') loadServices();
+      if (target === '#employees') loadEmployees();
+      if (target === '#appointments') loadAppointments();
+    });
+  });
 });
 
 // Funções auxiliares
 function formatDate(dateString) {
-  const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
-  return new Date(dateString).toLocaleDateString('pt-BR', options);
+  try {
+    const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
+    return new Date(dateString).toLocaleDateString('pt-BR', options);
+  } catch (error) {
+    console.error('Erro ao formatar data:', error);
+    return dateString;
+  }
 }
 
 function getStatusBadgeClass(status) {
@@ -30,102 +53,151 @@ function getStatusText(status) {
   }
 }
 
-function showConfirmationModal(type, id) {
-  const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
-  const modalTitle = document.getElementById('modalTitle');
-  const modalBody = document.getElementById('modalBody');
-  
-  let message = '';
-  switch (type) {
-    case 'category':
-      message = 'Tem certeza que deseja excluir esta categoria? Todos os serviços associados serão removidos.';
-      break;
-    case 'service':
-      message = 'Tem certeza que deseja excluir este serviço? Todos os agendamentos associados serão removidos.';
-      break;
-    case 'employee':
-      message = 'Tem certeza que deseja excluir este funcionário? Todos os agendamentos e associações serão removidos.';
-      break;
-    case 'appointment':
-      message = 'Tem certeza que deseja cancelar este agendamento?';
-      break;
-    default:
-      message = 'Tem certeza que deseja executar esta ação?';
+function showToast(message, type = 'success') {
+  try {
+    const toastElement = document.getElementById('liveToast');
+    if (!toastElement) return;
+
+    const toastBody = toastElement.querySelector('.toast-body');
+    if (toastBody) toastBody.textContent = message;
+    
+    toastElement.classList.remove('bg-success', 'bg-danger', 'bg-warning');
+    toastElement.classList.add(
+      type === 'success' ? 'bg-success' : 
+      type === 'error' ? 'bg-danger' : 'bg-warning'
+    );
+
+    const toast = new bootstrap.Toast(toastElement);
+    toast.show();
+  } catch (error) {
+    console.error('Erro ao exibir toast:', error);
   }
-  
-  modalTitle.textContent = `Confirmar ${type === 'appointment' ? 'Cancelamento' : 'Exclusão'}`;
-  modalBody.textContent = message;
-  
-  document.getElementById('confirmAction').onclick = async function() {
-    try {
-      let endpoint = '';
-      let method = 'DELETE';
-      
-      switch (type) {
-        case 'category': 
-          endpoint = `/api/admin/categories/${id}`;
-          break;
-        case 'service': 
-          endpoint = `/api/admin/services/${id}`;
-          break;
-        case 'employee': 
-          endpoint = `/api/admin/employees/${id}`;
-          break;
-        case 'appointment': 
-          endpoint = `/api/admin/appointments/${id}/cancel`;
-          method = 'PUT';
-          break;
-      }
-      
-      const response = await fetch(endpoint, {
-        method: method,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro ao executar ação');
-      }
-
-      // Recarregar os dados
-      switch (type) {
-        case 'category': 
-          loadCategories();
-          loadServices(); // Recarrega serviços pois podem ter sido afetados
-          break;
-        case 'service': 
-          loadServices();
-          loadAppointments(); // Recarrega agendamentos pois podem ter sido afetados
-          break;
-        case 'employee': 
-          loadEmployees();
-          loadAppointments(); // Recarrega agendamentos pois podem ter sido afetados
-          break;
-        case 'appointment': 
-          loadAppointments();
-          break;
-      }
-
-      modal.hide();
-    } catch (error) {
-      console.error('Erro:', error);
-      alert(error.message || 'Ocorreu um erro ao executar a ação');
-    }
-  };
-  
-  modal.show();
 }
 
-// Carregar categorias
+function initDatePickers() {
+  try {
+    const dateFilter = document.getElementById('appointmentDateFilter');
+    if (dateFilter && window.flatpickr) {
+      dateFilter.flatpickr({
+        dateFormat: 'Y-m-d',
+        allowInput: true,
+        locale: 'pt'
+      });
+    }
+  } catch (error) {
+    console.error('Erro ao inicializar datepickers:', error);
+  }
+}
+
+function showConfirmationModal(type, id) {
+  try {
+    const modalElement = document.getElementById('confirmationModal');
+    if (!modalElement) throw new Error('Elemento do modal não encontrado');
+    
+    const modal = new bootstrap.Modal(modalElement);
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+    const confirmBtn = document.getElementById('confirmAction');
+    
+    if (!modalTitle || !modalBody || !confirmBtn) {
+      throw new Error('Elementos do modal não encontrados');
+    }
+
+    let message = '';
+    switch (type) {
+      case 'category':
+        message = 'Tem certeza que deseja excluir esta categoria? Todos os serviços associados serão removidos.';
+        break;
+      case 'service':
+        message = 'Tem certeza que deseja excluir este serviço? Todos os agendamentos associados serão removidos.';
+        break;
+      case 'employee':
+        message = 'Tem certeza que deseja excluir este funcionário? Todos os agendamentos e associações serão removidos.';
+        break;
+      case 'appointment':
+        message = 'Tem certeza que deseja cancelar este agendamento?';
+        break;
+      default:
+        message = 'Tem certeza que deseja executar esta ação?';
+    }
+    
+    modalTitle.textContent = `Confirmar ${type === 'appointment' ? 'Cancelamento' : 'Exclusão'}`;
+    modalBody.textContent = message;
+    
+    confirmBtn.onclick = async function() {
+      try {
+        let endpoint = '';
+        let method = 'DELETE';
+        
+        switch (type) {
+          case 'category': endpoint = `/api/admin/categories/${id}`; break;
+          case 'service': endpoint = `/api/admin/services/${id}`; break;
+          case 'employee': endpoint = `/api/admin/employees/${id}`; break;
+          case 'appointment': 
+            endpoint = `/api/admin/appointments/${id}/cancel`;
+            method = 'PUT';
+            break;
+        }
+        
+        const response = await fetch(endpoint, { 
+          method, 
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          } 
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        
+        switch (type) {
+          case 'category': 
+            await loadCategories();
+            await loadServices();
+            break;
+          case 'service': 
+            await loadServices();
+            await loadAppointments();
+            break;
+          case 'employee': 
+            await loadEmployees();
+            await loadAppointments();
+            break;
+          case 'appointment': 
+            await loadAppointments();
+            break;
+        }
+
+        showToast(result.message || 'Operação realizada com sucesso!', 'success');
+        modal.hide();
+      } catch (error) {
+        console.error('Erro na ação de confirmação:', error);
+        showToast(`Erro: ${error.message}`, 'error');
+        modal.hide();
+      }
+    };
+
+    modal.show();
+  } catch (error) {
+    console.error('Erro ao mostrar modal de confirmação:', error);
+    showToast(`Erro: ${error.message}`, 'error');
+  }
+}
+
+// Carregar dados
 async function loadCategories() {
   try {
     const response = await fetch('/api/admin/categories');
-    if (!response.ok) throw new Error('Erro ao carregar categorias');
+    if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status}`);
     
     const data = await response.json();
     const tableBody = document.getElementById('categoriesTable');
+    if (!tableBody) throw new Error('Tabela de categorias não encontrada');
+    
     tableBody.innerHTML = '';
     
     data.forEach(category => {
@@ -141,7 +213,6 @@ async function loadCategories() {
       tableBody.appendChild(row);
     });
 
-    // Atualizar select de categorias no formulário de serviços
     const categorySelect = document.getElementById('serviceCategory');
     if (categorySelect) {
       categorySelect.innerHTML = '<option value="" selected disabled>Selecione uma categoria</option>';
@@ -152,18 +223,16 @@ async function loadCategories() {
         categorySelect.appendChild(option);
       });
     }
-
   } catch (error) {
-    console.error('Erro:', error);
-    alert('Não foi possível carregar as categorias');
+    console.error('Erro ao carregar categorias:', error);
+    showToast(`Erro ao carregar categorias: ${error.message}`, 'error');
   }
 }
 
-// Carregar serviços
 async function loadServices() {
   try {
     const response = await fetch('/api/admin/services');
-    if (!response.ok) throw new Error('Erro ao carregar serviços');
+    if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status}`);
     
     const data = await response.json();
     const tableBody = document.getElementById('servicesTable');
@@ -187,16 +256,15 @@ async function loadServices() {
       tableBody.appendChild(row);
     });
   } catch (error) {
-    console.error('Erro:', error);
-    alert('Não foi possível carregar os serviços');
+    console.error('Erro ao carregar serviços:', error);
+    showToast(`Erro ao carregar serviços: ${error.message}`, 'error');
   }
 }
 
-// Carregar funcionários
 async function loadEmployees() {
   try {
     const response = await fetch('/api/admin/employees');
-    if (!response.ok) throw new Error('Erro ao carregar funcionários');
+    if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status}`);
     
     const data = await response.json();
     const tableBody = document.getElementById('employeesTable');
@@ -219,16 +287,15 @@ async function loadEmployees() {
       tableBody.appendChild(row);
     });
   } catch (error) {
-    console.error('Erro:', error);
-    alert('Não foi possível carregar os funcionários');
+    console.error('Erro ao carregar funcionários:', error);
+    showToast(`Erro ao carregar funcionários: ${error.message}`, 'error');
   }
 }
 
-// Carregar agendamentos
 async function loadAppointments() {
   try {
     const response = await fetch('/api/admin/appointments');
-    if (!response.ok) throw new Error('Erro ao carregar agendamentos');
+    if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status}`);
     
     const data = await response.json();
     const tableBody = document.getElementById('appointmentsTable');
@@ -251,14 +318,18 @@ async function loadAppointments() {
           </span>
         </td>
         <td>
-          <button class="btn btn-sm btn-danger delete-appointment" data-id="${appointment.id}">Cancelar</button>
+          <button class="btn btn-sm btn-danger cancel-appointment" 
+                  data-id="${appointment.id}"
+                  ${appointment.status !== 'confirmed' ? 'disabled' : ''}>
+            Cancelar
+          </button>
         </td>
       `;
       tableBody.appendChild(row);
     });
   } catch (error) {
-    console.error('Erro:', error);
-    alert('Não foi possível carregar os agendamentos');
+    console.error('Erro ao carregar agendamentos:', error);
+    showToast(`Erro ao carregar agendamentos: ${error.message}`, 'error');
   }
 }
 
@@ -267,64 +338,122 @@ function setupEventListeners() {
   // Formulário de Categorias
   const categoryForm = document.getElementById('categoryForm');
   if (categoryForm) {
-    categoryForm.addEventListener('submit', handleCategorySubmit);
-    document.getElementById('cancelCategoryEdit')?.addEventListener('click', cancelCategoryEdit);
+    categoryForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      try {
+        await handleCategorySubmit(e);
+      } catch (error) {
+        console.error('Erro no submit da categoria:', error);
+        showToast(`Erro: ${error.message}`, 'error');
+      }
+    });
+    
+    const cancelCategoryBtn = document.getElementById('cancelCategoryEdit');
+    if (cancelCategoryBtn) cancelCategoryBtn.addEventListener('click', cancelCategoryEdit);
   }
-  
+
   // Formulário de Serviços
   const serviceForm = document.getElementById('serviceForm');
   if (serviceForm) {
-    serviceForm.addEventListener('submit', handleServiceSubmit);
-    document.getElementById('cancelServiceEdit')?.addEventListener('click', cancelServiceEdit);
+    serviceForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      try {
+        await handleServiceSubmit(e);
+      } catch (error) {
+        console.error('Erro no submit do serviço:', error);
+        showToast(`Erro: ${error.message}`, 'error');
+      }
+    });
+    
+    const cancelServiceBtn = document.getElementById('cancelServiceEdit');
+    if (cancelServiceBtn) cancelServiceBtn.addEventListener('click', cancelServiceEdit);
   }
-  
+
   // Formulário de Funcionários
   const employeeForm = document.getElementById('employeeForm');
   if (employeeForm) {
-    employeeForm.addEventListener('submit', handleEmployeeSubmit);
-    document.getElementById('cancelEmployeeEdit')?.addEventListener('click', cancelEmployeeEdit);
+    employeeForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      try {
+        await handleEmployeeSubmit(e);
+      } catch (error) {
+        console.error('Erro no submit do funcionário:', error);
+        showToast(`Erro: ${error.message}`, 'error');
+      }
+    });
+    
+    const cancelEmployeeBtn = document.getElementById('cancelEmployeeEdit');
+    if (cancelEmployeeBtn) cancelEmployeeBtn.addEventListener('click', cancelEmployeeEdit);
+  }
+
+  // Pesquisa e Filtros
+  const searchBtn = document.getElementById('searchAppointments');
+  if (searchBtn) {
+    searchBtn.addEventListener('click', async function() {
+      try {
+        await searchAppointments();
+      } catch (error) {
+        console.error('Erro na pesquisa:', error);
+        showToast(`Erro: ${error.message}`, 'error');
+      }
+    });
   }
   
-  // Pesquisa de Agendamentos
-  document.getElementById('searchAppointments')?.addEventListener('click', searchAppointments);
-  document.getElementById('filterByDate')?.addEventListener('click', filterAppointmentsByDate);
-  
-  // Listeners para botões de editar/excluir
+  const filterBtn = document.getElementById('filterByDate');
+  if (filterBtn) {
+    filterBtn.addEventListener('click', async function() {
+      try {
+        await filterAppointmentsByDate();
+      } catch (error) {
+        console.error('Erro no filtro:', error);
+        showToast(`Erro: ${error.message}`, 'error');
+      }
+    });
+  }
+
+  // Delegation para botões dinâmicos
   document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('delete-category')) {
-      showConfirmationModal('category', e.target.getAttribute('data-id'));
-    }
-    if (e.target.classList.contains('delete-service')) {
-      showConfirmationModal('service', e.target.getAttribute('data-id'));
-    }
-    if (e.target.classList.contains('delete-employee')) {
-      showConfirmationModal('employee', e.target.getAttribute('data-id'));
-    }
-    if (e.target.classList.contains('delete-appointment')) {
-      showConfirmationModal('appointment', e.target.getAttribute('data-id'));
-    }
     if (e.target.classList.contains('edit-category')) {
-      editCategory(e.target.getAttribute('data-id'));
+      editCategory(e.target.dataset.id).catch(error => {
+        console.error('Erro ao editar categoria:', error);
+        showToast(`Erro: ${error.message}`, 'error');
+      });
     }
     if (e.target.classList.contains('edit-service')) {
-      editService(e.target.getAttribute('data-id'));
+      editService(e.target.dataset.id).catch(error => {
+        console.error('Erro ao editar serviço:', error);
+        showToast(`Erro: ${error.message}`, 'error');
+      });
     }
     if (e.target.classList.contains('edit-employee')) {
-      editEmployee(e.target.getAttribute('data-id'));
+      editEmployee(e.target.dataset.id).catch(error => {
+        console.error('Erro ao editar funcionário:', error);
+        showToast(`Erro: ${error.message}`, 'error');
+      });
+    }
+    if (e.target.classList.contains('delete-category') || 
+        e.target.classList.contains('delete-service') || 
+        e.target.classList.contains('delete-employee') || 
+        e.target.classList.contains('cancel-appointment')) {
+      const type = e.target.classList.contains('delete-category') ? 'category' :
+                  e.target.classList.contains('delete-service') ? 'service' :
+                  e.target.classList.contains('delete-employee') ? 'employee' : 'appointment';
+      showConfirmationModal(type, e.target.dataset.id);
     }
   });
 }
 
-// Pesquisar agendamentos
+// Funções de pesquisa
 async function searchAppointments() {
-  const searchTerm = document.getElementById('appointmentSearch').value.trim();
-  
   try {
+    const searchTerm = document.getElementById('appointmentSearch')?.value.trim() || '';
     const response = await fetch(`/api/admin/appointments?search=${encodeURIComponent(searchTerm)}`);
-    if (!response.ok) throw new Error('Erro ao buscar agendamentos');
+    if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status}`);
     
     const data = await response.json();
     const tableBody = document.getElementById('appointmentsTable');
+    if (!tableBody) throw new Error('Tabela de agendamentos não encontrada');
+    
     tableBody.innerHTML = '';
     
     data.forEach(appointment => {
@@ -342,27 +471,33 @@ async function searchAppointments() {
           </span>
         </td>
         <td>
-          <button class="btn btn-sm btn-danger delete-appointment" data-id="${appointment.id}">Cancelar</button>
+          <button class="btn btn-sm btn-danger cancel-appointment" 
+                  data-id="${appointment.id}"
+                  ${appointment.status !== 'confirmed' ? 'disabled' : ''}>
+            Cancelar
+          </button>
         </td>
       `;
       tableBody.appendChild(row);
     });
   } catch (error) {
-    console.error('Erro:', error);
-    alert('Não foi possível buscar os agendamentos');
+    console.error('Erro na pesquisa de agendamentos:', error);
+    throw error;
   }
 }
 
-// Filtrar agendamentos por data
 async function filterAppointmentsByDate() {
-  const date = document.getElementById('appointmentDateFilter').value;
-  
   try {
+    const date = document.getElementById('appointmentDateFilter')?.value;
+    if (!date) return;
+    
     const response = await fetch(`/api/admin/appointments?date=${date}`);
-    if (!response.ok) throw new Error('Erro ao filtrar agendamentos');
+    if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status}`);
     
     const data = await response.json();
     const tableBody = document.getElementById('appointmentsTable');
+    if (!tableBody) throw new Error('Tabela de agendamentos não encontrada');
+    
     tableBody.innerHTML = '';
     
     data.forEach(appointment => {
@@ -380,74 +515,82 @@ async function filterAppointmentsByDate() {
           </span>
         </td>
         <td>
-          <button class="btn btn-sm btn-danger delete-appointment" data-id="${appointment.id}">Cancelar</button>
+          <button class="btn btn-sm btn-danger cancel-appointment" 
+                  data-id="${appointment.id}"
+                  ${appointment.status !== 'confirmed' ? 'disabled' : ''}>
+            Cancelar
+          </button>
         </td>
       `;
       tableBody.appendChild(row);
     });
   } catch (error) {
-    console.error('Erro:', error);
-    alert('Não foi possível filtrar os agendamentos');
+    console.error('Erro ao filtrar agendamentos:', error);
+    throw error;
   }
 }
 
 // Funções para manipulação de categorias
 async function handleCategorySubmit(e) {
-  e.preventDefault();
-  
-  const formData = {
-    name: document.getElementById('categoryName').value.trim()
-  };
-  
-  if (!formData.name) {
-    alert('O nome da categoria é obrigatório');
-    return;
-  }
-  
-  const categoryId = document.getElementById('categoryId').value;
-  const method = categoryId ? 'PUT' : 'POST';
-  const endpoint = categoryId ? `/api/admin/categories/${categoryId}` : '/api/admin/categories';
-  
   try {
+    e.preventDefault();
+    
+    const name = document.getElementById('categoryName')?.value.trim();
+    if (!name) throw new Error('O nome da categoria é obrigatório');
+    
+    const categoryId = document.getElementById('categoryId')?.value;
+    const method = categoryId ? 'PUT' : 'POST';
+    const endpoint = categoryId ? `/api/admin/categories/${categoryId}` : '/api/admin/categories';
+    
     const response = await fetch(endpoint, {
       method: method,
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       },
-      body: JSON.stringify(formData)
+      body: JSON.stringify({ name })
     });
     
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Erro ao salvar categoria');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
     }
     
-    const data = await response.json();
+    const result = await response.json();
+    
     document.getElementById('categoryForm').reset();
     document.getElementById('categoryId').value = '';
-    loadCategories();
-    alert('Categoria salva com sucesso!');
+    
+    await loadCategories();
+    showToast(result.message || 'Categoria salva com sucesso!', 'success');
   } catch (error) {
-    console.error('Erro:', error);
-    alert(error.message || 'Não foi possível salvar a categoria');
+    console.error('Erro no submit da categoria:', error);
+    throw error;
   }
 }
 
-function editCategory(id) {
-  fetch(`/api/admin/categories/${id}`)
-    .then(response => {
-      if (!response.ok) throw new Error('Erro ao carregar categoria');
-      return response.json();
-    })
-    .then(category => {
-      document.getElementById('categoryId').value = category.id;
-      document.getElementById('categoryName').value = category.name;
-      document.getElementById('categoryForm').scrollIntoView({ behavior: 'smooth' });
-    })
-    .catch(error => {
-      console.error('Erro:', error);
-      alert('Não foi possível carregar a categoria para edição');
-    });
+async function editCategory(id) {
+  try {
+    if (!id) throw new Error('ID da categoria não fornecido');
+    
+    const response = await fetch(`/api/admin/categories/${id}`);
+    if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status}`);
+    
+    const category = await response.json();
+    
+    const idField = document.getElementById('categoryId');
+    const nameField = document.getElementById('categoryName');
+    if (!idField || !nameField) throw new Error('Elementos do formulário não encontrados');
+    
+    idField.value = category.id;
+    nameField.value = category.name;
+    
+    const form = document.getElementById('categoryForm');
+    if (form) form.scrollIntoView({ behavior: 'smooth' });
+  } catch (error) {
+    console.error('Erro ao editar categoria:', error);
+    throw error;
+  }
 }
 
 function cancelCategoryEdit() {
@@ -457,77 +600,99 @@ function cancelCategoryEdit() {
 
 // Funções para manipulação de serviços
 async function handleServiceSubmit(e) {
-  e.preventDefault();
-  
-  const formData = {
-    category_id: document.getElementById('serviceCategory').value,
-    name: document.getElementById('serviceName').value.trim(),
-    description: document.getElementById('serviceDescription').value.trim(),
-    duration: parseInt(document.getElementById('serviceDuration').value),
-    price: parseFloat(document.getElementById('servicePrice').value) || null
-  };
-  
-  // Validações
-  if (!formData.category_id) {
-    alert('Selecione uma categoria');
-    return;
-  }
-  if (!formData.name) {
-    alert('O nome do serviço é obrigatório');
-    return;
-  }
-  if (!formData.duration || formData.duration <= 0) {
-    alert('A duração deve ser um número positivo');
-    return;
-  }
-  
-  const serviceId = document.getElementById('serviceId').value;
-  const method = serviceId ? 'PUT' : 'POST';
-  const endpoint = serviceId ? `/api/admin/services/${serviceId}` : '/api/admin/services';
-  
   try {
+    e.preventDefault();
+    
+    const categoryId = document.getElementById('serviceCategory')?.value;
+    const name = document.getElementById('serviceName')?.value.trim();
+    const description = document.getElementById('serviceDescription')?.value.trim();
+    const duration = parseInt(document.getElementById('serviceDuration')?.value);
+    const price = parseFloat(document.getElementById('servicePrice')?.value) || null;
+    
+    if (!categoryId) throw new Error('Selecione uma categoria');
+    if (!name) throw new Error('O nome do serviço é obrigatório');
+    if (!duration || duration <= 0) throw new Error('A duração deve ser um número positivo');
+    
+    const serviceId = document.getElementById('serviceId')?.value;
+    const method = serviceId ? 'PUT' : 'POST';
+    const endpoint = serviceId ? `/api/admin/services/${serviceId}` : '/api/admin/services';
+    
     const response = await fetch(endpoint, {
       method: method,
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       },
-      body: JSON.stringify(formData)
+      body: JSON.stringify({
+        category_id: categoryId,
+        name,
+        description,
+        duration,
+        price
+      })
     });
     
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Erro ao salvar serviço');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
     }
     
-    const data = await response.json();
+    const result = await response.json();
+    
     document.getElementById('serviceForm').reset();
     document.getElementById('serviceId').value = '';
-    loadServices();
-    alert('Serviço salvo com sucesso!');
+    
+    await loadServices();
+    showToast(result.message || 'Serviço salvo com sucesso!', 'success');
   } catch (error) {
-    console.error('Erro:', error);
-    alert(error.message || 'Não foi possível salvar o serviço');
+    console.error('Erro no submit do serviço:', error);
+    throw error;
   }
 }
 
 async function editService(id) {
   try {
-    const response = await fetch(`/api/admin/services/${id}`);
-    if (!response.ok) throw new Error('Erro ao carregar serviço');
+    if (!id) throw new Error('ID do serviço não fornecido');
+    
+    const response = await fetch(`/api/admin/services/${id}`, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('Serviço não encontrado no servidor');
+      }
+      throw new Error(`Erro HTTP! status: ${response.status}`);
+    }
     
     const service = await response.json();
     
-    document.getElementById('serviceId').value = service.id;
-    document.getElementById('serviceCategory').value = service.category_id;
-    document.getElementById('serviceName').value = service.name;
-    document.getElementById('serviceDescription').value = service.description || '';
-    document.getElementById('serviceDuration').value = service.duration;
-    document.getElementById('servicePrice').value = service.price || '';
+    const idField = document.getElementById('serviceId');
+    const categoryField = document.getElementById('serviceCategory');
+    const nameField = document.getElementById('serviceName');
+    const descField = document.getElementById('serviceDescription');
+    const durationField = document.getElementById('serviceDuration');
+    const priceField = document.getElementById('servicePrice');
     
-    document.getElementById('serviceForm').scrollIntoView({ behavior: 'smooth' });
+    if (!idField || !categoryField || !nameField || !descField || !durationField || !priceField) {
+      throw new Error('Elementos do formulário não encontrados');
+    }
+    
+    idField.value = service.id;
+    categoryField.value = service.category_id;
+    nameField.value = service.name;
+    descField.value = service.description || '';
+    durationField.value = service.duration;
+    priceField.value = service.price || '';
+    
+    const form = document.getElementById('serviceForm');
+    if (form) form.scrollIntoView({ behavior: 'smooth' });
   } catch (error) {
-    console.error('Erro:', error);
-    alert('Não foi possível carregar o serviço para edição');
+    console.error('Erro ao editar serviço:', error);
+    showToast(`Falha ao carregar serviço: ${error.message}`, 'error');
+    throw error;
   }
 }
 
@@ -538,69 +703,79 @@ function cancelServiceEdit() {
 
 // Funções para manipulação de funcionários
 async function handleEmployeeSubmit(e) {
-  e.preventDefault();
-  
-  const formData = {
-    name: document.getElementById('employeeName').value.trim(),
-    email: document.getElementById('employeeEmail').value.trim(),
-    phone: document.getElementById('employeePhone').value.trim() || null
-  };
-  
-  // Validações
-  if (!formData.name) {
-    alert('O nome do funcionário é obrigatório');
-    return;
-  }
-  if (!formData.email || !formData.email.includes('@')) {
-    alert('Informe um e-mail válido');
-    return;
-  }
-  
-  const employeeId = document.getElementById('employeeId').value;
-  const method = employeeId ? 'PUT' : 'POST';
-  const endpoint = employeeId ? `/api/admin/employees/${employeeId}` : '/api/admin/employees';
-  
   try {
+    e.preventDefault();
+    
+    const name = document.getElementById('employeeName')?.value.trim();
+    const email = document.getElementById('employeeEmail')?.value.trim();
+    const phone = document.getElementById('employeePhone')?.value.trim() || null;
+    
+    if (!name) throw new Error('O nome do funcionário é obrigatório');
+    if (!email || !email.includes('@')) throw new Error('Informe um e-mail válido');
+    
+    const employeeId = document.getElementById('employeeId')?.value;
+    const method = employeeId ? 'PUT' : 'POST';
+    const endpoint = employeeId ? `/api/admin/employees/${employeeId}` : '/api/admin/employees';
+    
     const response = await fetch(endpoint, {
       method: method,
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       },
-      body: JSON.stringify(formData)
+      body: JSON.stringify({
+        name,
+        email,
+        phone
+      })
     });
     
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Erro ao salvar funcionário');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
     }
     
-    const data = await response.json();
+    const result = await response.json();
+    
     document.getElementById('employeeForm').reset();
     document.getElementById('employeeId').value = '';
-    loadEmployees();
-    alert('Funcionário salvo com sucesso!');
+    
+    await loadEmployees();
+    showToast(result.message || 'Funcionário salvo com sucesso!', 'success');
   } catch (error) {
-    console.error('Erro:', error);
-    alert(error.message || 'Não foi possível salvar o funcionário');
+    console.error('Erro no submit do funcionário:', error);
+    throw error;
   }
 }
 
 async function editEmployee(id) {
   try {
+    if (!id) throw new Error('ID do funcionário não fornecido');
+    
     const response = await fetch(`/api/admin/employees/${id}`);
-    if (!response.ok) throw new Error('Erro ao carregar funcionário');
+    if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status}`);
     
     const employee = await response.json();
     
-    document.getElementById('employeeId').value = employee.id;
-    document.getElementById('employeeName').value = employee.name;
-    document.getElementById('employeeEmail').value = employee.email;
-    document.getElementById('employeePhone').value = employee.phone || '';
+    const idField = document.getElementById('employeeId');
+    const nameField = document.getElementById('employeeName');
+    const emailField = document.getElementById('employeeEmail');
+    const phoneField = document.getElementById('employeePhone');
     
-    document.getElementById('employeeForm').scrollIntoView({ behavior: 'smooth' });
+    if (!idField || !nameField || !emailField || !phoneField) {
+      throw new Error('Elementos do formulário não encontrados');
+    }
+    
+    idField.value = employee.id;
+    nameField.value = employee.name;
+    emailField.value = employee.email;
+    phoneField.value = employee.phone || '';
+    
+    const form = document.getElementById('employeeForm');
+    if (form) form.scrollIntoView({ behavior: 'smooth' });
   } catch (error) {
-    console.error('Erro:', error);
-    alert('Não foi possível carregar o funcionário para edição');
+    console.error('Erro ao editar funcionário:', error);
+    throw error;
   }
 }
 

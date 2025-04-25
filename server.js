@@ -16,7 +16,6 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
-// Adicione no início das rotas
 
 // Rotas para servir os arquivos HTML
 app.get('/', (req, res) => {
@@ -77,15 +76,14 @@ app.get('/api/employees/:serviceId', async (req, res) => {
   }
 });
 
+
 app.get('/api/available-times', async (req, res) => {
   try {
     const { employeeId, date, duration } = req.query;
     
-    // 1. Obter o dia da semana (0-6)
     const dateObj = new Date(date);
     const dayOfWeek = dateObj.getDay();
 
-    // 2. Obter o horário de trabalho do funcionário
     const { data: schedule, error: scheduleError } = await supabase
       .from('work_schedules')
       .select('*')
@@ -97,7 +95,6 @@ app.get('/api/available-times', async (req, res) => {
       return res.json([]);
     }
 
-    // 3. Obter agendamentos existentes
     const { data: appointments, error: appointmentsError } = await supabase
       .from('appointments')
       .select('*')
@@ -107,10 +104,9 @@ app.get('/api/available-times', async (req, res) => {
 
     if (appointmentsError) throw appointmentsError;
 
-    // 4. Gerar slots disponíveis
     const workStart = new Date(`${date}T${schedule.start_time}`);
     const workEnd = new Date(`${date}T${schedule.end_time}`);
-    const interval = 15 * 60 * 1000; // 15 minutos
+    const interval = 15 * 60 * 1000;
     const durationMs = duration * 60 * 1000;
     
     let currentSlot = new Date(workStart);
@@ -176,6 +172,7 @@ app.post('/api/appointments', async (req, res) => {
 });
 
 // API para a área administrativa
+// Rotas para categorias
 app.get('/api/admin/categories', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -187,6 +184,25 @@ app.get('/api/admin/categories', async (req, res) => {
     res.json(data);
   } catch (error) {
     console.error('Error fetching categories:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/admin/categories/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'Categoria não encontrada' });
+    
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching category:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -273,6 +289,59 @@ app.post('/api/admin/services', async (req, res) => {
   }
 });
 
+app.get('/api/admin/services/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { data, error } = await supabase
+      .from('services')
+      .select('*, categories(name)')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'Serviço não encontrado' });
+    
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching service:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.put('/api/admin/services/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { category_id, name, description, duration, price } = req.body;
+    const { data, error } = await supabase
+      .from('services')
+      .update({ category_id, name, description, duration, price })
+      .eq('id', id)
+      .select();
+
+    if (error) throw error;
+    res.json(data[0]);
+  } catch (error) {
+    console.error('Error updating service:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.delete('/api/admin/services/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { error } = await supabase
+      .from('services')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error deleting service:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Rotas para funcionários
 app.get('/api/admin/employees', async (req, res) => {
   try {
@@ -285,6 +354,56 @@ app.get('/api/admin/employees', async (req, res) => {
     res.json(data);
   } catch (error) {
     console.error('Error fetching employees:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/api/admin/employees', async (req, res) => {
+  try {
+    const { name, email, phone } = req.body;
+    const { data, error } = await supabase
+      .from('employees')
+      .insert([{ name, email, phone }])
+      .select();
+
+    if (error) throw error;
+    res.status(201).json(data[0]);
+  } catch (error) {
+    console.error('Error creating employee:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.put('/api/admin/employees/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, phone } = req.body;
+    const { data, error } = await supabase
+      .from('employees')
+      .update({ name, email, phone })
+      .eq('id', id)
+      .select();
+
+    if (error) throw error;
+    res.json(data[0]);
+  } catch (error) {
+    console.error('Error updating employee:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.delete('/api/admin/employees/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { error } = await supabase
+      .from('employees')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error deleting employee:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
