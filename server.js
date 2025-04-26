@@ -33,26 +33,24 @@ app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    // Consultar o Supabase buscando o usuário pelo username
-    const { data, error } = await supabase
+    const { data: user, error } = await supabase
       .from('users')
-      .select('id, username, password_plaintext')
+      .select('id, username, email, password_plaintext')
       .eq('username', username)
-      .single(); // Queremos apenas 1 resultado
+      .single();
 
-    // Se der erro ou não encontrar usuário
-    if (error || !data) {
-      return res.status(401).json({ error: 'Usuário ou senha inválidos' });
+    if (error || !user || user.password_plaintext !== password) {
+      return res.status(401).json({ error: 'Credenciais inválidas' });
     }
 
-    // Comparar a senha
-    if (data.password_plaintext === password) {
-      // Login válido
-      return res.json({ success: true });
-    } else {
-      // Senha incorreta
-      return res.status(401).json({ error: 'Usuário ou senha inválidos' });
-    }
+    // Remove a senha antes de retornar
+    delete user.password_plaintext;
+    
+    res.json({ 
+      success: true,
+      user 
+    });
+
   } catch (err) {
     console.error('Erro ao fazer login:', err);
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -62,6 +60,60 @@ app.post('/api/login', async (req, res) => {
 
 app.get('/api/check-auth', (req, res) => {
   res.json({ message: 'Autenticação no frontend pelo LocalStorage.' });
+});
+
+// Rota para obter dados do usuário
+app.get('/api/admin/users/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, username, email, password_plaintext, created_at, updated_at')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'Usuário não encontrado' });
+    
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.put('/api/admin/users/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { username, email, password_plaintext } = req.body;
+
+    if (!username || !email) {
+      return res.status(400).json({ error: 'Nome de usuário e e-mail são obrigatórios' });
+    }
+
+    const updateData = { 
+      username,
+      email,
+      updated_at: new Date().toISOString()
+    };
+
+    if (password_plaintext) {
+      updateData.password_plaintext = password_plaintext;
+    }
+
+    const { data, error } = await supabase
+      .from('users')
+      .update(updateData)
+      .eq('id', id)
+      .select('id, username, email, created_at, updated_at')
+      .single();
+
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    console.error('Error updating user:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // API para o frontend (Agendamento)
@@ -509,23 +561,41 @@ app.get('/api/admin/dashboard', async (req, res) => {
       .from('services')
       .select('*', { count: 'exact', head: true });
 
-    // Contar agendamentos (apenas os confirmados)
+    // Contar agendamentos (apenas confirmados)
     const { count: appointmentsCount } = await supabase
       .from('appointments')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'confirmed');
 
+    // Buscar agendamentos confirmados agrupados por mês
+    const { data: appointmentsData, error } = await supabase
+      .from('appointments')
+      .select('appointment_date')
+      .eq('status', 'confirmed');
+
+    if (error) throw error;
+
+    // Preparar os dados por mês
+    const monthlyAppointments = Array(12).fill(0); // Janeiro a Dezembro
+
+    appointmentsData.forEach(item => {
+      const month = new Date(item.appointment_date).getMonth(); // 0-11
+      monthlyAppointments[month]++;
+    });
+
     res.json({
       totalEmployees: employeesCount || 0,
       totalCategories: categoriesCount || 0,
       totalServices: servicesCount || 0,
-      totalAppointments: appointmentsCount || 0
+      totalAppointments: appointmentsCount || 0,
+      monthlyAppointments // <== enviando isso pro frontend
     });
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 
 // Iniciar o servidor
 app.listen(port, () => {

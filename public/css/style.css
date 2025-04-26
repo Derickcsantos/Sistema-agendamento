@@ -1,24 +1,116 @@
-.sidebar { min-height: 100vh; }
-.nav-link { color: #333; }
-.nav-link.active { color: #0d6efd; font-weight: bold; }
-.tab-content { padding: 20px; background-color: #fff; border-radius: 0 0 5px 5px; }
-.form-section { margin-bottom: 30px; }
+:root {
+  --bg-color: #f8f9fa;
+  --text-color: #212529;
+  --sidebar-bg: #f8f9fa;
+  --card-bg: #ffffff;
+  --table-bg: #ffffff;
+  --border-color: #dee2e6;
+}
+
+[data-theme="dark"] {
+  --bg-color: #2d3436;
+  --text-color: #f0ebeb;
+  --sidebar-bg: #3a4142;
+  --card-bg: #3a4142;
+  --table-bg: #3a4142;
+  --border-color: #4e5557;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+.sidebar {
+  min-height: 100vh;
+  background-color: var(--sidebar-bg) !important;
+}
+
+.nav-link { 
+  color: var(--text-color); 
+}
+.nav-link.active { 
+  color: #0d6efd; 
+  font-weight: bold; 
+}
+
+.tab-content { 
+  padding: 20px; 
+  background-color: var(--bg-color); 
+  border-radius: 0 0 5px 5px; 
+}
+
+.form-section { 
+  margin-bottom: 30px; 
+}
+
+.card {
+  background-color: var(--card-bg);
+  border-color: var(--border-color);
+}
+
+.table {
+  color: var(--text-color);
+  background-color: var(--table-bg);
+}
+
+.table-striped>tbody>tr:nth-of-type(odd)>* {
+  --bs-table-accent-bg: var(--table-bg);
+  color: var(--text-color);
+}
+
+.table-hover>tbody>tr:hover>* {
+  --bs-table-accent-bg: rgba(13, 110, 253, 0.1);
+  color: var(--text-color);
+}
+
+.form-control, .form-select {
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  border-color: var(--border-color);
+}
 
 .chart-loading {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(255, 255, 255, 0.8);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 10;
-    border-radius: 5px;
-  }
-  
-  .chart-container {
-    position: relative;
-    min-height: 300px;
-  }
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: 5px;
+}
+
+.chart-container {
+  position: relative;
+  min-height: 300px;
+}
+
+.theme-toggle-btn {
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--text-color);
+  font-size: 1.2rem;
+}
+
+.user-profile-form {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.toggle-password {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.toggle-password i {
+  transition: all 0.3s;
+}
+
+.toggle-password:hover {
+  background-color: #e9ecef;
+}

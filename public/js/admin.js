@@ -810,210 +810,228 @@ function cancelEmployeeEdit() {
   document.getElementById('employeeId').value = '';
 }
 
-// Variáveis globais para os gráficos
-let charts = {
-  employees: null,
-  categories: null,
-  services: null,
-  appointments: null
-};
 
-// Configurações dos gráficos
-const chartConfigs = {
-  employees: {
-    type: 'doughnut',
-    data: {
-      labels: ['Funcionários'],
-      datasets: [{
-        backgroundColor: ['#36a2eb', '#ff6384', '#4bc0c0', '#ff9f40'],
-        borderColor: '#fff',
-        borderWidth: 2
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'bottom' },
-        title: { display: true, text: 'Total de Funcionários', padding: 10 },
-        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.raw}` } }
-      },
-      cutout: '70%'
-    }
-  },
-  categories: {
-    type: 'pie',
-    data: {
-      labels: ['Categorias'],
-      datasets: [{
-        backgroundColor: ['#ff6384', '#36a2eb', '#4bc0c0', '#ff9f40'],
-        borderColor: '#fff',
-        borderWidth: 2
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'bottom' },
-        title: { display: true, text: 'Total de Categorias', padding: 10 },
-        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.raw}` } }
-      }
-    }
-  },
-  services: {
-    type: 'bar',
-    data: {
-      labels: ['Serviços'],
-      datasets: [{
-        backgroundColor: ['#4bc0c0', '#36a2eb', '#ff6384', '#ff9f40'],
-        borderColor: '#fff',
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        title: { display: true, text: 'Total de Serviços', padding: 10 },
-        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.raw}` } }
-      },
-      scales: {
-        y: { beginAtZero: true, ticks: { precision: 0 } }
-      }
-    }
-  },
-  appointments: {
-    type: 'bar',
-    data: {
-      labels: ['Agendamentos'],
-      datasets: [{
-        backgroundColor: 'rgba(255, 159, 64, 0.2)',
-        borderColor: '#ff9f40',
-        borderWidth: 2,
-        fill: true,
-        tension: 0.4
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        title: { display: true, text: 'Total de Agendamentos', padding: 10 },
-        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.raw}` } }
-      },
-      scales: {
-        y: { beginAtZero: true, ticks: { precision: 0 } }
-      }
-    }
-  }
-};
-
-// Na função DOMContentLoaded
+// Theme Toggle Functionality
+// Theme and User Profile Functions
 document.addEventListener('DOMContentLoaded', function() {
-  // ... código existente ...
-  
-  // Adicionar listener para a tab Home
-  const homeTab = document.querySelector('[data-bs-target="#home"]');
-  if (homeTab) {
-    homeTab.addEventListener('shown.bs.tab', async function() {
-      try {
-        await loadDashboardData();
-        // Atualizar dados a cada 30 segundos quando na tab Home
-        const dashboardRefreshInterval = setInterval(async () => {
-          if (!document.querySelector('#home.tab-pane.active')) {
-            clearInterval(dashboardRefreshInterval);
-            return;
-          }
-          await loadDashboardData();
-        }, 30000);
-      } catch (error) {
-        console.error('Erro ao inicializar dashboard:', error);
-      }
+  // Theme initialization
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  setTheme(savedTheme);
+
+  // Load user data when settings tab is shown
+  document.querySelector('a[data-bs-target="#settings"]').addEventListener('shown.bs.tab', function() {
+    loadUserData();
+  });
+
+  // Theme toggle button
+  const themeToggleBtn = document.getElementById('themeToggle');
+  if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', toggleTheme);
+  }
+
+  // User profile form submission
+  const userProfileForm = document.getElementById('userProfileForm');
+  if (userProfileForm) {
+    userProfileForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      updateUserProfile();
     });
   }
 });
 
-// Carregar dados do dashboard
-async function loadDashboardData() {
-  try {
-    showLoading(true);
-    
-    const response = await fetch('/api/admin/dashboard');
-    if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status}`);
-    
-    const data = await response.json();
-    renderCharts(data);
-    updateStatsCards(data);
-    
-  } catch (error) {
-    console.error('Erro ao carregar dados do dashboard:', error);
-    showToast(`Erro ao carregar dashboard: ${error.message}`, 'error');
-  } finally {
-    showLoading(false);
+// Theme functions
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('theme', theme);
+  
+  const themeToggleBtn = document.getElementById('themeToggle');
+  if (themeToggleBtn) {
+    themeToggleBtn.innerHTML = theme === 'dark' 
+      ? '<i class="bi bi-sun-fill"></i> Alternar para Modo Claro' 
+      : '<i class="bi bi-moon-fill"></i> Alternar para Modo Escuro';
   }
 }
 
-// Renderizar gráficos
-function renderCharts(data) {
-  // Atualizar ou criar cada gráfico
-  Object.keys(chartConfigs).forEach(chartKey => {
-    const ctx = document.getElementById(`${chartKey}Chart`)?.getContext('2d');
-    if (!ctx) return;
-    
-    // Clonar a configuração base para evitar mutações
-    const config = JSON.parse(JSON.stringify(chartConfigs[chartKey]));
-    
-    // Atualizar dados
-    config.data.datasets[0].data = [data[`total${chartKey.charAt(0).toUpperCase() + chartKey.slice(1)}`]];
-    
-    // Destruir gráfico existente se houver
-    if (charts[chartKey]) charts[chartKey].destroy();
-    
-    // Criar novo gráfico
-    charts[chartKey] = new Chart(ctx, config);
-  });
+function toggleTheme() {
+  const currentTheme = document.documentElement.getAttribute('data-theme');
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  setTheme(newTheme);
 }
 
-// Atualizar cards de estatísticas (opcional)
-function updateStatsCards(data) {
-  const stats = {
-    employees: data.totalEmployees,
-    categories: data.totalCategories,
-    services: data.totalServices,
-    appointments: data.totalAppointments
-  };
+// Theme functions (unchanged)
+document.addEventListener('DOMContentLoaded', function() {
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  setTheme(savedTheme);
+
+  document.querySelector('a[data-bs-target="#settings"]').addEventListener('shown.bs.tab', loadUserData);
+  document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
+  document.getElementById('userProfileForm')?.addEventListener('submit', handleProfileUpdate);
+});
+
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('theme', theme);
   
-  Object.keys(stats).forEach(key => {
-    const element = document.getElementById(`${key}Stat`);
-    if (element) {
-      element.textContent = stats[key];
-      // Animação de contagem
-      animateValue(element, 0, stats[key], 1000);
-    }
-  });
+  const themeToggleBtn = document.getElementById('themeToggle');
+  if (themeToggleBtn) {
+    themeToggleBtn.innerHTML = theme === 'dark' 
+      ? '<i class="bi bi-sun-fill"></i> Alternar para Modo Claro' 
+      : '<i class="bi bi-moon-fill"></i> Alternar para Modo Escuro';
+  }
 }
 
-// Função auxiliar para animação de contagem
-function animateValue(element, start, end, duration) {
-  let startTimestamp = null;
-  const step = (timestamp) => {
-    if (!startTimestamp) startTimestamp = timestamp;
-    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-    element.textContent = Math.floor(progress * (end - start) + start);
-    if (progress < 1) {
-      window.requestAnimationFrame(step);
-    }
-  };
-  window.requestAnimationFrame(step);
+function toggleTheme() {
+  const currentTheme = document.documentElement.getAttribute('data-theme');
+  setTheme(currentTheme === 'dark' ? 'light' : 'dark');
 }
 
-// Mostrar/ocultar loading
-function showLoading(show) {
-  const loaders = document.querySelectorAll('.chart-loading');
-  loaders.forEach(loader => {
-    loader.style.display = show ? 'flex' : 'none';
-  });
+ // Função para carregar dados do usuário atual
+// Função para obter usuário do LocalStorage
+function getCurrentUser() {
+  const userData = localStorage.getItem('currentUser');
+  if (!userData) {
+    throw new Error('Nenhum usuário logado encontrado');
+  }
+  return JSON.parse(userData);
+}
+
+// Função para carregar e exibir dados do usuário
+async function loadAndDisplayUserData() {
+  const userInfoElement = document.getElementById('userInfo');
+  
+  try {
+    // Mostrar loading
+    if (userInfoElement) {
+      userInfoElement.innerHTML = `
+        <div class="text-center">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Carregando...</span>
+          </div>
+          <p>Carregando dados do usuário...</p>
+        </div>
+      `;
+    }
+
+    // Obter usuário do LocalStorage
+    const currentUser = getCurrentUser();
+    
+    // Preencher formulário
+    document.getElementById('userId').value = currentUser.id;
+    document.getElementById('userUsername').value = currentUser.username;
+    document.getElementById('userEmail').value = currentUser.email || '';
+    
+    // Mostrar informações
+    if (userInfoElement) {
+      userInfoElement.innerHTML = `
+        <div class="user-profile-summary">
+          <h5 class="mb-3">Informações do Perfil</h5>
+          <div class="row">
+            <div class="col-md-6">
+              <p><strong>ID:</strong> ${currentUser.id}</p>
+              <p><strong>Nome de usuário:</strong> ${currentUser.username}</p>
+            </div>
+            <div class="col-md-6">
+              <p><strong>E-mail:</strong> ${currentUser.email || 'Não informado'}</p>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+  } catch (error) {
+    console.error('Erro ao carregar dados do usuário:', error);
+    
+    if (userInfoElement) {
+      userInfoElement.innerHTML = `
+        <div class="alert alert-danger">
+          <i class="bi bi-exclamation-triangle-fill"></i> Erro ao carregar perfil: ${error.message}
+        </div>
+      `;
+    }
+  }
+}
+
+// Função para atualizar usuário
+async function updateUserProfile(e) {
+  e.preventDefault();
+  
+  const form = e.target;
+  const submitBtn = form.querySelector('button[type="submit"]');
+  const originalBtnText = submitBtn.innerHTML;
+  
+  try {
+    // Mostrar loading
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `
+      <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+      Salvando...
+    `;
+
+    const userId = document.getElementById('userId').value;
+    const username = document.getElementById('userUsername').value.trim();
+    const email = document.getElementById('userEmail').value.trim();
+    const password = document.getElementById('userPassword').value;
+    const confirmPassword = document.getElementById('userConfirmPassword').value;
+
+    if (password && password !== confirmPassword) {
+      throw new Error('As senhas não coincidem');
+    }
+
+    const updateData = { username, email };
+    if (password) updateData.password_plaintext = password;
+
+    const response = await fetch(`/api/admin/users/${userId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(updateData)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Erro ao atualizar usuário');
+    }
+
+    const updatedUser = await response.json();
+    console.log('Usuário atualizado:', updatedUser);
+    
+    // Atualiza os dados no LocalStorage
+    localStorage.setItem('currentUser', JSON.stringify({
+      id: updatedUser.id,
+      username: updatedUser.username,
+      email: updatedUser.email
+    }));
+    
+    // Recarregar e exibir dados atualizados
+    await loadAndDisplayUserData();
+    
+    // Limpar campos de senha
+    document.getElementById('userPassword').value = '';
+    document.getElementById('userConfirmPassword').value = '';
+
+    // Mostrar feedback
+    showToast('Perfil atualizado com sucesso!', 'success');
+  } catch (error) {
+    console.error('Erro ao atualizar perfil:', error);
+    showToast(`Erro: ${error.message}`, 'error');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalBtnText;
+  }
+}
+
+// Adicionar event listeners
+document.addEventListener('DOMContentLoaded', function() {
+  // Carregar usuário quando a aba for aberta
+  document.querySelector('a[data-bs-target="#settings"]')?.addEventListener('shown.bs.tab', loadAndDisplayUserData);
+  
+  // Formulário de atualização
+  document.getElementById('userProfileForm')?.addEventListener('submit', updateUserProfile);
+});
+
+// Helper function to show toast notifications
+function showToast(type, message) {
+  console.log(`${type.toUpperCase()}: ${message}`);
+  // In a real app, you would implement a proper toast notification system
+  // Example: bootstrap.Toast or similar
 }

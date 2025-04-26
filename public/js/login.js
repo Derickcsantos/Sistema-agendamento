@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const loginForm = document.getElementById('loginForm');
   const loginMessage = document.getElementById('loginMessage');
 
-  // Se já está logado, redireciona
+  // Redireciona se já está logado
   if (localStorage.getItem('isLoggedIn') === 'true') {
     window.location.href = '/admin';
     return;
@@ -21,13 +21,24 @@ document.addEventListener('DOMContentLoaded', function() {
         body: JSON.stringify({ username, password })
       });
 
-      if (!response.ok) throw new Error('Credenciais inválidas');
+      const result = await response.json();
 
-      // Se sucesso, marca como logado no LocalStorage
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Credenciais inválidas');
+      }
+
+      // Armazena todos os dados necessários no localStorage
       localStorage.setItem('isLoggedIn', 'true');
+      localStorage.setItem('currentUser', JSON.stringify({
+        id: result.user.id,
+        username: result.user.username,
+        email: result.user.email,
+        created_at: result.user.created_at
+      }));
+      
       window.location.href = '/admin';
     } catch (error) {
-      showMessage('Dados incorretos', 'danger');
+      showMessage(error.message, 'danger');
     }
   });
 
@@ -35,9 +46,5 @@ document.addEventListener('DOMContentLoaded', function() {
     loginMessage.textContent = message;
     loginMessage.className = `mt-3 alert alert-${type}`;
     loginMessage.classList.remove('d-none');
-
-    setTimeout(() => {
-      loginMessage.classList.add('d-none');
-    }, 5000);
   }
 });
