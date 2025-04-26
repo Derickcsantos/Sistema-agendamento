@@ -1,10 +1,13 @@
 document.addEventListener('DOMContentLoaded', function() {
-  // Verificar se estamos na página admin
+
+  if (localStorage.getItem('isLoggedIn') !== 'true') {
+    window.location.href = '/login';
+    return;
+  }
+
   if (!document.getElementById('categoriesTable')) return;
-  
   // Inicializar componentes
   initDatePickers();
-  
   // Carregar dados iniciais
   loadCategories();
   loadServices();
@@ -24,20 +27,12 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
-let isAuthenticated = false;
 
-// Função para verificar autenticação antes de cada requisição
-async function checkAuth() {
-  try {
-    const response = await fetch('/api/check-auth', { credentials: 'include' });
-    if (!response.ok) throw new Error('Não autenticado');
-    isAuthenticated = true;
-    return true;
-  } catch (error) {
-    window.location.href = '/login';
-    return false;
-  }
+function logout() {
+  localStorage.removeItem('isLoggedIn');
+  window.location.href = '/login';
 }
+
 
 // Modifique todas as chamadas fetch para incluir a verificação
 async function loadCategories() {
@@ -52,26 +47,6 @@ async function loadCategories() {
     console.error('Erro:', error);
   }
 }
-
-document.getElementById('logoutBtn').addEventListener('click', () => {
-  localStorage.removeItem('loggedIn');
-  window.location.href = '/login';
-});
-
-
-function authFetch(url, options = {}) {
-  const token = localStorage.getItem('authToken');
-  options.headers = options.headers || {};
-  options.headers['Authorization'] = `Bearer ${token}`;
-  return fetch(url, options);
-}
-
-// Verificar autenticação
-const token = localStorage.getItem('authToken');
-if (!token) {
-  window.location.href = 'login.html';
-}
-
 
 // Funções auxiliares
 function formatDate(dateString) {

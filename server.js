@@ -12,49 +12,56 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+
+const corsOptions = {
+  origin: 'http://localhost:3000', // Seu frontend
+  credentials: true,               // MUITO IMPORTANTE: permite cookies
+};
 // Middlewares
-app.use(cors({
-  origin: 'http://localhost:3000', // Seu domínio
-  credentials: true // PERMITE cookies
-}));
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+
 // Rotas para servir os arquivos HTML
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
+app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+
+// Rota de login simplificada (SEM HASH - APENAS PARA DESENVOLVIMENTO)
+app.post('/api/login', async (req, res) => {
+  const { username, password } = req.body;
+
+  try {
+    // Consultar o Supabase buscando o usuário pelo username
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, username, password_plaintext')
+      .eq('username', username)
+      .single(); // Queremos apenas 1 resultado
+
+    // Se der erro ou não encontrar usuário
+    if (error || !data) {
+      return res.status(401).json({ error: 'Usuário ou senha inválidos' });
+    }
+
+    // Comparar a senha
+    if (data.password_plaintext === password) {
+      // Login válido
+      return res.json({ success: true });
+    } else {
+      // Senha incorreta
+      return res.status(401).json({ error: 'Usuário ou senha inválidos' });
+    }
+  } catch (err) {
+    console.error('Erro ao fazer login:', err);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
 });
 
-app.get('/login', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'login.html'));
-});
-
-// Rota de logout
-app.get('/api/logout', (req, res) => {
-  res.json({ success: true });
-});
-
-app.get('/admin', (req, res) => {
-  console.log('Acesso direto ao painel admin');
-  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
-});
 
 app.get('/api/check-auth', (req, res) => {
-  res.json({
-    authenticated: !!req.session.user,
-    user: req.session.user || null
-  });
-});
-// Rota de login simplificada (SEM HASH - APENAS PARA DESENVOLVIMENTO)
-app.post('/api/login', (req, res) => {
-  const { username, password } = req.body;
-  
-  // Autenticação fixa
-  if (username === 'admin' && password === 'admin123') {
-    return res.json({ success: true });
-  }
-  
-  res.status(401).json({ error: 'Credenciais inválidas' });
+  res.json({ message: 'Autenticação no frontend pelo LocalStorage.' });
 });
 
 // API para o frontend (Agendamento)
