@@ -13,7 +13,10 @@ const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Middlewares
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:3000', // Seu domínio
+  credentials: true // PERMITE cookies
+}));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -22,8 +25,36 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// Rota de logout
+app.get('/api/logout', (req, res) => {
+  res.json({ success: true });
+});
+
 app.get('/admin', (req, res) => {
+  console.log('Acesso direto ao painel admin');
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+app.get('/api/check-auth', (req, res) => {
+  res.json({
+    authenticated: !!req.session.user,
+    user: req.session.user || null
+  });
+});
+// Rota de login simplificada (SEM HASH - APENAS PARA DESENVOLVIMENTO)
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
+  
+  // Autenticação fixa
+  if (username === 'admin' && password === 'admin123') {
+    return res.json({ success: true });
+  }
+  
+  res.status(401).json({ error: 'Credenciais inválidas' });
 });
 
 // API para o frontend (Agendamento)
@@ -449,6 +480,42 @@ app.put('/api/admin/appointments/:id/cancel', async (req, res) => {
     res.json(data[0]);
   } catch (error) {
     console.error('Error canceling appointment:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Rota para dados do dashboard
+app.get('/api/admin/dashboard', async (req, res) => {
+  try {
+    // Contar funcionários
+    const { count: employeesCount } = await supabase
+      .from('employees')
+      .select('*', { count: 'exact', head: true });
+
+    // Contar categorias
+    const { count: categoriesCount } = await supabase
+      .from('categories')
+      .select('*', { count: 'exact', head: true });
+
+    // Contar serviços
+    const { count: servicesCount } = await supabase
+      .from('services')
+      .select('*', { count: 'exact', head: true });
+
+    // Contar agendamentos (apenas os confirmados)
+    const { count: appointmentsCount } = await supabase
+      .from('appointments')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'confirmed');
+
+    res.json({
+      totalEmployees: employeesCount || 0,
+      totalCategories: categoriesCount || 0,
+      totalServices: servicesCount || 0,
+      totalAppointments: appointmentsCount || 0
+    });
+  } catch (error) {
+    console.error('Error fetching dashboard data:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
