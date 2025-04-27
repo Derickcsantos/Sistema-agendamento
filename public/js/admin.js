@@ -918,6 +918,7 @@ async function loadAndDisplayUserData() {
     // Preencher formulário
     document.getElementById('userId').value = currentUser.id;
     document.getElementById('userUsername').value = currentUser.username;
+    document.getElementById('userPassword').value = currentUser.password;
     document.getElementById('userEmail').value = currentUser.email || '';
     
     // Mostrar informações
@@ -932,6 +933,7 @@ async function loadAndDisplayUserData() {
             </div>
             <div class="col-md-6">
               <p><strong>E-mail:</strong> ${currentUser.email || 'Não informado'}</p>
+              <p><strong>Senha:</strong> ${currentUser.password}</p>
             </div>
           </div>
         </div>
@@ -999,6 +1001,7 @@ async function updateUserProfile(e) {
     localStorage.setItem('currentUser', JSON.stringify({
       id: updatedUser.id,
       username: updatedUser.username,
+      password: updatedUser.password,
       email: updatedUser.email
     }));
     

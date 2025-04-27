@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', function() {
       localStorage.setItem('currentUser', JSON.stringify({
         id: result.user.id,
         username: result.user.username,
+        password: result.user.password_plaintext,
         email: result.user.email,
         created_at: result.user.created_at
       }));

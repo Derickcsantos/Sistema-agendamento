@@ -42,9 +42,6 @@ app.post('/api/login', async (req, res) => {
     if (error || !user || user.password_plaintext !== password) {
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
-
-    // Remove a senha antes de retornar
-    delete user.password_plaintext;
     
     res.json({ 
       success: true,
