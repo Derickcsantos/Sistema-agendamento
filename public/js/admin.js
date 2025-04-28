@@ -952,14 +952,13 @@ async function loadAndDisplayUserData() {
   }
 }
 
-// Função para atualizar usuário
 async function updateUserProfile(e) {
   e.preventDefault();
-  
+
   const form = e.target;
   const submitBtn = form.querySelector('button[type="submit"]');
   const originalBtnText = submitBtn.innerHTML;
-  
+
   try {
     // Mostrar loading
     submitBtn.disabled = true;
@@ -972,14 +971,15 @@ async function updateUserProfile(e) {
     const username = document.getElementById('userUsername').value.trim();
     const email = document.getElementById('userEmail').value.trim();
     const password = document.getElementById('userPassword').value;
-    const confirmPassword = document.getElementById('userConfirmPassword').value;
 
-    if (password && password !== confirmPassword) {
-      throw new Error('As senhas não coincidem');
+    if (!username || !email) {
+      throw new Error('Preencha nome de usuário e e-mail');
     }
 
     const updateData = { username, email };
     if (password) updateData.password_plaintext = password;
+
+    console.log('Enviando dados para atualização:', updateData);
 
     const response = await fetch(`/api/admin/users/${userId}`, {
       method: 'PUT',
@@ -997,22 +997,20 @@ async function updateUserProfile(e) {
     const updatedUser = await response.json();
     console.log('Usuário atualizado:', updatedUser);
     
-    // Atualiza os dados no LocalStorage
+    // Atualiza os dados no LocalStorage (inclui a senha fornecida)
     localStorage.setItem('currentUser', JSON.stringify({
       id: updatedUser.id,
       username: updatedUser.username,
-      password: updatedUser.password,
-      email: updatedUser.email
+      email: updatedUser.email,
+      password: document.getElementById('userPassword').value
     }));
-    
-    // Recarregar e exibir dados atualizados
-    await loadAndDisplayUserData();
-    
-    // Limpar campos de senha
-    document.getElementById('userPassword').value = '';
-    document.getElementById('userConfirmPassword').value = '';
 
-    // Mostrar feedback
+
+    await loadAndDisplayUserData();
+
+    // // Limpar campo de senha
+    // document.getElementById('userPassword').value = '';
+
     showToast('Perfil atualizado com sucesso!', 'success');
   } catch (error) {
     console.error('Erro ao atualizar perfil:', error);
@@ -1038,3 +1036,23 @@ function showToast(type, message) {
   // In a real app, you would implement a proper toast notification system
   // Example: bootstrap.Toast or similar
 }
+
+// Visibilidade da senha:
+
+document.addEventListener('click', function (e) {
+  if (e.target.closest('.toggle-password')) {
+    const button = e.target.closest('.toggle-password');
+    const input = button.parentElement.querySelector('.password-input');
+
+    if (input) {
+      const isHidden = input.type === 'password';
+      input.type = isHidden ? 'text' : 'password';
+
+      const icon = button.querySelector('i');
+      if (icon) {
+        icon.classList.toggle('bi-eye-fill', !isHidden);
+        icon.classList.toggle('bi-eye-slash-fill', isHidden);
+      }
+    }
+  }
+});

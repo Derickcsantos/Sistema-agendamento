@@ -88,7 +88,7 @@ app.put('/api/admin/users/:id', async (req, res) => {
       return res.status(400).json({ error: 'Nome de usuário e e-mail são obrigatórios' });
     }
 
-    const updateData = { 
+    const updateData = {
       username,
       email,
       updated_at: new Date().toISOString()
@@ -98,11 +98,12 @@ app.put('/api/admin/users/:id', async (req, res) => {
       updateData.password_plaintext = password_plaintext;
     }
 
+
     const { data, error } = await supabase
       .from('users')
       .update(updateData)
       .eq('id', id)
-      .select('id, username, email, created_at, updated_at')
+      .select('id, username, email, password_plaintext, updated_at')
       .single();
 
     if (error) throw error;
