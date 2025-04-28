@@ -4,7 +4,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Redireciona se já está logado
   if (localStorage.getItem('isLoggedIn') === 'true') {
-    window.location.href = '/admin';
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+    if (user?.tipo === 'admin') {
+      window.location.href = '/admin';
+    } else {
+      window.location.href = '/logado';
+    }
     return;
   }
 
@@ -27,22 +32,31 @@ document.addEventListener('DOMContentLoaded', function() {
         throw new Error(result.error || 'Credenciais inválidas');
       }
 
-      // Armazena todos os dados necessários no localStorage
+      const user = result.user;
+
+      // Armazena dados no localStorage
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.setItem('currentUser', JSON.stringify({
-        id: result.user.id,
-        username: result.user.username,
-        password: result.user.password_plaintext,
-        email: result.user.email,
-        created_at: result.user.created_at
+        id: user.id,
+        username: user.username,
+        password: user.password_plaintext,
+        email: user.email,
+        tipo: user.tipo,
+        created_at: user.created_at
       }));
-      
-      window.location.href = '/admin';
+
+      // Redirecionamento baseado no tipo de usuário
+      if (user.tipo === 'admin') {
+        window.location.href = '/admin';
+      } else {
+        window.location.href = '/logado';
+      }
+
     } catch (error) {
       showMessage(error.message, 'danger');
     }
   });
-
+  
   function showMessage(message, type) {
     loginMessage.textContent = message;
     loginMessage.className = `mt-3 alert alert-${type}`;

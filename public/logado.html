@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Área do Cliente - Salão</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/logado.css"/>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">Salão de Beleza</a>
+      <div class="d-flex">
+        <button id="btnPerfil" class="btn btn-light">Meu Perfil</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container mt-5 text-center">
+    <h1>Bem-vindo ao seu painel de agendamentos!</h1>
+    <p class="lead">Aqui você poderá ver e gerenciar seus agendamentos com facilidade.</p>
+    <button class="btn btn-outline-primary mt-3">Ver Agendamentos</button>
+  </div>
+
+  <!-- Modal de Perfil -->
+  <div class="modal fade" id="perfilModal" tabindex="-1" aria-labelledby="perfilModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="perfilModalLabel">Meu Perfil</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <p><strong>Nome de usuário:</strong> <span id="perfilUsername"></span></p>
+          <p><strong>Email:</strong> <span id="perfilEmail"></span></p>
+          <p><strong>Tipo de conta:</strong> <span id="perfilTipo"></span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/logado.js"></script>
+</body>
+</html>

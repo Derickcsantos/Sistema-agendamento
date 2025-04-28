@@ -27,6 +27,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+app.get('/logado', (req, res) => res.sendFile(path.join(__dirname, 'public', 'logado.html')));
 
 // Rota de login simplificada (SEM HASH - APENAS PARA DESENVOLVIMENTO)
 app.post('/api/login', async (req, res) => {
@@ -35,7 +36,7 @@ app.post('/api/login', async (req, res) => {
   try {
     const { data: user, error } = await supabase
       .from('users')
-      .select('id, username, email, password_plaintext')
+      .select('id, username, email, password_plaintext, tipo')
       .eq('username', username)
       .single();
 
