@@ -63,3 +63,22 @@ document.addEventListener('DOMContentLoaded', function() {
     loginMessage.classList.remove('d-none');
   }
 });
+
+  // Visibilidade da senha
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.toggle-password')) {
+      const button = e.target.closest('.toggle-password');
+      const input = button.parentElement.querySelector('.password-input');
+
+      if (input) {
+        const isHidden = input.type === 'password';
+        input.type = isHidden ? 'text' : 'password';
+
+        const icon = button.querySelector('i');
+        if (icon) {
+          icon.classList.toggle('bi-eye-fill', !isHidden);
+          icon.classList.toggle('bi-eye-slash-fill', isHidden);
+        }
+      }
+    }
+  });

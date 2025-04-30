@@ -732,14 +732,14 @@ async function handleEmployeeSubmit(e) {
   try {
     e.preventDefault();
     
-    const name = document.getElementById('employeeName')?.value.trim();
-    const email = document.getElementById('employeeEmail')?.value.trim();
-    const phone = document.getElementById('employeePhone')?.value.trim() || null;
+    const name = document.getElementById('employeeName').value.trim();
+    const email = document.getElementById('employeeEmail').value.trim();
+    const phone = document.getElementById('employeePhone').value.trim() || null;
     
     if (!name) throw new Error('O nome do funcionário é obrigatório');
     if (!email || !email.includes('@')) throw new Error('Informe um e-mail válido');
     
-    const employeeId = document.getElementById('employeeId')?.value;
+    const employeeId = document.getElementById('employeeId').value;
     const method = employeeId ? 'PUT' : 'POST';
     const endpoint = employeeId ? `/api/admin/employees/${employeeId}` : '/api/admin/employees';
     
@@ -749,11 +749,7 @@ async function handleEmployeeSubmit(e) {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      body: JSON.stringify({
-        name,
-        email,
-        phone
-      })
+      body: JSON.stringify({ name, email, phone })
     });
     
     if (!response.ok) {
@@ -763,14 +759,17 @@ async function handleEmployeeSubmit(e) {
     
     const result = await response.json();
     
+    // Resetar formulário
     document.getElementById('employeeForm').reset();
     document.getElementById('employeeId').value = '';
     
+    // Atualizar lista e mostrar feedback
     await loadEmployees();
-    showToast(result.message || 'Funcionário salvo com sucesso!', 'success');
+    showToast(employeeId ? 'Funcionário atualizado com sucesso!' : 'Funcionário cadastrado com sucesso!', 'success');
+    
   } catch (error) {
     console.error('Erro no submit do funcionário:', error);
-    throw error;
+    showToast(error.message, 'error');
   }
 }
 
@@ -783,25 +782,21 @@ async function editEmployee(id) {
     
     const employee = await response.json();
     
-    const idField = document.getElementById('employeeId');
-    const nameField = document.getElementById('employeeName');
-    const emailField = document.getElementById('employeeEmail');
-    const phoneField = document.getElementById('employeePhone');
+    document.getElementById('employeeId').value = employee.id;
+    document.getElementById('employeeName').value = employee.name;
+    document.getElementById('employeeEmail').value = employee.email;
+    document.getElementById('employeePhone').value = employee.phone || '';
     
-    if (!idField || !nameField || !emailField || !phoneField) {
-      throw new Error('Elementos do formulário não encontrados');
-    }
+    // Mudar o texto do botão para "Atualizar"
+    const submitBtn = document.querySelector('#employeeForm button[type="submit"]');
+    if (submitBtn) submitBtn.textContent = 'Atualizar';
     
-    idField.value = employee.id;
-    nameField.value = employee.name;
-    emailField.value = employee.email;
-    phoneField.value = employee.phone || '';
+    // Rolar até o formulário
+    document.getElementById('employeeForm').scrollIntoView({ behavior: 'smooth' });
     
-    const form = document.getElementById('employeeForm');
-    if (form) form.scrollIntoView({ behavior: 'smooth' });
   } catch (error) {
     console.error('Erro ao editar funcionário:', error);
-    throw error;
+    showToast('Erro ao carregar dados do funcionário', 'error');
   }
 }
 

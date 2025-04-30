@@ -1,44 +1,166 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-bs-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Área do Cliente - Salão</title>
+  <title>Área do Cliente - Salão Paula Tranças</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
   <link rel="stylesheet" href="/css/logado.css"/>
 </head>
 <body>
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
-      <a class="navbar-brand" href="#">Salão de Beleza</a>
-      <div class="d-flex">
-        <button id="btnPerfil" class="btn btn-light">Meu Perfil</button>
+      <a class="navbar-brand" href="#">Salão Paula Tranças</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="/">Agendar Serviço</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">Meus Agendamentos</a>
+          </li>
+        </ul>
+        <div class="d-flex align-items-center">
+          <button id="themeToggle" class="btn btn-sm btn-outline-light me-2">
+            <i class="bi bi-moon-fill"></i>
+          </button>
+          <button id="btnPerfil" class="btn btn-light me-2">
+            <i class="bi bi-person-fill"></i> Perfil
+          </button>
+          <button id="btnLogout" class="btn btn-danger">
+            <i class="bi bi-box-arrow-right"></i> Sair
+          </button>
+        </div>
       </div>
     </div>
   </nav>
 
-  <div class="container mt-5 text-center">
-    <h1>Bem-vindo ao seu painel de agendamentos!</h1>
-    <p class="lead">Aqui você poderá ver e gerenciar seus agendamentos com facilidade.</p>
-    <button class="btn btn-outline-primary mt-3">Ver Agendamentos</button>
+  <div class="container my-5">
+    <div class="row">
+      <div class="col-lg-8 mx-auto text-center">
+        <h1 class="display-4 mb-4">Bem-vinda ao Salão Paula Tranças</h1>
+        <p class="lead">Seu espaço de beleza e bem-estar, onde cada detalhe é pensado para realçar sua beleza única.</p>
+        
+        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center my-4">
+          <a href="/" class="btn btn-primary btn-lg px-4 gap-3">
+            <i class="bi bi-calendar-plus"></i> Agendar Agora
+          </a>
+          <button class="btn btn-outline-secondary btn-lg px-4">
+            <i class="bi bi-list-check"></i> Meus Agendamentos
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mt-5">
+      <div class="col-md-4 mb-4">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body text-center">
+            <i class="bi bi-scissors display-4 text-primary mb-3"></i>
+            <h3>Cortes e Penteados</h3>
+            <p class="card-text">Transforme seu visual com nossos cortes modernos e penteados exclusivos para cada ocasião.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4 mb-4">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body text-center">
+            <i class="bi bi-palette display-4 text-primary mb-3"></i>
+            <h3>Coloração</h3>
+            <p class="card-text">Técnicas avançadas de coloração para realçar sua beleza natural com produtos de alta qualidade.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4 mb-4">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body text-center">
+            <i class="bi bi-emoji-heart-eyes display-4 text-primary mb-3"></i>
+            <h3>Tratamentos</h3>
+            <p class="card-text">Tratamentos capilares e faciais personalizados para cuidar da sua beleza e bem-estar.</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Modal de Perfil -->
   <div class="modal fade" id="perfilModal" tabindex="-1" aria-labelledby="perfilModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="perfilModalLabel">Meu Perfil</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
         </div>
         <div class="modal-body">
-          <p><strong>Nome de usuário:</strong> <span id="perfilUsername"></span></p>
-          <p><strong>Email:</strong> <span id="perfilEmail"></span></p>
-          <p><strong>Tipo de conta:</strong> <span id="perfilTipo"></span></p>
+          <form id="profileForm">
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="profileUsername" class="form-label">Nome de usuário</label>
+                <input type="text" class="form-control" id="profileUsername">
+              </div>
+              <div class="col-md-6">
+                <label for="profileEmail" class="form-label">Email</label>
+                <input type="email" class="form-control" id="profileEmail">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="profilePassword" class="form-label">Nova Senha (deixe em branco para não alterar)</label>
+              <div class="input-group">
+                <input type="password" class="form-control password-input" id="profilePassword">
+                <button class="btn btn-outline-secondary toggle-password" type="button">
+                  <i class="bi bi-eye-slash-fill"></i>
+                </button>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Tipo de conta</label>
+              <input type="text" class="form-control" id="profileTipo" disabled>
+            </div>
+            <div class="d-flex justify-content-end">
+              <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Fechar</button>
+              <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
   </div>
+
+  <footer class="bg-light text-center text-lg-start mt-5">
+    <div class="container p-4">
+      <div class="row">
+        <div class="col-lg-6 col-md-12 mb-4 mb-md-0">
+          <h5 class="text-uppercase">Salão Paula Tranças</h5>
+          <p>
+            Especializado em beleza feminina, oferecemos serviços personalizados para realçar sua beleza natural.
+          </p>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4 mb-md-0">
+          <h5 class="text-uppercase">Horário</h5>
+          <ul class="list-unstyled">
+            <li>Seg-Sex: 9h - 19h</li>
+            <li>Sábado: 9h - 17h</li>
+            <li>Dom: Fechado</li>
+          </ul>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4 mb-md-0">
+          <h5 class="text-uppercase">Contato</h5>
+          <ul class="list-unstyled">
+            <li><i class="bi bi-telephone"></i> (11) 1234-5678</li>
+            <li><i class="bi bi-geo-alt"></i> Rua Mucugê, 123</li>
+            <li><i class="bi bi-envelope"></i> contato@belladonna.com</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="text-center p-3 bg-primary text-white">
+      © 2023 Bella Donna Salão - Todos os direitos reservados
+    </div>
+  </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="/js/logado.js"></script>
