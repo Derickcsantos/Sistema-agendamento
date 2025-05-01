@@ -114,3 +114,37 @@ body {
 .toggle-password:hover {
   background-color: #e9ecef;
 }
+
+/* Estilos para a seção de usuários */
+.form-section {
+  background-color: #f8f9fa;
+  padding: 20px;
+  border-radius: 5px;
+  margin-bottom: 20px;
+  border: 1px solid #dee2e6;
+}
+
+.table-responsive {
+  margin-top: 20px;
+}
+
+.table th {
+  font-weight: 600;
+}
+
+.btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+.action-buttons {
+  white-space: nowrap;
+}
+
+.badge-admin {
+  background-color: #6f42c1;
+}
+
+.badge-comum {
+  background-color: #6c757d;
+}

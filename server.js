@@ -127,6 +127,126 @@ app.post('/api/forgot-password', async (req, res) => {
   }
 });
 
+// Rota para listar todos os usuários
+app.get('/api/users', async (req, res) => {
+  try {
+    const { data: users, error } = await supabase
+      .from('users')
+      .select('id, username, email, tipo, created_at')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    res.json(users);
+  } catch (err) {
+    console.error('Erro ao listar usuários:', err);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para obter um usuário específico
+app.get('/api/users/:id', async (req, res) => {
+  try {
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, username, email, tipo, created_at')
+      .eq('id', req.params.id)
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    if (!user) {
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+
+    res.json(user);
+  } catch (err) {
+    console.error('Erro ao obter usuário:', err);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para atualizar um usuário
+app.put('/api/users/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { username, email, tipo, password_plaintext } = req.body;
+
+    // Verifica se o usuário existe
+    const { data: existingUser, error: userError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', id)
+      .single();
+
+    if (userError || !existingUser) {
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+
+    // Dados para atualização
+    const updateData = { username, email, tipo };
+
+    // Se foi informada uma senha, adiciona ao objeto de atualização
+    if (password_plaintext) {
+      updateData.password_plaintext = password_plaintext;
+    }
+
+    // Atualiza o usuário
+    const { data: updatedUser, error: updateError } = await supabase
+      .from('users')
+      .update(updateData)
+      .eq('id', id)
+      .select('id, username, email, tipo, created_at')
+      .single();
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    res.json(updatedUser);
+  } catch (err) {
+    console.error('Erro ao atualizar usuário:', err);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para excluir um usuário
+app.delete('/api/users/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Verifica se o usuário existe
+    const { data: existingUser, error: userError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', id)
+      .single();
+
+    if (userError || !existingUser) {
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+
+    // Exclui o usuário
+    const { error: deleteError } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) {
+      throw deleteError;
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Erro ao excluir usuário:', err);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
 // Rota de cadastro
 app.post('/api/register', async (req, res) => {
   const { username, email, password_plaintext } = req.body;
