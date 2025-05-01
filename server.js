@@ -29,6 +29,56 @@ app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'log
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.get('/logado', (req, res) => res.sendFile(path.join(__dirname, 'public', 'logado.html')));
 
+
+// ... (código anterior permanece o mesmo)
+
+// Rota de cadastro
+app.post('/api/register', async (req, res) => {
+  const { username, email, password_plaintext } = req.body;
+
+  try {
+    // Verifica se o usuário já existe
+    const { data: existingUser, error: userError } = await supabase
+      .from('users')
+      .select('id')
+      .or(`username.eq.${username},email.eq.${email}`)
+      .single();
+
+    if (existingUser) {
+      return res.status(400).json({ 
+        error: 'Usuário ou email já cadastrado' 
+      });
+    }
+
+    // Insere o novo usuário com tipo "comum" por padrão
+    const { data: newUser, error: insertError } = await supabase
+      .from('users')
+      .insert([{
+        username,
+        email,
+        password_plaintext, // ATENÇÃO: Em produção, use hash de senha!
+        tipo: 'comum',      // Definindo como comum por padrão
+        created_at: new Date().toISOString()
+      }])
+      .select('id, username, email, tipo, created_at')
+      .single();
+
+    if (insertError) {
+      throw insertError;
+    }
+
+    res.json({ 
+      success: true,
+      user: newUser
+    });
+
+  } catch (err) {
+    console.error('Erro ao cadastrar usuário:', err);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// ... (o restante do código permanece o mesmo)
 // Rota de login simplificada (SEM HASH - APENAS PARA DESENVOLVIMENTO)
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;

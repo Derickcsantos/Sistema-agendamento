@@ -1,6 +1,12 @@
 document.addEventListener('DOMContentLoaded', function() {
   const loginForm = document.getElementById('loginForm');
+  const cadastroForm = document.getElementById('cadastroForm');
   const loginMessage = document.getElementById('loginMessage');
+  const cadastroMessage = document.getElementById('cadastroMessage');
+  const loginContainer = document.getElementById('loginContainer');
+  const cadastroContainer = document.getElementById('cadastroContainer');
+  const switchToCadastro = document.getElementById('switchToCadastro');
+  const switchToLogin = document.getElementById('switchToLogin');
 
   // Redireciona se já está logado
   if (localStorage.getItem('isLoggedIn') === 'true') {
@@ -13,6 +19,20 @@ document.addEventListener('DOMContentLoaded', function() {
     return;
   }
 
+  // Alternar entre login e cadastro
+  switchToCadastro.addEventListener('click', function(e) {
+    e.preventDefault();
+    loginContainer.style.display = 'none';
+    cadastroContainer.style.display = 'block';
+  });
+
+  switchToLogin.addEventListener('click', function(e) {
+    e.preventDefault();
+    cadastroContainer.style.display = 'none';
+    loginContainer.style.display = 'block';
+  });
+
+  // Login
   loginForm.addEventListener('submit', async function(e) {
     e.preventDefault();
     
@@ -53,16 +73,67 @@ document.addEventListener('DOMContentLoaded', function() {
       }
 
     } catch (error) {
-      showMessage(error.message, 'danger');
+      showMessage(loginMessage, error.message, 'danger');
+    }
+  });
+
+  // Cadastro
+  cadastroForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const username = document.getElementById('cadastroUsername').value.trim();
+    const email = document.getElementById('cadastroEmail').value.trim();
+    const password = document.getElementById('cadastroPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+
+    // Validações básicas
+    if (password !== confirmPassword) {
+      showMessage(cadastroMessage, 'As senhas não coincidem', 'danger');
+      return;
+    }
+
+    if (password.length < 6) {
+      showMessage(cadastroMessage, 'A senha deve ter pelo menos 6 caracteres', 'danger');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          username, 
+          email, 
+          password_plaintext: password,
+          tipo: 'comum' // Definindo como 'comum' por padrão
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Erro ao cadastrar usuário');
+      }
+
+      showMessage(cadastroMessage, 'Cadastro realizado com sucesso! Faça login para continuar.', 'success');
+      
+      // Volta para o login após cadastro bem-sucedido
+      setTimeout(() => {
+        cadastroContainer.style.display = 'none';
+        loginContainer.style.display = 'block';
+        cadastroForm.reset();
+      }, 2000);
+
+    } catch (error) {
+      showMessage(cadastroMessage, error.message, 'danger');
     }
   });
   
-  function showMessage(message, type) {
-    loginMessage.textContent = message;
-    loginMessage.className = `mt-3 alert alert-${type}`;
-    loginMessage.classList.remove('d-none');
+  function showMessage(element, message, type) {
+    element.textContent = message;
+    element.className = `mt-3 alert alert-${type}`;
+    element.classList.remove('d-none');
   }
-});
 
   // Visibilidade da senha
   document.addEventListener('click', function(e) {
@@ -82,3 +153,4 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
   });
+});
