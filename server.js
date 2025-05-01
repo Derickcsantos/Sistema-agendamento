@@ -127,45 +127,79 @@ app.post('/api/forgot-password', async (req, res) => {
   }
 });
 
-// Rota para listar todos os usuários
+// Rota para obter todos os usuários
 app.get('/api/users', async (req, res) => {
   try {
-    const { data: users, error } = await supabase
+    const { data, error } = await supabase
       .from('users')
-      .select('id, username, email, tipo, created_at')
+      .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) {
-      throw error;
-    }
-
-    res.json(users);
-  } catch (err) {
-    console.error('Erro ao listar usuários:', err);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Rota para obter um usuário específico
 app.get('/api/users/:id', async (req, res) => {
   try {
-    const { data: user, error } = await supabase
+    const { id } = req.params;
+    const { data, error } = await supabase
       .from('users')
-      .select('id, username, email, tipo, created_at')
-      .eq('id', req.params.id)
+      .select('*')
+      .eq('id', id)
       .single();
 
-    if (error) {
-      throw error;
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'Usuário não encontrado' });
+    
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Rota para criar um novo usuário
+app.post('/api/users', async (req, res) => {
+  const { username, email, password_plaintext, tipo = 'comum' } = req.body;
+
+  try {
+    // Verifica se já existe usuário com mesmo username ou email
+    const { data: existingUsers, error: userError } = await supabase
+      .from('users')
+      .select('id')
+      .or(`username.eq.${username},email.eq.${email}`);
+
+    if (userError) throw userError;
+
+    if (existingUsers && existingUsers.length > 0) {
+      return res.status(400).json({
+        error: 'Usuário ou email já cadastrado'
+      });
     }
 
-    if (!user) {
-      return res.status(404).json({ error: 'Usuário não encontrado' });
-    }
+    // Insere novo usuário
+    const { data: newUser, error: insertError } = await supabase
+      .from('users')
+      .insert([{
+        username,
+        email,
+        password_plaintext,
+        tipo,
+        created_at: new Date().toISOString()
+      }])
+      .select('*')
+      .single();
 
-    res.json(user);
+    if (insertError) throw insertError;
+
+    res.json(newUser);
   } catch (err) {
-    console.error('Erro ao obter usuário:', err);
+    console.error('Erro ao cadastrar usuário:', err);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
@@ -174,43 +208,32 @@ app.get('/api/users/:id', async (req, res) => {
 app.put('/api/users/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { username, email, tipo, password_plaintext } = req.body;
+    const { username, email, password_plaintext, tipo } = req.body;
 
-    // Verifica se o usuário existe
-    const { data: existingUser, error: userError } = await supabase
-      .from('users')
-      .select('id')
-      .eq('id', id)
-      .single();
-
-    if (userError || !existingUser) {
-      return res.status(404).json({ error: 'Usuário não encontrado' });
+    if (!username || !email) {
+      return res.status(400).json({ error: 'Nome de usuário e e-mail são obrigatórios' });
     }
 
-    // Dados para atualização
-    const updateData = { username, email, tipo };
+    const updateData = {
+      username,
+      email,
+      updated_at: new Date().toISOString(),
+      ...(tipo && { tipo }),
+      ...(password_plaintext && { password_plaintext })
+    };
 
-    // Se foi informada uma senha, adiciona ao objeto de atualização
-    if (password_plaintext) {
-      updateData.password_plaintext = password_plaintext;
-    }
-
-    // Atualiza o usuário
-    const { data: updatedUser, error: updateError } = await supabase
+    const { data, error } = await supabase
       .from('users')
       .update(updateData)
       .eq('id', id)
-      .select('id, username, email, tipo, created_at')
+      .select('*')
       .single();
 
-    if (updateError) {
-      throw updateError;
-    }
-
-    res.json(updatedUser);
-  } catch (err) {
-    console.error('Erro ao atualizar usuário:', err);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    console.error('Error updating user:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -236,9 +259,7 @@ app.delete('/api/users/:id', async (req, res) => {
       .delete()
       .eq('id', id);
 
-    if (deleteError) {
-      throw deleteError;
-    }
+    if (deleteError) throw deleteError;
 
     res.json({ success: true });
   } catch (err) {
@@ -327,61 +348,6 @@ app.post('/api/login', async (req, res) => {
 
 app.get('/api/check-auth', (req, res) => {
   res.json({ message: 'Autenticação no frontend pelo LocalStorage.' });
-});
-
-// Rota para obter dados do usuário
-app.get('/api/admin/users/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, username, email, password_plaintext, created_at, updated_at')
-      .eq('id', id)
-      .single();
-
-    if (error) throw error;
-    if (!data) return res.status(404).json({ error: 'Usuário não encontrado' });
-    
-    res.json(data);
-  } catch (error) {
-    console.error('Error fetching user:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-app.put('/api/admin/users/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { username, email, password_plaintext } = req.body;
-
-    if (!username || !email) {
-      return res.status(400).json({ error: 'Nome de usuário e e-mail são obrigatórios' });
-    }
-
-    const updateData = {
-      username,
-      email,
-      updated_at: new Date().toISOString()
-    };
-
-    if (password_plaintext) {
-      updateData.password_plaintext = password_plaintext;
-    }
-
-
-    const { data, error } = await supabase
-      .from('users')
-      .update(updateData)
-      .eq('id', id)
-      .select('id, username, email, password_plaintext, updated_at')
-      .single();
-
-    if (error) throw error;
-    res.json(data);
-  } catch (error) {
-    console.error('Error updating user:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
 });
 
 // API para o frontend (Agendamento)

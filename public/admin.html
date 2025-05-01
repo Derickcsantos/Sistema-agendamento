@@ -358,14 +358,25 @@
           <div class="tab-pane fade" id="settings">
             <h2>Configurações</h2>
             
-            <div class="row mb-4">
-              <div class="col-md-6">
-                <div class="card">
-                  <div class="card-body">
+            <div class="row mb-4 align-items-stretch">
+              <div class="col-md-6 d-flex">
+                <div class="card w-100">
+                  <div class="card-body cardConfig">
                     <h5 class="card-title">Tema</h5>
                     <button id="themeToggle" class="theme-toggle-btn">
                       <i class="bi bi-moon-fill"></i> Alternar para Modo Escuro
                     </button>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="card">
+                  <div class="card-body cardConfig">
+                    <h5 class="card-title">Data e Hora</h5>
+                    <div id="currentDateTime">
+                      <div class="date-display" id="dataAtual">--/--/----</div>
+                      <div class="time-display" id="tempoAtual">--:--:--</div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -444,5 +455,6 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="js/admin.js"></script>
   <script src="js/charts.js"></script>
+  <script src="js/users.js"></script>
 </body>
 </html>

@@ -49,6 +49,26 @@ body {
   border-color: var(--border-color);
 }
 
+#currentDateTime {
+  text-align: center;
+}
+
+.date-display {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.time-display {
+  font-size: 1.5rem;
+  font-family: 'Courier New', monospace;
+  color: var(--primary-color);
+}
+
+.cardConfig {
+  padding: 1.5rem;
+}
+
 .table {
   color: var(--text-color);
   background-color: var(--table-bg);

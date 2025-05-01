@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
   loadServices();
   loadEmployees();
   loadAppointments();
+  loadUsers();
   setupEventListeners();
   
   // Adicionar listener para tabs
@@ -23,6 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (target === '#services') loadServices();
       if (target === '#employees') loadEmployees();
       if (target === '#appointments') loadAppointments();
+      if (target === '#users') loadUsers();
     });
   });
 });
@@ -32,6 +34,27 @@ function logout() {
   localStorage.removeItem('isLoggedIn');
   window.location.href = '/login';
 }
+
+// Função para atualizar data e hora
+function atualizarDataHora() {
+  const now = new Date();
+  
+  // Formatar data (dd/mm/aaaa)
+  const day = String(now.getDate()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const year = now.getFullYear();
+  document.getElementById('dataAtual').textContent = `${day}/${month}/${year}`;
+  
+  // Formatar hora (hh:mm:ss)
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  document.getElementById('tempoAtual').textContent = `${hours}:${minutes}:${seconds}`;
+}
+
+// Atualizar imediatamente e depois a cada segundo
+atualizarDataHora();
+setInterval(atualizarDataHora, 1000);
 
 // Modifique todas as chamadas fetch para incluir a verificação
 async function loadCategories() {
@@ -878,151 +901,6 @@ function toggleTheme() {
   const currentTheme = document.documentElement.getAttribute('data-theme');
   setTheme(currentTheme === 'dark' ? 'light' : 'dark');
 }
-
- // Função para carregar dados do usuário atual
-// Função para obter usuário do LocalStorage
-function getCurrentUser() {
-  const userData = localStorage.getItem('currentUser');
-  if (!userData) {
-    throw new Error('Nenhum usuário logado encontrado');
-  }
-  return JSON.parse(userData);
-}
-
-// Função para carregar e exibir dados do usuário
-async function loadAndDisplayUserData() {
-  const userInfoElement = document.getElementById('userInfo');
-  
-  try {
-    // Mostrar loading
-    if (userInfoElement) {
-      userInfoElement.innerHTML = `
-        <div class="text-center">
-          <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Carregando...</span>
-          </div>
-          <p>Carregando dados do usuário...</p>
-        </div>
-      `;
-    }
-
-    // Obter usuário do LocalStorage
-    const currentUser = getCurrentUser();
-    
-    // Preencher formulário
-    document.getElementById('userId').value = currentUser.id;
-    document.getElementById('userUsername').value = currentUser.username;
-    document.getElementById('userPassword').value = currentUser.password;
-    document.getElementById('userEmail').value = currentUser.email || '';
-    
-    // Mostrar informações
-    if (userInfoElement) {
-      userInfoElement.innerHTML = `
-        <div class="user-profile-summary">
-          <h5 class="mb-3">Informações do Perfil</h5>
-          <div class="row">
-            <div class="col-md-6">
-              <p><strong>ID:</strong> ${currentUser.id}</p>
-              <p><strong>Nome de usuário:</strong> ${currentUser.username}</p>
-            </div>
-            <div class="col-md-6">
-              <p><strong>E-mail:</strong> ${currentUser.email || 'Não informado'}</p>
-              <p><strong>Senha:</strong> ${currentUser.password}</p>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-  } catch (error) {
-    console.error('Erro ao carregar dados do usuário:', error);
-    
-    if (userInfoElement) {
-      userInfoElement.innerHTML = `
-        <div class="alert alert-danger">
-          <i class="bi bi-exclamation-triangle-fill"></i> Erro ao carregar perfil: ${error.message}
-        </div>
-      `;
-    }
-  }
-}
-
-async function updateUserProfile(e) {
-  e.preventDefault();
-
-  const form = e.target;
-  const submitBtn = form.querySelector('button[type="submit"]');
-  const originalBtnText = submitBtn.innerHTML;
-
-  try {
-    // Mostrar loading
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = `
-      <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-      Salvando...
-    `;
-
-    const userId = document.getElementById('userId').value;
-    const username = document.getElementById('userUsername').value.trim();
-    const email = document.getElementById('userEmail').value.trim();
-    const password = document.getElementById('userPassword').value;
-
-    if (!username || !email) {
-      throw new Error('Preencha nome de usuário e e-mail');
-    }
-
-    const updateData = { username, email };
-    if (password) updateData.password_plaintext = password;
-
-    console.log('Enviando dados para atualização:', updateData);
-
-    const response = await fetch(`/api/admin/users/${userId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(updateData)
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Erro ao atualizar usuário');
-    }
-
-    const updatedUser = await response.json();
-    console.log('Usuário atualizado:', updatedUser);
-    
-    // Atualiza os dados no LocalStorage (inclui a senha fornecida)
-    localStorage.setItem('currentUser', JSON.stringify({
-      id: updatedUser.id,
-      username: updatedUser.username,
-      email: updatedUser.email,
-      password: document.getElementById('userPassword').value
-    }));
-
-
-    await loadAndDisplayUserData();
-
-    // // Limpar campo de senha
-    // document.getElementById('userPassword').value = '';
-
-    showToast('Perfil atualizado com sucesso!', 'success');
-  } catch (error) {
-    console.error('Erro ao atualizar perfil:', error);
-    showToast(`Erro: ${error.message}`, 'error');
-  } finally {
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = originalBtnText;
-  }
-}
-
-// Adicionar event listeners
-document.addEventListener('DOMContentLoaded', function() {
-  // Carregar usuário quando a aba for aberta
-  document.querySelector('a[data-bs-target="#settings"]')?.addEventListener('shown.bs.tab', loadAndDisplayUserData);
-  
-  // Formulário de atualização
-  document.getElementById('userProfileForm')?.addEventListener('submit', updateUserProfile);
-});
 
 // Helper function to show toast notifications
 function showToast(type, message) {
