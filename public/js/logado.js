@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', function () {
   btnPerfil.addEventListener('click', () => {
     document.getElementById('profileUsername').value = user.username;
     document.getElementById('profileEmail').value = user.email;
+    document.getElementById('profilePassword').value = user.password;
     document.getElementById('profileTipo').value = user.tipo || 'comum';
     perfilModal.show();
   });

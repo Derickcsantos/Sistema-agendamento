@@ -3,6 +3,8 @@ const express = require('express');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 const cors = require('cors');
+const nodemailer = require('nodemailer');
+const bodyParser = require('body-parser');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -30,44 +32,140 @@ app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'adm
 app.get('/logado', (req, res) => res.sendFile(path.join(__dirname, 'public', 'logado.html')));
 
 
-// ... (código anterior permanece o mesmo)
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
+
+// Função para gerar senha
+function gerarSenha() {
+  const letras = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const numeros = '0123456789';
+
+  let senha = '';
+  for (let i = 0; i < 4; i++) {
+    senha += letras.charAt(Math.floor(Math.random() * letras.length));
+  }
+  for (let i = 0; i < 3; i++) {
+    senha += numeros.charAt(Math.floor(Math.random() * numeros.length));
+  }
+
+  return senha;
+}
+
+// Busca usuário por email
+async function findUserByEmail(email) {
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, email, username')
+    .eq('email', email)
+    .single();
+
+  if (error) {
+    console.error('Erro ao buscar usuário por email:', error);
+    return null;
+  }
+
+  return data;
+}
+
+// Atualiza a senha do usuário
+async function updateUserPassword(userId, newPassword) {
+  const { error } = await supabase
+    .from('users')
+    .update({ password_plaintext: newPassword })
+    .eq('id', userId);
+
+  if (error) {
+    throw error;
+  }
+}
+
+
+// Rota para recuperação de senha
+app.post('/api/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    // Aqui você deve verificar se o email existe no seu banco de dados
+    // Esta é uma implementação simulada - substitua pela sua lógica real
+    const user = await findUserByEmail(email); // Você precisa implementar esta função
+    
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'Email não encontrado' });
+    }
+
+    // Gera nova senha
+    const newPassword = gerarSenha();
+    
+    // Atualiza a senha no banco de dados (implemente esta função)
+    await updateUserPassword(user.id, newPassword);
+    
+    // Envia email com a nova senha
+    const mailOptions = {
+      from: 'derickcampossantos1@gmail.com',
+      to: email,
+      subject: 'Recuperação de Senha - Salão de Beleza',
+      html: `
+        <h2>Recuperação de Senha</h2>
+        <p>Você solicitou uma nova senha para acessar o sistema do Salão de Beleza.</p>
+        <p>Sua nova senha é: <strong>${newPassword}</strong></p>
+        <p>Recomendamos que você altere esta senha após o login.</p>
+        <p>Caso não tenha solicitado esta alteração, por favor ignore este email.</p>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Erro na recuperação de senha:', error);
+    res.status(500).json({ success: false, error: 'Erro ao processar solicitação' });
+  }
+});
 
 // Rota de cadastro
 app.post('/api/register', async (req, res) => {
   const { username, email, password_plaintext } = req.body;
 
   try {
-    // Verifica se o usuário já existe
-    const { data: existingUser, error: userError } = await supabase
+    // Verifica se já existe usuário com mesmo username ou email
+    const { data: existingUsers, error: userError } = await supabase
       .from('users')
       .select('id')
-      .or(`username.eq.${username},email.eq.${email}`)
-      .single();
+      .or(`username.eq.${username},email.eq.${email}`);
 
-    if (existingUser) {
-      return res.status(400).json({ 
-        error: 'Usuário ou email já cadastrado' 
+    if (userError) {
+      throw userError;
+    }
+
+    if (existingUsers && existingUsers.length > 0) {
+      return res.status(400).json({
+        error: 'Usuário ou email já cadastrado'
       });
     }
 
-    // Insere o novo usuário com tipo "comum" por padrão
+    // Insere novo usuário com tipo "comum"
     const { data: newUser, error: insertError } = await supabase
       .from('users')
       .insert([{
         username,
         email,
-        password_plaintext, // ATENÇÃO: Em produção, use hash de senha!
-        tipo: 'comum',      // Definindo como comum por padrão
+        password_plaintext, // Em produção: criptografar
+        tipo: 'comum',
         created_at: new Date().toISOString()
       }])
-      .select('id, username, email, tipo, created_at')
+      .select('id, username, email, created_at')
       .single();
 
     if (insertError) {
       throw insertError;
     }
 
-    res.json({ 
+    res.json({
       success: true,
       user: newUser
     });
@@ -77,6 +175,7 @@ app.post('/api/register', async (req, res) => {
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
+
 
 // ... (o restante do código permanece o mesmo)
 // Rota de login simplificada (SEM HASH - APENAS PARA DESENVOLVIMENTO)
