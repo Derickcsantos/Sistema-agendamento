@@ -5,6 +5,7 @@ const { createClient } = require('@supabase/supabase-js');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
 const bodyParser = require('body-parser');
+const { create } = require('@wppconnect-team/wppconnect');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -13,6 +14,8 @@ const port = process.env.PORT || 3000;
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
+
+let whatsappClient = null;
 
 
 const corsOptions = {
@@ -106,7 +109,7 @@ app.post('/api/forgot-password', async (req, res) => {
     
     // Envia email com a nova senha
     const mailOptions = {
-      from: 'derickcampossantos1@gmail.com',
+      from: process.env.EMAIL_USER,
       to: email,
       subject: 'Recuperação de Senha - Salão de Beleza',
       html: `
@@ -126,6 +129,97 @@ app.post('/api/forgot-password', async (req, res) => {
     res.status(500).json({ success: false, error: 'Erro ao processar solicitação' });
   }
 });
+
+app.post('/api/send-confirmation-email', async (req, res) => {
+  try {
+    const { email, subject, body } = req.body;
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: subject,
+      html: body
+    };
+
+    await transporter.sendMail(mailOptions);
+    res.status(200).json({ message: 'E-mail enviado com sucesso' });
+  } catch (error) {
+    console.error('Erro ao enviar e-mail:', error);
+    res.status(500).json({ error: 'Erro ao enviar e-mail' });
+  }
+});
+
+// Rota para enviar mensagem via WhatsApp
+app.post('/api/send-whatsapp-confirmation', async (req, res) => {
+  try {
+    const { clientPhone, appointmentDetails } = req.body;
+
+    if (!whatsappClient) {
+      return res.status(500).json({ 
+        success: false, 
+        error: "WhatsApp não conectado. Por favor, reinicie o servidor." 
+      });
+    }
+
+    // Validação dos dados
+    if (!clientPhone || !appointmentDetails) {
+      return res.status(400).json({
+        success: false,
+        error: "Dados incompletos"
+      });
+    }
+
+    const formattedPhone = `55${clientPhone.replace(/\D/g, '')}@c.us`;
+    const message = `📅 *Confirmação de Agendamento* \n\n` +
+      `✅ *Serviço:* ${appointmentDetails.service}\n` +
+      `👨‍⚕️ *Profissional:* ${appointmentDetails.professional}\n` +
+      `📆 *Data:* ${appointmentDetails.date}\n` +
+      `⏰ *Horário:* ${appointmentDetails.time}\n\n` +
+      `_Agradecemos sua preferência!_`;
+
+    // Envia a mensagem
+    await whatsappClient.sendText(formattedPhone, message);
+    
+    res.json({ success: true });
+
+  } catch (error) {
+    console.error("Erro ao enviar WhatsApp:", error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || "Falha no envio" 
+    });
+  }
+});
+
+async function startWhatsAppBot() {
+  try {
+    whatsappClient = await create({
+      session: 'salon-bot',
+      puppeteerOptions: { 
+        headless: true, // Modo invisível
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-gpu',
+          '--disable-dev-shm-usage'
+        ]
+      },
+      disableWelcome: true,
+      catchQR: (base64Qr, asciiQR) => {
+        console.log('=== QR Code para conexão ===');
+        console.log(asciiQR); // Mostra apenas no terminal
+        console.log('===========================');
+      },
+      logQR: false // Desativa log adicional do QR
+    });
+
+    console.log('✅ Bot pronto para conexão via QR Code no terminal!');
+
+  } catch (error) {
+    console.error('Erro ao iniciar bot:', error);
+    process.exit(1);
+  }
+}
 
 // Rota para obter todos os usuários
 app.get('/api/users', async (req, res) => {
@@ -495,6 +589,100 @@ app.post('/api/appointments', async (req, res) => {
   }
 });
 
+// Rota para obter agendamentos por email (área do cliente)
+app.get('/api/logado/appointments', async (req, res) => {
+  try {
+    const { email } = req.query;
+    
+    // Busca os agendamentos do cliente
+    const { data, error } = await supabase
+      .from('appointments')
+      .select(`
+        id,
+        client_name,
+        client_email,
+        client_phone,
+        appointment_date,
+        start_time,
+        end_time,
+        status,
+        created_at,
+        services(name),
+        employees(name)
+      `)
+      .eq('client_email', email)
+      .order('appointment_date', { ascending: true })
+      .order('start_time', { ascending: true });
+
+    if (error) throw error;
+
+    // Formata os dados para resposta
+    const formattedData = data.map(item => ({
+      id: item.id,
+      date: item.appointment_date,
+      start_time: item.start_time,
+      end_time: item.end_time,
+      status: item.status,
+      created_at: item.created_at,
+      service_name: item.services?.name,
+      professional_name: item.employees?.name,
+      client_name: item.client_name,
+      client_email: item.client_email,
+      client_phone: item.client_phone
+    }));
+
+    res.json(formattedData);
+  } catch (error) {
+    console.error('Error fetching client appointments:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Rotas para agendamentos (admin)
+app.get('/api/admin/appointments', async (req, res) => {
+  try {
+    const { search, date } = req.query;
+    let query = supabase
+      .from('appointments')
+      .select('*, services(name), employees(name)')
+      .order('appointment_date', { ascending: true })
+      .order('start_time', { ascending: true });
+
+    if (search) {
+      query = query.or(`client_name.ilike.%${search}%,client_email.ilike.%${search}%,client_phone.ilike.%${search}%`);
+    }
+
+    if (date) {
+      query = query.eq('appointment_date', date);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching appointments:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.put('/api/admin/appointments/:id/cancel', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { data, error } = await supabase
+      .from('appointments')
+      .update({ status: 'canceled' })
+      .eq('id', id)
+      .select();
+
+    if (error) throw error;
+    res.json(data[0]);
+  } catch (error) {
+    console.error('Error canceling appointment:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // API para a área administrativa
 // Rotas para categorias
 app.get('/api/admin/categories', async (req, res) => {
@@ -732,51 +920,6 @@ app.delete('/api/admin/employees/:id', async (req, res) => {
   }
 });
 
-// Rotas para agendamentos (admin)
-app.get('/api/admin/appointments', async (req, res) => {
-  try {
-    const { search, date } = req.query;
-    let query = supabase
-      .from('appointments')
-      .select('*, services(name), employees(name)')
-      .order('appointment_date', { ascending: true })
-      .order('start_time', { ascending: true });
-
-    if (search) {
-      query = query.or(`client_name.ilike.%${search}%,client_email.ilike.%${search}%,client_phone.ilike.%${search}%`);
-    }
-
-    if (date) {
-      query = query.eq('appointment_date', date);
-    }
-
-    const { data, error } = await query;
-
-    if (error) throw error;
-    res.json(data);
-  } catch (error) {
-    console.error('Error fetching appointments:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-app.put('/api/admin/appointments/:id/cancel', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { data, error } = await supabase
-      .from('appointments')
-      .update({ status: 'canceled' })
-      .eq('id', id)
-      .select();
-
-    if (error) throw error;
-    res.json(data[0]);
-  } catch (error) {
-    console.error('Error canceling appointment:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
 // Rota para dados do dashboard
 app.get('/api/admin/dashboard', async (req, res) => {
   try {
@@ -834,4 +977,5 @@ app.get('/api/admin/dashboard', async (req, res) => {
 // Iniciar o servidor
 app.listen(port, () => {
   console.log(`Servidor rodando em http://localhost:${port}`);
+  startWhatsAppBot();
 });

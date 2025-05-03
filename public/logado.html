@@ -21,7 +21,7 @@
             <a class="nav-link" href="/">Agendar Serviço</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#">Meus Agendamentos</a>
+            <a class="nav-link" href="#meusAgendamentosSection">Meus Agendamentos</a>
           </li>
         </ul>
         <div class="d-flex align-items-center">
@@ -81,6 +81,46 @@
             <i class="bi bi-emoji-heart-eyes display-4 text-primary mb-3"></i>
             <h3>Tratamentos</h3>
             <p class="card-text">Tratamentos capilares e faciais personalizados para cuidar da sua beleza e bem-estar.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <!-- Seção Meus Agendamentos (inicialmente oculta) -->
+  <div class="row mt-5" id="meusAgendamentosSection" style="display: none;">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+          <h3 class="mb-0">Meus Agendamentos</h3>
+          <button id="voltarInicio" class="btn btn-light btn-sm">
+            <i class="bi bi-arrow-left"></i> Voltar
+          </button>
+        </div>
+        <div class="card-body">
+          <!-- Mensagem de contagem regressiva -->
+          <div id="contagemRegressiva" class="alert alert-info mb-4" style="display: none;">
+            <i class="bi bi-calendar-check"></i> Faltam <span id="diasRestantes">X</span> dias para seu agendamento em <span id="proximoServico">Serviço</span> 🥳
+          </div>
+          
+          <!-- Tabela de agendamentos -->
+          <div class="table-responsive">
+            <table class="table table-hover" id="tabelaAgendamentos">
+              <thead>
+                <tr>
+                  <th>Data Agendada</th>
+                  <th>Data de Criação</th>
+                  <th>Profissional</th>
+                  <th>Horário</th>
+                  <th>Serviço</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Os dados serão preenchidos via JavaScript -->
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

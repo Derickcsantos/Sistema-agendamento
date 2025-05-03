@@ -86,5 +86,32 @@ footer {
   }
 }
   
+/* Estilos para a tabela de agendamentos */
+#tabelaAgendamentos {
+  font-size: 0.9rem;
+}
 
-  
+#tabelaAgendamentos th {
+  white-space: nowrap;
+}
+
+#tabelaAgendamentos .badge {
+  font-size: 0.8em;
+  padding: 0.35em 0.65em;
+}
+
+/* Contagem regressiva */
+#contagemRegressiva {
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  #tabelaAgendamentos {
+    display: block;
+    overflow-x: auto;
+  }
+}

@@ -317,7 +317,145 @@ document.addEventListener('DOMContentLoaded', function() {
           <li><strong>Horário:</strong> ${appointment.start_time} - ${appointment.end_time}</li>
         `;
         
+        // No evento de submit do formulário, após mostrar o modal:
         modal.show();
+
+        // Armazenar os dados do agendamento para uso nos botões
+        let currentAppointment = {
+          name: appointment.client_name,
+          email: clientEmail,
+          phone: clientPhone,
+          service: confirmService.textContent,
+          professional: confirmEmployee.textContent,
+          date: appointment.appointment_date,
+          time: `${appointment.start_time} - ${appointment.end_time}`
+        };
+
+        // Configurar os botões
+        document.getElementById('whatsappBtn').addEventListener('click', async () => {
+          const userPhone = currentAppointment.phone.replace(/\D/g, '');
+          
+          // Inicializa os modais do Bootstrap
+          const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+          const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+          const validationModal = new bootstrap.Modal(document.getElementById('validationModal'));
+        
+          if (userPhone.length < 11) {
+            document.getElementById('validationMessage').textContent = 'Número inválido. Digite um número com DDD.';
+            validationModal.show();
+            return;
+          }
+        
+          try {
+            const response = await fetch('/api/send-whatsapp-confirmation', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                clientPhone: userPhone,
+                appointmentDetails: {
+                  service: currentAppointment.service,
+                  professional: currentAppointment.professional,
+                  date: currentAppointment.date,
+                  time: currentAppointment.time
+                }
+              })
+            });
+        
+            const result = await response.json();
+            
+            if (result.success) {
+              successModal.show();
+            } else {
+              document.getElementById('errorMessage').textContent = result.error || 'Erro ao enviar mensagem';
+              errorModal.show();
+            }
+          } catch (error) {
+            console.error('Erro:', error);
+            document.getElementById('errorMessage').textContent = 'Falha na comunicação com o servidor';
+            errorModal.show();
+          }
+        });
+
+        // No seu index.js, adicione este evento para formatar o telefone enquanto digita
+        document.getElementById('clientPhone').addEventListener('input', function(e) {
+          let value = e.target.value.replace(/\D/g, '');
+          
+          if (value.length > 2) {
+            value = `(${value.substring(0, 2)}) ${value.substring(2)}`;
+          }
+          if (value.length > 10) {
+            value = `${value.substring(0, 10)}-${value.substring(10)}`;
+          }
+
+          if (!/^(\+55|55|0)?[\s-]?\(?[1-9]{2}\)?[\s-]?9?[\s-]?[0-9]{4}[\s-]?[0-9]{4}$/.test(currentAppointment.phone)) {
+            alert('Por favor, digite um número de telefone válido com DDD');
+            return;
+          }
+          
+          e.target.value = value;
+        });
+
+        document.getElementById('emailBtn').addEventListener('click', async () => {
+          // Inicializa os modais
+          const emailSuccessModal = new bootstrap.Modal(document.getElementById('emailSuccessModal'));
+          const emailErrorModal = new bootstrap.Modal(document.getElementById('emailErrorModal'));
+          const emailLoadingModal = new bootstrap.Modal(document.getElementById('emailLoadingModal'));
+        
+          try {
+
+            // Mostrar modal de carregamento
+            emailLoadingModal.show();
+
+            const response = await fetch('/api/send-confirmation-email', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                email: currentAppointment.email,
+                subject: 'Confirmação de Agendamento',
+                body: `
+                  <h1>Confirmação de Agendamento</h1>
+                  <p>Seu agendamento foi confirmado com sucesso!</p>
+                  <p><strong>Nome:</strong> ${currentAppointment.name}</p>
+                  <p><strong>Serviço:</strong> ${currentAppointment.service}</p>
+                  <p><strong>Profissional:</strong> ${currentAppointment.professional}</p>
+                  <p><strong>Data:</strong> ${currentAppointment.date}</p>
+                  <p><strong>Horário:</strong> ${currentAppointment.time}</p>
+                `
+              })
+            });
+
+            // Esconde o loading
+            emailLoadingModal.hide();
+        
+            if (response.ok) {
+              emailSuccessModal.show();
+            } else {
+              const errorData = await response.json();
+              throw new Error(errorData.error || 'Erro ao enviar e-mail');
+            }
+          } catch (error) {
+            console.error('Erro:', error);
+            document.getElementById('emailErrorMessage').textContent = error.message || 'Erro ao enviar e-mail de confirmação';
+            emailErrorModal.show();
+          }
+        });
+
+        document.getElementById('pdfBtn').addEventListener('click', () => {
+          // Usando jsPDF para gerar o PDF
+          const { jsPDF } = window.jspdf;
+          const doc = new jsPDF();
+          
+          doc.text('Confirmação de Agendamento', 20, 20);
+          doc.text(`Nome: ${currentAppointment.name}`, 20, 30);
+          doc.text(`Serviço: ${currentAppointment.service}`, 20, 40);
+          doc.text(`Profissional: ${currentAppointment.professional}`, 20, 50);
+          doc.text(`Data: ${currentAppointment.date}`, 20, 60);
+          doc.text(`Horário: ${currentAppointment.time}`, 20, 70);
+          
+          doc.save(`Agendamento_${currentAppointment.name.replace(/\s/g, '_')}.pdf`);
+        });
         
         // Resetar formulário após confirmação
         modal._element.addEventListener('hidden.bs.modal', function() {

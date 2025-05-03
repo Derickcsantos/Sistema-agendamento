@@ -322,8 +322,12 @@
                 <div class="row mb-3">
                   <div class="col-md-6">
                     <label for="userPassword" class="form-label">Senha</label>
-                    <input type="password" class="form-control" id="userPassword">
-                    <small class="text-muted">Deixe em branco para manter a senha atual</small>
+                    <div class="input-group">
+                      <input type="password" class="form-control password-input" id="userPassword">
+                      <button class="btn btn-outline-secondary toggle-password" type="button">
+                        <i class="bi bi-eye-slash-fill"></i>
+                      </button>
+                    </div>
                   </div>
                   <div class="col-md-6">
                     <label for="userType" class="form-label">Tipo de Usuário</label>
