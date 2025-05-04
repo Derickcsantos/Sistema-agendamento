@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
   const user = JSON.parse(localStorage.getItem('currentUser'));
-  
 
   // Verifica se está logado
   if (!user || localStorage.getItem('isLoggedIn') !== 'true') {
@@ -8,210 +7,155 @@ document.addEventListener('DOMContentLoaded', function () {
     return;
   }
 
- // Elementos da UI
- const perfilModal = new bootstrap.Modal(document.getElementById('perfilModal'));
- const btnPerfil = document.getElementById('btnPerfil');
- const btnLogout = document.getElementById('btnLogout');
- const themeToggle = document.getElementById('themeToggle');
- const profileForm = document.getElementById('profileForm');
- const meusAgendamentosSection = document.getElementById('meusAgendamentosSection');
- const voltarInicioBtn = document.getElementById('voltarInicio');
- const mainContent = document.querySelector('.container.my-5');
- const btnMeusAgendamentosNav = document.querySelector('.nav-link[href="#meusAgendamentosSection"]');
- const btnMeusAgendamentosHome = document.querySelector('.btn-outline-secondary.btn-lg');
-
-
- // Verifica se veio com hash na URL
- function checkInitialHash() {
-  if (window.location.hash === '#meusAgendamentosSection') {
-    showAgendamentosSection();
+  if (window.location.pathname === '/logado/agendamentos') {
+    document.getElementById('paginaInicial').style.display = 'none';
+    document.getElementById('paginaAgendamentos').style.display = 'block';
+    carregarAgendamentos(user);
+  } else {
+    document.getElementById('paginaInicial').style.display = 'block';
+    document.getElementById('paginaAgendamentos').style.display = 'none';
   }
-}
-  // Carregar dados do usuário no modal
+
+  // Elementos da UI
+  const perfilModal = new bootstrap.Modal(document.getElementById('perfilModal'));
+  const btnPerfil = document.getElementById('btnPerfil');
+  const btnLogout = document.getElementById('btnLogout');
+  const themeToggle = document.getElementById('themeToggle');
+  const profileForm = document.getElementById('profileForm');
+
+  // Configura o botão de perfil
   btnPerfil.addEventListener('click', () => {
-    document.getElementById('profileUsername').value = user.username;
-    document.getElementById('profileEmail').value = user.email;
+    // Preenche os campos do modal com os dados do usuário
+    document.getElementById('profileUsername').value = user.username || '';
+    document.getElementById('profileEmail').value = user.email || '';
     document.getElementById('profilePassword').value = user.password;
     document.getElementById('profileTipo').value = user.tipo || 'comum';
+    
+    // Mostra o modal
     perfilModal.show();
+  });
+  // Função para carregar agendamentos
+  async function carregarAgendamentos(user) {
+    try {
+      const response = await fetch(`/api/logado/appointments?email=${encodeURIComponent(user.email)}`);
+      const agendamentos = await response.json();
 
+      const tbody = document.querySelector('#tabelaAgendamentos tbody');
 
-    // Mostrar/ocultar seção de agendamentos
-    function showAgendamentosSection() {
-      mainContent.style.display = 'none';
-      meusAgendamentosSection.style.display = 'block';
-      window.history.pushState(null, null, '#meusAgendamentosSection');
-      carregarAgendamentos();
-    }
-
-    function hideAgendamentosSection() {
-      mainContent.style.display = 'block';
-      meusAgendamentosSection.style.display = 'none';
-      window.history.pushState(null, null, ' ');
-    }
-
-    function setupEventListeners() {
-      btnMeusAgendamentosNav.addEventListener('click', (e) => {
-        e.preventDefault();
-        showAgendamentosSection();
-      });
-
-
- btnMeusAgendamentosHome.addEventListener('click', (e) => {
-      e.preventDefault();
-      showAgendamentosSection();
-    });
-
-    voltarInicioBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      hideAgendamentosSection();
-    });
-
-    // Manipula o botão de voltar do navegador
-    window.addEventListener('popstate', (e) => {
-      if (window.location.hash === '#meusAgendamentosSection') {
-        showAgendamentosSection();
-      } else {
-        hideAgendamentosSection();
-      }
-    });
-  }
-
-  voltarInicioBtn.addEventListener('click', hideAgendamentosSection);
-      // Função para carregar agendamentos
-    async function carregarAgendamentos() {
-      try {
-        const response = await fetch(`/api/logado/appointments?email=${encodeURIComponent(user.email)}`);
-        const agendamentos = await response.json();
-
-        const tbody = document.querySelector('#tabelaAgendamentos tbody');
-        
-        if (!agendamentos.length) {
-          tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4">Nenhum agendamento encontrado</td></tr>';
-          document.getElementById('contagemRegressiva').style.display = 'none';
-          return;
-        }
-
-        // Ordena por data mais próxima
-        agendamentos.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-        // Atualiza a contagem regressiva
-        atualizarContagemRegressiva(agendamentos);
-
-        // Preenche a tabela
-        tbody.innerHTML = agendamentos.map(agendamento => `
-          <tr>
-            <td>${formatarData(agendamento.date)}</td>
-            <td>${formatarData(agendamento.created_at)}</td>
-            <td>${agendamento.professional_name || 'Não informado'}</td>
-            <td>${agendamento.start_time} - ${agendamento.end_time}</td>
-            <td>${agendamento.service_name}</td>
-            <td><span class="badge ${getStatusClass(agendamento.status)}">${agendamento.status}</span></td>
-            <td>
-              ${agendamento.status === 'confirmed' ? 
-                `<button class="btn btn-sm btn-outline-danger cancelar-agendamento" data-id="${agendamento.id}">
-                  <i class="bi bi-x-circle"></i> Cancelar
-                </button>` : 
-                '<span class="text-muted">Nenhuma ação</span>'}
-            </td>
-          </tr>
-        `).join('');
-
-        // Adiciona eventos aos botões de cancelar
-        document.querySelectorAll('.cancelar-agendamento').forEach(btn => {
-          btn.addEventListener('click', cancelarAgendamento);
-        });
-
-      } catch (error) {
-        console.error('Erro ao carregar agendamentos:', error);
-        document.querySelector('#tabelaAgendamentos tbody').innerHTML = 
-          '<tr><td colspan="7" class="text-center py-4 text-danger">Erro ao carregar agendamentos</td></tr>';
-      }
-    }
-
-    // Função para atualizar a contagem regressiva
-    function atualizarContagemRegressiva(agendamentos) {
-      const hoje = new Date();
-      const agendamentosFuturos = agendamentos.filter(a => 
-        new Date(a.date) >= hoje && a.status === 'confirmed'
-      );
-
-      if (agendamentosFuturos.length > 0) {
-        const proximo = agendamentosFuturos[0];
-        const dataAgendamento = new Date(proximo.date);
-        const diffTime = dataAgendamento - hoje;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        document.getElementById('diasRestantes').textContent = diffDays;
-        document.getElementById('proximoServico').textContent = proximo.service_name;
-        document.getElementById('contagemRegressiva').style.display = 'flex';
-      } else {
+      if (!agendamentos.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4">Nenhum agendamento encontrado</td></tr>';
         document.getElementById('contagemRegressiva').style.display = 'none';
-      }
-    }
-
-    // Função para cancelar agendamento
-    async function cancelarAgendamento(e) {
-      const id = e.target.closest('button').dataset.id;
-      
-      if (!confirm('Tem certeza que deseja cancelar este agendamento?')) {
         return;
       }
 
-      try {
-        const response = await fetch(`/api/appointments/${id}/cancel`, {
-          method: 'PUT'
-        });
+      // Ordena por data mais próxima
+      agendamentos.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-        if (response.ok) {
-          // Mostra modal de sucesso
-          const successModal = new bootstrap.Modal(new bootstrap.Modal(document.createElement('div')));
-          document.body.appendChild(successModal._element);
-          successModal._element.innerHTML = `
-            <div class="modal-dialog">
-              <div class="modal-content">
-                <div class="modal-header bg-success text-white">
-                  <h5 class="modal-title">Sucesso!</h5>
-                  <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                  <p>Agendamento cancelado com sucesso!</p>
-                </div>
-                <div class="modal-footer">
-                  <button type="button" class="btn btn-success" data-bs-dismiss="modal">OK</button>
-                </div>
-              </div>
-            </div>
-          `;
-          successModal.show();
-          carregarAgendamentos();
-        } else {
-          throw new Error('Falha ao cancelar agendamento');
-        }
-      } catch (error) {
-        console.error('Erro ao cancelar agendamento:', error);
-        alert('Erro ao cancelar agendamento');
+      // Atualiza a contagem regressiva
+      atualizarContagemRegressiva(agendamentos);
+
+      // Preenche a tabela
+      tbody.innerHTML = agendamentos.map(agendamento => `
+        <tr>
+          <td>${formatarData(agendamento.date)}</td>
+          <td>${formatarData(agendamento.created_at)}</td>
+          <td>${agendamento.professional_name || 'Não informado'}</td>
+          <td>${agendamento.start_time} - ${agendamento.end_time}</td>
+          <td>${agendamento.service_name}</td>
+          <td><span class="badge ${getStatusClass(agendamento.status)}">${agendamento.status}</span></td>
+          <td>
+            ${agendamento.status === 'confirmed' ? 
+              `<button class="btn btn-sm btn-outline-danger cancelar-agendamento" data-id="${agendamento.id}">
+                <i class="bi bi-x-circle"></i> Cancelar
+              </button>` : 
+              '<span class="text-muted">Nenhuma ação</span>'}
+          </td>
+        </tr>
+      `).join('');
+
+      // Adiciona eventos aos botões de cancelar
+      document.querySelectorAll('.cancelar-agendamento').forEach(btn => {
+        btn.addEventListener('click', cancelarAgendamento);
+      });
+
+    } catch (error) {
+      console.error('Erro ao carregar agendamentos:', error);
+      document.querySelector('#tabelaAgendamentos tbody').innerHTML = 
+        '<tr><td colspan="7" class="text-center py-4 text-danger">Erro ao carregar agendamentos</td></tr>';
+    }
+  }
+
+  // Função para atualizar a contagem regressiva
+  function atualizarContagemRegressiva(agendamentos) {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0); // Zera horas para considerar só a data
+  
+    const agendamentosFuturos = agendamentos
+      .filter(a => {
+        const dataAgendamento = new Date(a.date);
+        dataAgendamento.setHours(0, 0, 0, 0); // Também zera horas do agendamento
+        return dataAgendamento >= hoje && a.status === 'confirmed';
+      })
+      .sort((a, b) => new Date(a.date) - new Date(b.date)); // Ordena por data mais próxima
+  
+    if (agendamentosFuturos.length > 0) {
+      const proximo = agendamentosFuturos[0];
+      const dataAgendamento = new Date(proximo.date);
+      dataAgendamento.setHours(0, 0, 0, 0); // Zera horas
+  
+      const diffTime = dataAgendamento - hoje;
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)); // Agora sim, sem contar hoje
+  
+      document.getElementById('diasRestantes').textContent = diffDays;
+      document.getElementById('proximoServico').textContent = proximo.service_name;
+      document.getElementById('contagemRegressiva').style.display = 'flex';
+    } else {
+      document.getElementById('contagemRegressiva').style.display = 'none';
+    }
+  }
+  
+
+  // Função para cancelar agendamento
+  async function cancelarAgendamento(e) {
+    const id = e.target.closest('button').dataset.id;
+
+    if (!confirm('Tem certeza que deseja cancelar este agendamento?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/appointments/${id}/cancel`, {
+        method: 'PUT'
+      });
+
+      if (response.ok) {
+        alert('Agendamento cancelado com sucesso!');
+        carregarAgendamentos(user);
+      } else {
+        throw new Error('Falha ao cancelar agendamento');
       }
+    } catch (error) {
+      console.error('Erro ao cancelar agendamento:', error);
+      alert('Erro ao cancelar agendamento');
     }
+  }
 
-    // Funções auxiliares
-    function formatarData(dataString) {
-      if (!dataString) return 'N/A';
-      const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
-      return new Date(dataString).toLocaleDateString('pt-BR', options);
-    }
+  // Funções auxiliares
+  function formatarData(dataString) {
+    if (!dataString) return 'N/A';
+    const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
+    return new Date(dataString).toLocaleDateString('pt-BR', options);
+  }
 
-    function getStatusClass(status) {
-      const classes = {
-        'confirmed': 'bg-primary',
-        'completed': 'bg-success',
-        'canceled': 'bg-secondary',
-        'no_show': 'bg-danger'
-      };
-      return classes[status] || 'bg-warning text-dark';
-    }
-
-  });
+  function getStatusClass(status) {
+    const classes = {
+      'confirmed': 'bg-primary',
+      'completed': 'bg-success',
+      'canceled': 'bg-secondary',
+      'no_show': 'bg-danger'
+    };
+    return classes[status] || 'bg-warning text-dark';
+  }
 
   // Logout
   btnLogout.addEventListener('click', logout);
@@ -233,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const updateData = { username, email };
         if (password) updateData.password_plaintext = password;
 
-        const response = await fetch(`/api/admin/users/${user.id}`, {
+        const response = await fetch(`/api/users/${user.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json'
@@ -251,7 +195,8 @@ document.addEventListener('DOMContentLoaded', function () {
         localStorage.setItem('currentUser', JSON.stringify({
           ...user,
           username: updatedUser.username,
-          email: updatedUser.email
+          email: updatedUser.email,
+          password: updatedUser.password
         }));
 
         showToast('Perfil atualizado com sucesso!', 'success');

@@ -82,12 +82,28 @@ loginForm.addEventListener('submit', async function(e) {
       created_at: user.created_at
     }));
 
-    // Redirecionamento baseado no tipo de usuário
-    if (user.tipo === 'admin') {
-      window.location.href = '/admin';
-    } else {
+
+    // Redirecionamento seguro via verificação no backend
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+
+    fetch('/admin', {
+      method: 'GET',
+      headers: {
+        'x-user-type': currentUser.tipo
+      }
+    })
+    .then(res => {
+      if (res.status === 403) {
+        window.location.href = '/logado';
+      } else {
+        window.location.href = '/admin';
+      }
+    })
+    .catch(() => {
+      // Se der erro, trata como usuário comum por segurança
       window.location.href = '/logado';
-    }
+    });
+
 
   } catch (error) {
     showMessage(loginMessage, error.message, 'danger');

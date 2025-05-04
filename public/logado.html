@@ -11,7 +11,7 @@
 <body>
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
-      <a class="navbar-brand" href="#">Salão Paula Tranças</a>
+      <a class="navbar-brand" href="/logado">Salão Paula Tranças</a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
         <span class="navbar-toggler-icon"></span>
       </button>
@@ -21,7 +21,7 @@
             <a class="nav-link" href="/">Agendar Serviço</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#meusAgendamentosSection">Meus Agendamentos</a>
+            <a class="nav-link" href="/logado/agendamentos">Meus Agendamentos</a>
           </li>
         </ul>
         <div class="d-flex align-items-center">
@@ -39,67 +39,70 @@
     </div>
   </nav>
 
-  <div class="container my-5">
-    <div class="row">
-      <div class="col-lg-8 mx-auto text-center">
-        <h1 class="display-4 mb-4">Bem-vinda ao Salão Paula Tranças</h1>
-        <p class="lead">Seu espaço de beleza e bem-estar, onde cada detalhe é pensado para realçar sua beleza única.</p>
-        
-        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center my-4">
-          <a href="/" class="btn btn-primary btn-lg px-4 gap-3">
-            <i class="bi bi-calendar-plus"></i> Agendar Agora
-          </a>
-          <button class="btn btn-outline-secondary btn-lg px-4">
-            <i class="bi bi-list-check"></i> Meus Agendamentos
-          </button>
+  <!-- Conteúdo da página inicial -->
+  <div id="paginaInicial">
+    <div class="container my-5">
+      <div class="row">
+        <div class="col-lg-8 mx-auto text-center">
+          <h1 class="display-4 mb-4">Bem-vinda ao Salão Paula Tranças</h1>
+          <p class="lead">Seu espaço de beleza e bem-estar, onde cada detalhe é pensado para realçar sua beleza única.</p>
+          
+          <div class="d-grid gap-2 d-sm-flex justify-content-sm-center my-4">
+            <a href="/" class="btn btn-primary btn-lg px-4 gap-3">
+              <i class="bi bi-calendar-plus"></i> Agendar Agora
+            </a>
+            <a href="/logado/agendamentos" class="btn btn-outline-secondary btn-lg px-4">
+              <i class="bi bi-list-check"></i> Meus Agendamentos
+            </a>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="row mt-5">
-      <div class="col-md-4 mb-4">
-        <div class="card h-100 border-0 shadow-sm">
-          <div class="card-body text-center">
-            <i class="bi bi-scissors display-4 text-primary mb-3"></i>
-            <h3>Cortes e Penteados</h3>
-            <p class="card-text">Transforme seu visual com nossos cortes modernos e penteados exclusivos para cada ocasião.</p>
+      <div class="row mt-5">
+        <div class="col-md-4 mb-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center">
+              <i class="bi bi-scissors display-4 text-primary mb-3"></i>
+              <h3>Cortes e Penteados</h3>
+              <p class="card-text">Transforme seu visual com nossos cortes modernos e penteados exclusivos para cada ocasião.</p>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="col-md-4 mb-4">
-        <div class="card h-100 border-0 shadow-sm">
-          <div class="card-body text-center">
-            <i class="bi bi-palette display-4 text-primary mb-3"></i>
-            <h3>Coloração</h3>
-            <p class="card-text">Técnicas avançadas de coloração para realçar sua beleza natural com produtos de alta qualidade.</p>
+        <div class="col-md-4 mb-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center">
+              <i class="bi bi-palette display-4 text-primary mb-3"></i>
+              <h3>Coloração</h3>
+              <p class="card-text">Técnicas avançadas de coloração para realçar sua beleza natural com produtos de alta qualidade.</p>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="col-md-4 mb-4">
-        <div class="card h-100 border-0 shadow-sm">
-          <div class="card-body text-center">
-            <i class="bi bi-emoji-heart-eyes display-4 text-primary mb-3"></i>
-            <h3>Tratamentos</h3>
-            <p class="card-text">Tratamentos capilares e faciais personalizados para cuidar da sua beleza e bem-estar.</p>
+        <div class="col-md-4 mb-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center">
+              <i class="bi bi-emoji-heart-eyes display-4 text-primary mb-3"></i>
+              <h3>Tratamentos</h3>
+              <p class="card-text">Tratamentos capilares e faciais personalizados para cuidar da sua beleza e bem-estar.</p>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-    <!-- Seção Meus Agendamentos (inicialmente oculta) -->
-  <div class="row mt-5" id="meusAgendamentosSection" style="display: none;">
-    <div class="col-12">
+  <!-- Conteúdo da página de agendamentos -->
+  <div id="paginaAgendamentos" style="display: none;">
+    <div class="container my-5">
       <div class="card shadow-sm">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
           <h3 class="mb-0">Meus Agendamentos</h3>
-          <button id="voltarInicio" class="btn btn-light btn-sm">
+          <a href="/logado" class="btn btn-light btn-sm">
             <i class="bi bi-arrow-left"></i> Voltar
-          </button>
+          </a>
         </div>
         <div class="card-body">
           <!-- Mensagem de contagem regressiva -->
-          <div id="contagemRegressiva" class="alert alert-info mb-4" style="display: none;">
+          <div id="contagemRegressiva" class="alert alert-info mb-4">
             <i class="bi bi-calendar-check"></i> Faltam <span id="diasRestantes">X</span> dias para seu agendamento em <span id="proximoServico">Serviço</span> 🥳
           </div>
           
