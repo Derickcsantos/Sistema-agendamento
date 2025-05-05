@@ -31,15 +31,16 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Rotas para servir os arquivos HTML
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
-app.get('/admin', async (req, res) => {
-  const userType = req.headers['x-user-type'];
+app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+// app.get('/admin', async (req, res) => {
+//   const userType = req.headers['x-user-type'];
 
-  if (userType !== 'admin') {
-    return res.status(403).send('Acesso negado');
-  }
+//   if (userType !== 'admin') {
+//     return res.status(403).send('Acesso negado');
+//   }
 
-  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
-});
+//   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+// });
 
 // Rota para a página inicial logada
 app.get('/logado', (req, res) => {
