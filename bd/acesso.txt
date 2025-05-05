@@ -1,3 +1,1 @@
-SUPABASE_URL=https://kblzgaeiljpqgjeiexvt.supabase.co
-SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtibHpnYWVpbGpwcWdqZWlleHZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM4MDY1NjUsImV4cCI6MjA1OTM4MjU2NX0.rS7rfJ83yYolpugZoYZJLQQcCZI_-iaZWEgQC58J-8E
-PORT=3000
+Coloque seu usuário e senha do banco de dados

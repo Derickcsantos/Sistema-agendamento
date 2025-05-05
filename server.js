@@ -6,6 +6,8 @@ const cors = require('cors');
 const nodemailer = require('nodemailer');
 const bodyParser = require('body-parser');
 const { create } = require('@wppconnect-team/wppconnect');
+const cookieParser = require('cookie-parser');
+
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -14,33 +16,49 @@ const port = process.env.PORT || 3000;
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
+app.use(cookieParser());
 
 let whatsappClient = null;
 
 
 const corsOptions = {
-  origin: 'http://localhost:3000', // Seu frontend
-  credentials: true,               // MUITO IMPORTANTE: permite cookies
+  origin: '*',              // Permite qualquer origem
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],  // Permite os métodos HTTP que você precisa
+  allowedHeaders: ['Content-Type'], // Permite esses cabeçalhos específicos
+  credentials: true,        // Permite cookies (importante se for necessário)
 };
+
 // Middlewares
 app.use(cors(corsOptions));
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 
+const checkAuth = (req, res, next) => {
+  const userData = req.cookies.userData;  // Obtendo os dados do usuário do cookie
+
+  if (!userData) {
+    return res.status(403).send('Acesso negado');  // Caso não tenha cookie
+  }
+
+  const parsedUser = JSON.parse(userData);
+
+  // Verificando se o tipo do usuário é 'admin'
+  if (parsedUser.tipo === 'admin') {
+    next();  // Usuário autorizado, segue para a rota do admin
+  } else {
+    return res.status(403).send('Acesso negado');
+  }
+};
+
 // Rotas para servir os arquivos HTML
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
-app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
-// app.get('/admin', async (req, res) => {
-//   const userType = req.headers['x-user-type'];
-
-//   if (userType !== 'admin') {
-//     return res.status(403).send('Acesso negado');
-//   }
-
-//   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
-// });
+// app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+app.get('/admin', checkAuth, async (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
 
 // Rota para a página inicial logada
 app.get('/logado', (req, res) => {
@@ -200,7 +218,7 @@ app.post('/api/send-whatsapp-confirmation', async (req, res) => {
     const formattedPhone = `55${clientPhone.replace(/\D/g, '')}@c.us`;
     const message = `📅 *Confirmação de Agendamento* \n\n` +
       `✅ *Serviço:* ${appointmentDetails.service}\n` +
-      `👨‍⚕️ *Profissional:* ${appointmentDetails.professional}\n` +
+      `👩🏾‍💼 *Profissional:* ${appointmentDetails.professional}\n` +
       `📆 *Data:* ${appointmentDetails.date}\n` +
       `⏰ *Horário:* ${appointmentDetails.time}\n\n` +
       `_Agradecemos sua preferência!_`;
@@ -455,10 +473,24 @@ app.post('/api/login', async (req, res) => {
     if (error || !user || user.password_plaintext !== password) {
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
-    
-    res.json({ 
+
+    // Se a autenticação for bem-sucedida, define o cookie com os dados do usuário
+    const userData = {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      tipo: user.tipo
+    };
+
+    res.cookie('userData', JSON.stringify(userData), {
+      httpOnly: true,   // Evita que o cookie seja acessado via JavaScript
+      secure: false,    // Coloque true se estiver usando HTTPS em produção
+      maxAge: 60 * 60 * 1000, // Expira após 1 hora
+    });
+
+    res.json({
       success: true,
-      user 
+      user: userData
     });
 
   } catch (err) {
@@ -468,9 +500,27 @@ app.post('/api/login', async (req, res) => {
 });
 
 
-app.get('/api/check-auth', (req, res) => {
-  res.json({ message: 'Autenticação no frontend pelo LocalStorage.' });
+app.post('/api/verifica-usuario', async (req, res) => {
+  const { username } = req.body;
+
+  try {
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id')
+      .eq('username', username)
+      .single();
+
+    if (error || !user) {
+      return res.json({ exists: false });
+    }
+
+    res.json({ exists: true });
+  } catch (err) {
+    console.error('Erro ao verificar usuário:', err);
+    res.status(500).json({ exists: false });
+  }
 });
+
 
 // API para o frontend (Agendamento)
 app.get('/api/categories', async (req, res) => {

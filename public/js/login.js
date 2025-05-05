@@ -13,17 +13,6 @@ const forgotPasswordLink = document.getElementById('forgotPasswordLink');
 const forgotPasswordModal = new bootstrap.Modal(document.getElementById('forgotPasswordModal'));
 
 
-// Redireciona se já está logado
-if (localStorage.getItem('isLoggedIn') === 'true') {
-  const user = JSON.parse(localStorage.getItem('currentUser'));
-  if (user?.tipo === 'admin') {
-    window.location.href = '/admin';
-  } else {
-    window.location.href = '/logado';
-  }
-  return;
-}
-
 // Alternar entre login e cadastro
 switchToCadastro.addEventListener('click', function(e) {
   e.preventDefault();
@@ -38,9 +27,10 @@ switchToLogin.addEventListener('click', function(e) {
 });
 
 // Login
+// Login
 loginForm.addEventListener('submit', async function(e) {
   e.preventDefault();
-  
+
   const username = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value;
 
@@ -48,7 +38,8 @@ loginForm.addEventListener('submit', async function(e) {
     const response = await fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({ username, password }),
+      credentials: 'include'  // Muito importante: isso envia cookies com a requisição
     });
 
     const result = await response.json();
@@ -57,58 +48,33 @@ loginForm.addEventListener('submit', async function(e) {
       // Incrementa tentativas
       let attempts = parseInt(localStorage.getItem('tentativaslogin') || '0');
       attempts++;
-    
+
       localStorage.setItem('tentativaslogin', attempts);
-    
+
       if (attempts >= 3) {
         throw new Error('Você excedeu o número máximo de tentativas. Tente novamente mais tarde.');
       } else {
         throw new Error(result.error || `Credenciais inválidas. Tentativa ${attempts}/3.`);
       }
     }
-    
-
-    const user = result.user;
 
     // Armazena dados no localStorage
     localStorage.setItem('isLoggedIn', 'true');
     localStorage.setItem('tentativaslogin', '0');
-    localStorage.setItem('currentUser', JSON.stringify({
-      id: user.id,
-      username: user.username,
-      password: user.password_plaintext,
-      email: user.email,
-      tipo: user.tipo,
-      created_at: user.created_at
-    }));
+    localStorage.setItem('currentUser', JSON.stringify(result.user));
 
-
-    // Redirecionamento seguro via verificação no backend
-    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-
-    fetch('/admin', {
-      method: 'GET',
-      headers: {
-        'x-user-type': currentUser.tipo
-      }
-    })
-    .then(res => {
-      if (res.status === 403) {
-        window.location.href = '/logado';
-      } else {
-        window.location.href = '/admin';
-      }
-    })
-    .catch(() => {
-      // Se der erro, trata como usuário comum por segurança
+    // Redireciona para a área apropriada com base no tipo de usuário
+    if (result.user.tipo === 'admin') {
+      window.location.href = '/admin';
+    } else {
       window.location.href = '/logado';
-    });
-
+    }
 
   } catch (error) {
     showMessage(loginMessage, error.message, 'danger');
   }
 });
+
 
 // Cadastro
 cadastroForm.addEventListener('submit', async function(e) {
