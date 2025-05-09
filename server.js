@@ -410,7 +410,7 @@ app.delete('/api/users/:id', async (req, res) => {
 
 // Rota de cadastro
 app.post('/api/register', async (req, res) => {
-  const { username, email, password_plaintext } = req.body;
+  const { username, email, aniversario, password_plaintext } = req.body;
 
   try {
     // Verifica se já existe usuário com mesmo username ou email
@@ -435,11 +435,12 @@ app.post('/api/register', async (req, res) => {
       .insert([{
         username,
         email,
+        aniversario,
         password_plaintext, // Em produção: criptografar
         tipo: 'comum',
         created_at: new Date().toISOString()
       }])
-      .select('id, username, email, created_at')
+      .select('id, username, email, aniversario, created_at')
       .single();
 
     if (insertError) {

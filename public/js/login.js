@@ -87,6 +87,7 @@ cadastroForm.addEventListener('submit', async function(e) {
   
   const username = document.getElementById('cadastroUsername').value.trim();
   const email = document.getElementById('cadastroEmail').value.trim();
+  const aniversario = document.getElementById('cadastroAniversario').value.trim();
   const password = document.getElementById('cadastroPassword').value;
   const confirmPassword = document.getElementById('confirmPassword').value;
 
@@ -108,6 +109,7 @@ cadastroForm.addEventListener('submit', async function(e) {
       body: JSON.stringify({ 
         username, 
         email, 
+        aniversario,
         password_plaintext: password
       })
     });
