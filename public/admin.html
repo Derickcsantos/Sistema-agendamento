@@ -239,25 +239,49 @@
                     <input type="email" class="form-control" id="employeeEmail" required>
                   </div>
                 </div>
+                <div class="col-md-6">
+                  <label for="employeePosition" class="form-label">Cargo</label>
+                  <input type="text" class="form-control" id="employeePosition" required>
+                </div>
                 <div class="row mb-3">
                   <div class="col-md-6">
                     <label for="employeePhone" class="form-label">Telefone</label>
                     <input type="tel" class="form-control" id="employeePhone">
                   </div>
                 </div>
-                <button type="submit" class="btn btn-primary">Salvar</button>
-                <button type="button" class="btn btn-secondary" id="cancelEmployeeEdit">Cancelar</button>
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Status</label>
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox" id="employeeStatus" checked>
+                      <label class="form-check-label" for="employeeStatus">Ativo</label>
+                    </div>
+                  </div>
+                </div>
+
+                 <h5 class="mt-4">Horário de Trabalho</h5>
+                <div id="workSchedulesContainer">
+                  <!-- Os horários serão adicionados dinamicamente aqui -->
+                </div>
+                <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="addScheduleBtn">
+                  <i class="bi bi-plus"></i> Adicionar Dia
+                </button>
+                
+                <div class="mt-4">
+                  <button type="submit" class="btn btn-primary">Salvar</button>
+                  <button type="button" class="btn btn-secondary" id="cancelEmployeeEdit">Cancelar</button>
+                </div>
               </form>
             </div>
             
-            <div class="table-responsive">
+            <div class="table-responsive mt-4">
               <table class="table table-striped">
                 <thead>
                   <tr>
-                    <th>ID</th>
                     <th>Nome</th>
-                    <th>E-mail</th>
-                    <th>Telefone</th>
+                    <th>Cargo</th>
+                    <th>Status</th>
+                    <th>Horários</th>
                     <th>Ações</th>
                   </tr>
                 </thead>
@@ -265,6 +289,52 @@
               </table>
             </div>
           </div>
+          
+          <!-- Modal para confirmar exclusão -->
+          <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">Confirmar Exclusão</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                  Tem certeza que deseja excluir este funcionário?
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                  <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Excluir</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <style>
+            .schedule-day {
+              background-color: #f8f9fa;
+              border-radius: 5px;
+              padding: 15px;
+              margin-bottom: 10px;
+              position: relative;
+            }
+            .remove-schedule {
+              position: absolute;
+              right: 10px;
+              top: 10px;
+              cursor: pointer;
+              color: #dc3545;
+            }
+            .status-badge {
+              font-size: 0.875em;
+              padding: 0.35em 0.65em;
+            }
+            .schedule-badge {
+              font-size: 0.75em;
+              margin-right: 5px;
+              margin-bottom: 5px;
+              display: inline-block;
+            }
+          </style>
 
           <!-- Agendamentos -->
           <div class="tab-pane fade" id="appointments">
@@ -466,5 +536,6 @@
   <script src="js/admin.js"></script>
   <script src="js/charts.js"></script>
   <script src="js/users.js"></script>
+  <script src="js/horarioFuncionario.js"></script>
 </body>
 </html>

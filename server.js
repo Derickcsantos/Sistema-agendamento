@@ -934,28 +934,58 @@ app.delete('/api/admin/services/:id', async (req, res) => {
   }
 });
 
-// Rotas para funcionários
+// ROTAS DE FUNCIONÁRIOS
 app.get('/api/admin/employees', async (req, res) => {
   try {
-    const { data, error } = await supabase
+    const { data: employees, error: employeesError } = await supabase
       .from('employees')
       .select('*')
       .order('name', { ascending: true });
 
-    if (error) throw error;
-    res.json(data);
+    if (employeesError) throw employeesError;
+
+    // Buscar horários para cada funcionário
+    const employeesWithSchedules = await Promise.all(employees.map(async employee => {
+      const { data: schedules, error: schedulesError } = await supabase
+        .from('work_schedules')
+        .select('*')
+        .eq('employee_id', employee.id);
+
+      if (schedulesError) throw schedulesError;
+
+      return { ...employee, work_schedules: schedules || [] };
+    }));
+
+    res.json(employeesWithSchedules);
   } catch (error) {
     console.error('Error fetching employees:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-app.post('/api/admin/employees', async (req, res) => {
+app.get('/api/admin/employees/:id', async (req, res) => {
   try {
-    const { name, email, phone } = req.body;
+    const { id } = req.params;
     const { data, error } = await supabase
       .from('employees')
-      .insert([{ name, email, phone }])
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching employee:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/api/admin/employees', async (req, res) => {
+  try {
+    const { name, position, is_active } = req.body;
+    const { data, error } = await supabase
+      .from('employees')
+      .insert([{ name, position, is_active: is_active !== false }])
       .select();
 
     if (error) throw error;
@@ -966,13 +996,14 @@ app.post('/api/admin/employees', async (req, res) => {
   }
 });
 
+
 app.put('/api/admin/employees/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, phone } = req.body;
+    const { name, position, is_active } = req.body;
     const { data, error } = await supabase
       .from('employees')
-      .update({ name, email, phone })
+      .update({ name, position, is_active })
       .eq('id', id)
       .select();
 
@@ -987,15 +1018,104 @@ app.put('/api/admin/employees/:id', async (req, res) => {
 app.delete('/api/admin/employees/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { error } = await supabase
+    
+    // Primeiro deletar os horários associados
+    const { error: scheduleError } = await supabase
+      .from('work_schedules')
+      .delete()
+      .eq('employee_id', id);
+
+    if (scheduleError) throw scheduleError;
+
+    // Depois deletar o funcionário
+    const { error: employeeError } = await supabase
       .from('employees')
       .delete()
       .eq('id', id);
 
-    if (error) throw error;
-    res.status(204).send();
+    if (employeeError) throw employeeError;
+
+    res.status(204).end();
   } catch (error) {
     console.error('Error deleting employee:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ROTAS DE HORÁRIOS
+app.get("/schedules", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("work_schedules")
+      .select("*, employees(name, position)");
+
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching schedules:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post("/schedules", async (req, res) => {
+  try {
+    const { employee_id, day, start_time, end_time, is_available = true } = req.body;
+    const { data, error } = await supabase.from("work_schedules").insert([
+      { employee_id, day, start_time, end_time, is_available }
+    ]).select();
+
+    if (error) throw error;
+    res.status(201).json(data[0]);
+  } catch (error) {
+    console.error('Error creating schedule:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get("/schedules/:employee_id", async (req, res) => {
+  try {
+    const { employee_id } = req.params;
+    const { data, error } = await supabase
+      .from("work_schedules")
+      .select("*")
+      .eq("employee_id", employee_id);
+
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching employee schedules:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.delete("/schedules/employees/:employee_id", async (req, res) => {
+  try {
+    const { employee_id } = req.params;
+    const { error } = await supabase
+      .from("work_schedules")
+      .delete()
+      .eq("employee_id", employee_id);
+
+    if (error) throw error;
+    res.status(204).end();
+  } catch (error) {
+    console.error('Error deleting employee schedules:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.delete("/schedules/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { error } = await supabase
+      .from("work_schedules")
+      .delete()
+      .eq("id", id);
+
+    if (error) throw error;
+    res.status(204).end();
+  } catch (error) {
+    console.error('Error deleting schedule:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -1052,6 +1172,8 @@ app.get('/api/admin/dashboard', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+
 
 
 // Iniciar o servidor
