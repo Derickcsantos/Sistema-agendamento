@@ -685,7 +685,7 @@ app.get('/api/logado/appointments', async (req, res) => {
         end_time,
         status,
         created_at,
-        services(name),
+        services(name, price),
         employees(name)
       `)
       .eq('client_email', email)
@@ -703,6 +703,7 @@ app.get('/api/logado/appointments', async (req, res) => {
       status: item.status,
       created_at: item.created_at,
       service_name: item.services?.name,
+      service_price: item.services?.price,
       professional_name: item.employees?.name,
       client_name: item.client_name,
       client_email: item.client_email,
@@ -722,7 +723,7 @@ app.get('/api/admin/appointments', async (req, res) => {
     const { search, date } = req.query;
     let query = supabase
       .from('appointments')
-      .select('*, services(name), employees(name)')
+      .select('*, services(name, price), employees(name)')
       .order('appointment_date', { ascending: true })
       .order('start_time', { ascending: true });
 

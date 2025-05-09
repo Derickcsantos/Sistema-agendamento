@@ -146,15 +146,18 @@ document.addEventListener('DOMContentLoaded', function() {
         services.forEach(service => {
           const option = document.createElement('option');
           option.value = service.id;
-          option.textContent = service.name;
+          // Adiciona o preço formatado ao texto da opção
+          option.textContent = `${service.name} - R$ ${service.price.toFixed(2)}`;
           option.dataset.duration = service.duration;
+          // Armazena o preço bruto no dataset para uso posterior
+          option.dataset.price = service.price;
           serviceSelect.appendChild(option);
         });
       } catch (error) {
         console.error('Erro ao carregar serviços:', error);
         alert('Erro ao carregar serviços. Por favor, tente novamente.');
       }
-    }
+}
     
     // Carregar funcionários baseado no serviço selecionado
     async function loadEmployees(serviceId) {
@@ -226,12 +229,23 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Atualizar dados de confirmação
     function updateConfirmationData() {
-      confirmService.textContent = serviceSelect.options[serviceSelect.selectedIndex].text;
+      const serviceOption = serviceSelect.options[serviceSelect.selectedIndex];
+      const serviceText = serviceOption.text;
+      const servicePrice = serviceOption.dataset.price ? 
+        ` - R$ ${parseFloat(serviceOption.dataset.price).toFixed(2)}` : '';
+      
+      confirmService.textContent = serviceText.includes(' - R$') ? 
+        serviceText : `${serviceText}${servicePrice}`;
       confirmEmployee.textContent = employeeSelect.options[employeeSelect.selectedIndex].text;
       confirmDate.textContent = appointmentDate.value;
       confirmTime.textContent = selectedTime ? `${selectedTime.start} - ${selectedTime.end}` : '';
+      
+      // Se você tem um elemento separado para o preço:
+      if (document.getElementById('confirmPrice')) {
+        document.getElementById('confirmPrice').textContent = servicePrice ? 
+          servicePrice.replace(' - ', '') : '';
+      }
     }
-    
     // Event listeners para selects
     categorySelect.addEventListener('change', function() {
       if (this.value) {
@@ -242,12 +256,14 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
     
-    serviceSelect.addEventListener('change', function() {
+        serviceSelect.addEventListener('change', function() {
       if (this.value) {
+        const selectedOption = this.options[this.selectedIndex];
         selectedService = {
           id: this.value,
-          name: this.options[this.selectedIndex].text,
-          duration: this.options[this.selectedIndex].dataset.duration
+          name: selectedOption.text.split(' - ')[0], // Remove o preço do nome
+          duration: selectedOption.dataset.duration,
+          price: selectedOption.dataset.price ? parseFloat(selectedOption.dataset.price) : 0
         };
         loadEmployees(this.value);
       } else {
@@ -309,18 +325,20 @@ document.addEventListener('DOMContentLoaded', function() {
         const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
         const detailsList = document.getElementById('appointmentDetails');
         
+        // Dentro do form.addEventListener('submit', ...):
         detailsList.innerHTML = `
           <li><strong>Nome:</strong> ${appointment.client_name}</li>
           <li><strong>Serviço:</strong> ${confirmService.textContent}</li>
           <li><strong>Profissional:</strong> ${confirmEmployee.textContent}</li>
           <li><strong>Data:</strong> ${appointment.appointment_date}</li>
           <li><strong>Horário:</strong> ${appointment.start_time} - ${appointment.end_time}</li>
-        `;
+          ${selectedService.price ? `<li><strong>Valor total:</strong> R$ ${selectedService.price.toFixed(2)}</li>` : ''}`
         
         // No evento de submit do formulário, após mostrar o modal:
         modal.show();
 
         // Armazenar os dados do agendamento para uso nos botões
+       // Atualize também o currentAppointment para incluir o preço:
         let currentAppointment = {
           name: appointment.client_name,
           email: clientEmail,
@@ -328,7 +346,8 @@ document.addEventListener('DOMContentLoaded', function() {
           service: confirmService.textContent,
           professional: confirmEmployee.textContent,
           date: appointment.appointment_date,
-          time: `${appointment.start_time} - ${appointment.end_time}`
+          time: `${appointment.start_time} - ${appointment.end_time}`,
+          price: selectedService.price ? `R$ ${selectedService.price.toFixed(2)}` : ''
         };
 
         // Configurar os botões
@@ -356,7 +375,8 @@ document.addEventListener('DOMContentLoaded', function() {
                   service: currentAppointment.service,
                   professional: currentAppointment.professional,
                   date: currentAppointment.date,
-                  time: currentAppointment.time
+                  time: currentAppointment.time,
+                  price: currentAppointment.price
                 }
               })
             });
@@ -415,13 +435,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 email: currentAppointment.email,
                 subject: 'Confirmação de Agendamento',
                 body: `
-                  <h1>Confirmação de Agendamento</h1>
-                  <p>Seu agendamento foi confirmado com sucesso!</p>
-                  <p><strong>Nome:</strong> ${currentAppointment.name}</p>
-                  <p><strong>Serviço:</strong> ${currentAppointment.service}</p>
-                  <p><strong>Profissional:</strong> ${currentAppointment.professional}</p>
-                  <p><strong>Data:</strong> ${currentAppointment.date}</p>
-                  <p><strong>Horário:</strong> ${currentAppointment.time}</p>
+                <h1>Confirmação de Agendamento</h1>
+                <p>Seu agendamento foi confirmado com sucesso!</p>
+                <p><strong>Nome:</strong> ${currentAppointment.name}</p>
+                <p><strong>Serviço:</strong> ${currentAppointment.service}</p>
+                <p><strong>Profissional:</strong> ${currentAppointment.professional}</p>
+                <p><strong>Data:</strong> ${currentAppointment.date}</p>
+                <p><strong>Horário:</strong> ${currentAppointment.time}</p>
+                ${currentAppointment.price ? `<p><strong>Valor total:</strong> ${currentAppointment.price}</p>` : ''}
                 `
               })
             });
@@ -453,6 +474,9 @@ document.addEventListener('DOMContentLoaded', function() {
           doc.text(`Profissional: ${currentAppointment.professional}`, 20, 50);
           doc.text(`Data: ${currentAppointment.date}`, 20, 60);
           doc.text(`Horário: ${currentAppointment.time}`, 20, 70);
+           if (currentAppointment.price) {
+            doc.text(`Valor total: ${currentAppointment.price}`, 20, 80);
+            }
           
           doc.save(`Agendamento_${currentAppointment.name.replace(/\s/g, '_')}.pdf`);
         });

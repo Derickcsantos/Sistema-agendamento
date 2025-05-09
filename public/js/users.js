@@ -32,7 +32,7 @@ function getCurrentUser() {
   
   // Garante que o objeto tenha a propriedade password
   if (!user.password) {
-    user.password = '';
+    user.password ;
   }
   
   return user;

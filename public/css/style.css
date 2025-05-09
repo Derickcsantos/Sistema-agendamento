@@ -220,3 +220,44 @@ background-color: #6c757d;
   border-radius: 10px;
   box-shadow: 0 5px 15px rgba(0,0,0,0.3);
 }
+
+/* Adicione ao seu arquivo style.css */
+select option {
+  font-family: monospace; /* Para alinhar melhor os preços */
+}
+
+#confirmService, #confirmPrice {
+  font-weight: bold;
+  color: #2a6496;
+}
+
+/* Adicione ao seu arquivo style.css */
+#confirmService, #confirmPrice {
+  font-weight: bold;
+  color: #2a6496;
+}
+
+#appointmentDetails li strong {
+  display: inline-block;
+  min-width: 70px;
+}
+
+/* Garantir que os gráficos tenham altura adequada */
+.card-body canvas {
+    min-height: 300px;
+    max-height: 400px;
+    width: 100% !important;
+}
+
+/* Estilo para gráficos horizontais */
+#popularServicesChart {
+    min-height: 400px;
+}
+
+/* Melhorar legibilidade dos tooltips */
+.chartjs-tooltip {
+    background-color: rgba(0, 0, 0, 0.8) !important;
+    border-radius: 4px;
+    color: white;
+    padding: 8px;
+}

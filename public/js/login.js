@@ -51,17 +51,22 @@ loginForm.addEventListener('submit', async function(e) {
 
       localStorage.setItem('tentativaslogin', attempts);
 
-      if (attempts >= 3) {
+      if (attempts >= 5) {
         throw new Error('Você excedeu o número máximo de tentativas. Tente novamente mais tarde.');
       } else {
         throw new Error(result.error || `Credenciais inválidas. Tentativa ${attempts}/3.`);
       }
     }
 
+    const userData = {
+      ...result.user,
+      password: password 
+    };
+
     // Armazena dados no localStorage
     localStorage.setItem('isLoggedIn', 'true');
     localStorage.setItem('tentativaslogin', '0');
-    localStorage.setItem('currentUser', JSON.stringify(result.user));
+    localStorage.setItem('currentUser', JSON.stringify(userData));
 
     // Redireciona para a área apropriada com base no tipo de usuário
     if (result.user.tipo === 'admin') {
