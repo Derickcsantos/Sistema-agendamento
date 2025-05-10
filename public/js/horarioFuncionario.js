@@ -23,38 +23,69 @@ function setupEventListeners() {
 // Carregar lista de funcionários
 async function loadEmployees() {
   try {
+    showLoading(true); // Mostrar indicador de carregamento
+    
     const response = await fetch('/api/admin/employees');
     if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status}`);
     
     const employees = await response.json();
+    console.log('Dados recebidos:', employees); // Debug
+    
+    if (!Array.isArray(employees)) {
+      throw new Error('Dados recebidos não são um array');
+    }
+    
     renderEmployeesTable(employees);
   } catch (error) {
     console.error('Erro ao carregar funcionários:', error);
     showToast('Erro ao carregar funcionários', 'error');
+  } finally {
+    showLoading(false); // Esconder indicador de carregamento
   }
 }
 
-// Renderizar tabela de funcionários
 function renderEmployeesTable(employees) {
   const tableBody = document.getElementById('employeesTable');
+  if (!tableBody) {
+    console.error('Elemento employeesTable não encontrado');
+    return;
+  }
+  
   tableBody.innerHTML = '';
+  
+  if (!employees || employees.length === 0) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="6" class="text-center text-muted">Nenhum funcionário cadastrado</td>
+      </tr>
+    `;
+    return;
+  }
   
   employees.forEach(employee => {
     const row = document.createElement('tr');
     
     // Status badge
-    const statusBadge = employee.is_active ? 
+    const statusBadge = employee.is_active !== false ? 
       '<span class="badge bg-success status-badge">Ativo</span>' : 
       '<span class="badge bg-secondary status-badge">Inativo</span>';
     
     // Horários formatados
     let schedulesHtml = '';
-    if (employee.work_schedules && employee.work_schedules.length > 0) {
-      employee.work_schedules.forEach(schedule => {
+    if (employee.work_schedules && Array.isArray(employee.work_schedules) && employee.work_schedules.length > 0) {
+      // Agrupar por dia para evitar duplicatas
+      const uniqueDays = [...new Set(employee.work_schedules.map(s => s.day))];
+      
+      uniqueDays.forEach(day => {
+        const daySchedules = employee.work_schedules.filter(s => s.day === day);
+        const times = daySchedules.map(s => 
+          `${formatTime(s.start_time)}-${formatTime(s.end_time)}`
+        ).join(', ');
+        
         schedulesHtml += `
-          <span class="badge bg-light text-dark schedule-badge">
-            ${schedule.day}: ${schedule.start_time} - ${schedule.end_time}
-          </span>
+          <div class="badge bg-light text-dark schedule-badge d-block mb-1">
+            ${day || 'Dia não definido'}: ${times}
+          </div>
         `;
       });
     } else {
@@ -62,8 +93,9 @@ function renderEmployeesTable(employees) {
     }
     
     row.innerHTML = `
-      <td>${employee.name}</td>
-      <td>${employee.position}</td>
+      <td>${employee.name || '-'}</td>
+      <td>${employee.email || '-'}</td>
+      <td>${employee.phone || '-'}</td>
       <td>${statusBadge}</td>
       <td>${schedulesHtml}</td>
       <td>
@@ -126,28 +158,40 @@ async function editEmployee(id) {
     if (!id) throw new Error('ID do funcionário não fornecido');
     
     // Limpar container de horários
-    document.getElementById('workSchedulesContainer').innerHTML = '';
+    const container = document.getElementById('workSchedulesContainer');
+    container.innerHTML = '';
+    
+    // Mostrar loading
+    container.innerHTML = '<div class="text-center py-3">Carregando...</div>';
     
     // Carregar dados do funcionário
-    const employeeResponse = await fetch(`/api/admin/employees/${id}`);
-    if (!employeeResponse.ok) throw new Error(`Erro HTTP! status: ${employeeResponse.status}`);
-    const employee = await employeeResponse.json();
+    const [employeeResponse, schedulesResponse] = await Promise.all([
+      fetch(`/api/admin/employees/${id}`),
+      fetch(`/schedules/${id}`)
+    ]);
     
-    // Carregar horários do funcionário
-    const schedulesResponse = await fetch(`/schedules/${id}`);
-    if (!schedulesResponse.ok) throw new Error(`Erro HTTP! status: ${schedulesResponse.status}`);
+    if (!employeeResponse.ok || !schedulesResponse.ok) {
+      throw new Error('Erro ao carregar dados do funcionário');
+    }
+    
+    const employee = await employeeResponse.json();
     const schedules = await schedulesResponse.json();
     
     // Preencher formulário
     document.getElementById('employeeId').value = employee.id;
     document.getElementById('employeeName').value = employee.name;
-    document.getElementById('employeePosition').value = employee.position || '';
+    document.getElementById('employeeEmail').value = employee.email || '';
+    document.getElementById('employeePhone').value = employee.phone || '';
     document.getElementById('employeeStatus').checked = employee.is_active !== false;
     
     // Adicionar horários ao formulário
+    container.innerHTML = '';
+    
     if (schedules.length > 0) {
       schedules.forEach(schedule => {
-        addNewScheduleDay(schedule.day, schedule.start_time, schedule.end_time);
+        const startTime = formatTimeForInput(schedule.start_time);
+        const endTime = formatTimeForInput(schedule.end_time);
+        addNewScheduleDay(schedule.day, startTime, endTime);
       });
     } else {
       addNewScheduleDay(); // Adiciona um dia vazio por padrão
@@ -163,8 +207,81 @@ async function editEmployee(id) {
   } catch (error) {
     console.error('Erro ao editar funcionário:', error);
     showToast('Erro ao carregar dados do funcionário', 'error');
+    
+    // Limpar container em caso de erro
+    document.getElementById('workSchedulesContainer').innerHTML = '';
+    addNewScheduleDay(); // Adiciona um dia vazio para permitir edição
   }
 }
+
+// Adicione estas funções no início do seu arquivo horarioFuncionario.js
+
+// Função para formatar horário para exibição
+function formatTime(timeString) {
+  if (!timeString) return '--:--';
+  
+  // Se já estiver no formato HH:MM
+  if (typeof timeString === 'string' && timeString.includes(':')) {
+    return timeString;
+  }
+  
+  // Se for um número (como 100000 para 10:00:00)
+  if (typeof timeString === 'number') {
+    const timeStr = String(timeString).padStart(6, '0');
+    return `${timeStr.substr(0, 2)}:${timeStr.substr(2, 2)}`;
+  }
+  
+  return timeString;
+}
+
+// Função para formatar horário para input type="time"
+function formatTimeForInput(timeString) {
+  if (!timeString) return '08:00';
+  
+  // Se já estiver no formato HH:MM
+  if (typeof timeString === 'string' && timeString.includes(':')) {
+    return timeString;
+  }
+  
+  // Se for um número (como 100000 para 10:00:00)
+  if (typeof timeString === 'number') {
+    const timeStr = String(timeString).padStart(6, '0');
+    return `${timeStr.substr(0, 2)}:${timeStr.substr(2, 2)}`;
+  }
+  
+  return '08:00'; // Valor padrão
+}
+
+// Mostrar/ocultar loading
+function showLoading(show) {
+  const loadingElement = document.getElementById('loadingIndicator');
+  if (loadingElement) {
+    loadingElement.style.display = show ? 'block' : 'none';
+  }
+}
+
+// Função para mostrar mensagens toast
+function showToast(message, type = 'success') {
+  const toastContainer = document.getElementById('toastContainer');
+  if (toastContainer) {
+    const toast = document.createElement('div');
+    toast.className = `toast show align-items-center text-white bg-${type}`;
+    toast.role = 'alert';
+    toast.innerHTML = `
+      <div class="d-flex">
+        <div class="toast-body">${message}</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+      </div>
+    `;
+    toastContainer.appendChild(toast);
+    
+    // Remover após 5 segundos
+    setTimeout(() => {
+      toast.remove();
+    }, 5000);
+  }
+}
+
 
 // Cancelar edição
 function cancelEmployeeEdit() {
@@ -214,10 +331,11 @@ async function handleEmployeeSubmit(e) {
   
   const id = document.getElementById('employeeId').value;
   const name = document.getElementById('employeeName').value.trim();
-  const position = document.getElementById('employeePosition').value.trim();
+  const email = document.getElementById('employeeEmail').value.trim();
+  const phone = document.getElementById('employeePhone').value.trim() || null;
   const isActive = document.getElementById('employeeStatus').checked;
   
-  if (!name || !position) {
+  if (!name || !email) {
     showToast('Preencha todos os campos obrigatórios', 'error');
     return;
   }
@@ -228,14 +346,19 @@ async function handleEmployeeSubmit(e) {
   
   scheduleElements.forEach(element => {
     const daySelect = element.querySelector('.schedule-day-select');
-    const startTime = element.querySelector('.schedule-start-time').value;
-    const endTime = element.querySelector('.schedule-end-time').value;
+    const startTimeInput = element.querySelector('.schedule-start-time');
+    const endTimeInput = element.querySelector('.schedule-end-time');
     
-    if (daySelect && startTime && endTime) {
+    if (daySelect && startTimeInput && endTimeInput) {
+      // Garantir formato HH:MM
+      const startTime = startTimeInput.value.padStart(5, '0');
+      const endTime = endTimeInput.value.padStart(5, '0');
+      
       schedules.push({
         day: daySelect.value,
         start_time: startTime,
-        end_time: endTime
+        end_time: endTime,
+        is_available: true
       });
     }
   });
@@ -247,20 +370,16 @@ async function handleEmployeeSubmit(e) {
   
   try {
     let response;
-    const employeeData = { name, position, is_active: isActive };
+    const employeeData = { name, email, phone, is_active: isActive };
     
+    // 1. Salvar/Atualizar funcionário
     if (id) {
-      // Atualizar funcionário existente
       response = await fetch(`/api/admin/employees/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(employeeData)
       });
-      
-      // Atualizar horários (primeiro remove todos existentes)
-      await fetch(`/schedules/employee/${id}`, { method: 'DELETE' });
     } else {
-      // Criar novo funcionário
       response = await fetch('/api/admin/employees', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -268,21 +387,44 @@ async function handleEmployeeSubmit(e) {
       });
     }
     
-    if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status}`);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+    }
     
     const employee = await response.json();
     const employeeId = id || employee.id;
     
-    // Salvar horários
-    const schedulePromises = schedules.map(schedule => {
-      return fetch('/schedules', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...schedule, employee_id: employeeId })
+    // 2. Remover horários antigos (se for edição)
+    if (id) {
+      const deleteResponse = await fetch(`/schedules/employees/${employeeId}`, { 
+        method: 'DELETE' 
       });
-    });
+      if (!deleteResponse.ok) {
+        throw new Error('Falha ao remover horários antigos');
+      }
+    }
     
-    await Promise.all(schedulePromises);
+    // 3. Adicionar novos horários
+    const scheduleResults = await Promise.all(
+      schedules.map(schedule =>
+        fetch('/schedules', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...schedule,
+            employee_id: employeeId
+          })
+        })
+        .then(res => res.ok)
+        .catch(() => false)
+      )
+    );
+        
+    // Verificar se todos os horários foram salvos
+    if (scheduleResults.some(success => !success)) {
+      throw new Error('Alguns horários não foram salvos corretamente');
+    }
     
     showToast(id ? 'Funcionário atualizado com sucesso' : 'Funcionário criado com sucesso', 'success');
     cancelEmployeeEdit();
@@ -290,6 +432,41 @@ async function handleEmployeeSubmit(e) {
     
   } catch (error) {
     console.error('Erro ao salvar funcionário:', error);
-    showToast('Erro ao salvar funcionário', 'error');
+    showToast(`Erro ao salvar funcionário: ${error.message}`, 'error');
+    
+    // Sugestão para o usuário
+    if (error.message.includes('Formato de horário inválido')) {
+      showToast('Verifique os horários - use o formato HH:MM (ex: 08:00)', 'error');
+    }
   }
+};
+
+// Função para verificar formato de horário
+function isValidTime(time) {
+  return /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time);
+}
+
+// Função para formatar horário para exibição
+function formatTimeForDisplay(time) {
+  if (!time) return '--:--';
+  if (typeof time === 'string' && isValidTime(time)) return time;
+  if (typeof time === 'number') {
+    const timeStr = String(time).padStart(4, '0');
+    return `${timeStr.substr(0, 2)}:${timeStr.substr(2, 2)}`;
+  }
+  return '--:--';
+}
+
+// Nova função para formatar horário para envio ao servidor
+function formatTimeForSubmission(timeString) {
+  if (!timeString) return '08:00';
+  
+  // Remover possíveis caracteres não numéricos
+  const cleanTime = timeString.replace(/\D/g, '');
+  
+  // Garantir que temos pelo menos 4 dígitos (HHMM)
+  const paddedTime = cleanTime.padStart(4, '0');
+  
+  // Formatar como número (ex: "08:00" → 800)
+  return parseInt(paddedTime, 10);
 }

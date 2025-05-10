@@ -261,3 +261,28 @@ select option {
     color: white;
     padding: 8px;
 }
+
+.schedule-day {
+  background-color: #f8f9fa;
+  border-radius: 5px;
+  padding: 15px;
+  margin-bottom: 10px;
+  position: relative;
+}
+.remove-schedule {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  cursor: pointer;
+  color: #dc3545;
+}
+.status-badge {
+  font-size: 0.875em;
+  padding: 0.35em 0.65em;
+}
+.schedule-badge {
+  font-size: 0.75em;
+  margin-right: 5px;
+  margin-bottom: 5px;
+  display: inline-block;
+}

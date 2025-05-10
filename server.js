@@ -937,29 +937,38 @@ app.delete('/api/admin/services/:id', async (req, res) => {
 // ROTAS DE FUNCIONÁRIOS
 app.get('/api/admin/employees', async (req, res) => {
   try {
+    // Buscar funcionários
     const { data: employees, error: employeesError } = await supabase
       .from('employees')
       .select('*')
-      .order('name', { ascending: true });
+      .order('created_at', { ascending: false });
 
     if (employeesError) throw employeesError;
 
     // Buscar horários para cada funcionário
-    const employeesWithSchedules = await Promise.all(employees.map(async employee => {
-      const { data: schedules, error: schedulesError } = await supabase
-        .from('work_schedules')
-        .select('*')
-        .eq('employee_id', employee.id);
+    const employeesWithSchedules = await Promise.all(
+      employees.map(async employee => {
+        const { data: schedules, error: schedulesError } = await supabase
+          .from('work_schedules')
+          .select('*')
+          .eq('employee_id', employee.id);
 
-      if (schedulesError) throw schedulesError;
+        if (schedulesError) throw schedulesError;
 
-      return { ...employee, work_schedules: schedules || [] };
-    }));
+        return { 
+          ...employee, 
+          work_schedules: schedules || [] 
+        };
+      })
+    );
 
     res.json(employeesWithSchedules);
   } catch (error) {
     console.error('Error fetching employees:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: error.message 
+    });
   }
 });
 
@@ -982,10 +991,15 @@ app.get('/api/admin/employees/:id', async (req, res) => {
 
 app.post('/api/admin/employees', async (req, res) => {
   try {
-    const { name, position, is_active } = req.body;
+    const { name, email, phone, is_active } = req.body;
     const { data, error } = await supabase
       .from('employees')
-      .insert([{ name, position, is_active: is_active !== false }])
+      .insert([{ 
+        name, 
+        email, 
+        phone, 
+        is_active: is_active !== false 
+      }])
       .select();
 
     if (error) throw error;
@@ -996,14 +1010,18 @@ app.post('/api/admin/employees', async (req, res) => {
   }
 });
 
-
 app.put('/api/admin/employees/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, position, is_active } = req.body;
+    const { name, email, phone, is_active } = req.body;
     const { data, error } = await supabase
       .from('employees')
-      .update({ name, position, is_active })
+      .update({ 
+        name, 
+        email, 
+        phone, 
+        is_active 
+      })
       .eq('id', id)
       .select();
 
@@ -1047,7 +1065,7 @@ app.get("/schedules", async (req, res) => {
   try {
     const { data, error } = await supabase
       .from("work_schedules")
-      .select("*, employees(name, position)");
+      .select("*, employees(name, email)");
 
     if (error) throw error;
     res.json(data);
@@ -1057,18 +1075,64 @@ app.get("/schedules", async (req, res) => {
   }
 });
 
+// Rota para criar/atualizar horários
 app.post("/schedules", async (req, res) => {
   try {
     const { employee_id, day, start_time, end_time, is_available = true } = req.body;
-    const { data, error } = await supabase.from("work_schedules").insert([
-      { employee_id, day, start_time, end_time, is_available }
-    ]).select();
+    
+    // Validação dos dados
+    if (!employee_id || !day || !start_time || !end_time) {
+      return res.status(400).json({ 
+        error: 'Dados incompletos',
+        details: 'employee_id, day, start_time e end_time são obrigatórios' 
+      });
+    }
 
-    if (error) throw error;
+    // Converter horários para o formato HH:MM se necessário
+    const formatTime = (time) => {
+      if (typeof time === 'number') {
+        const timeStr = String(time).padStart(4, '0');
+        return `${timeStr.substr(0, 2)}:${timeStr.substr(2, 2)}`;
+      }
+      return time;
+    };
+
+    const formattedStart = formatTime(start_time);
+    const formattedEnd = formatTime(end_time);
+
+    // Validar formato dos horários
+    if (!formattedStart.match(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/) || 
+        !formattedEnd.match(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/)) {
+      return res.status(400).json({ 
+        error: 'Formato de horário inválido',
+        details: 'Use o formato HH:MM (ex: 08:00 ou 17:30)' 
+      });
+    }
+
+    // Inserir no banco de dados
+    const { data, error } = await supabase
+      .from("work_schedules")
+      .insert([{ 
+        employee_id, 
+        day, 
+        start_time: formattedStart, 
+        end_time: formattedEnd, 
+        is_available 
+      }])
+      .select();
+
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
+
     res.status(201).json(data[0]);
   } catch (error) {
     console.error('Error creating schedule:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: error.message 
+    });
   }
 });
 
@@ -1081,12 +1145,36 @@ app.get("/schedules/:employee_id", async (req, res) => {
       .eq("employee_id", employee_id);
 
     if (error) throw error;
-    res.json(data);
+    
+    // Formatar os horários antes de retornar
+    const formattedData = data.map(schedule => ({
+      ...schedule,
+      start_time: formatTimeFromDB(schedule.start_time),
+      end_time: formatTimeFromDB(schedule.end_time)
+    }));
+    
+    res.json(formattedData);
   } catch (error) {
     console.error('Error fetching employee schedules:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+// Função auxiliar para formatar o horário do banco de dados
+function formatTimeFromDB(time) {
+  if (!time) return null;
+  
+  // Se já estiver no formato HH:MM
+  if (typeof time === 'string' && time.includes(':')) return time;
+  
+  // Se for um número (como 100000 para 10:00:00)
+  if (typeof time === 'number') {
+    const timeStr = String(time).padStart(6, '0');
+    return `${timeStr.substr(0, 2)}:${timeStr.substr(2, 2)}`;
+  }
+  
+  return time;
+}
 
 app.delete("/schedules/employees/:employee_id", async (req, res) => {
   try {
