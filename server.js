@@ -1078,63 +1078,98 @@ app.get("/schedules", async (req, res) => {
 // Rota para criar/atualizar horários
 app.post("/schedules", async (req, res) => {
   try {
-    const { employee_id, day, start_time, end_time, is_available = true } = req.body;
-    
-    // Validação dos dados
-    if (!employee_id || !day || !start_time || !end_time) {
+    const { employee_id, day_of_week, start_time, end_time, is_available = true } = req.body;
+
+    // Validações
+    if (!employee_id || day_of_week === undefined || !start_time || !end_time) {
       return res.status(400).json({ 
         error: 'Dados incompletos',
-        details: 'employee_id, day, start_time e end_time são obrigatórios' 
+        details: 'employee_id, day_of_week (número), start_time e end_time são obrigatórios'
       });
     }
 
-    // Converter horários para o formato HH:MM se necessário
-    const formatTime = (time) => {
-      if (typeof time === 'number') {
-        const timeStr = String(time).padStart(4, '0');
-        return `${timeStr.substr(0, 2)}:${timeStr.substr(2, 2)}`;
-      }
-      return time;
-    };
-
-    const formattedStart = formatTime(start_time);
-    const formattedEnd = formatTime(end_time);
-
-    // Validar formato dos horários
-    if (!formattedStart.match(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/) || 
-        !formattedEnd.match(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/)) {
+    // Converter dia da semana para número se for string
+    const dayNumber = convertDayToNumber(day_of_week);
+    if (dayNumber === null) {
       return res.status(400).json({ 
-        error: 'Formato de horário inválido',
-        details: 'Use o formato HH:MM (ex: 08:00 ou 17:30)' 
+        error: 'Dia da semana inválido',
+        details: 'Use número (1-7) ou nome do dia (ex: "Segunda-feira")'
       });
     }
 
-    // Inserir no banco de dados
+    // Formatando os horários para HH:MM:SS
+    const formattedStart = formatTimeToHHMMSS(start_time);
+    const formattedEnd = formatTimeToHHMMSS(end_time);
+
+    // Inserção no banco
     const { data, error } = await supabase
       .from("work_schedules")
       .insert([{ 
         employee_id, 
-        day, 
+        day_of_week: dayNumber, 
         start_time: formattedStart, 
         end_time: formattedEnd, 
         is_available 
       }])
       .select();
 
-    if (error) {
-      console.error('Supabase error:', error);
-      throw error;
-    }
-
+    if (error) throw error;
     res.status(201).json(data[0]);
+
   } catch (error) {
-    console.error('Error creating schedule:', error);
+    console.error('Erro no servidor:', error);
     res.status(500).json({ 
       error: 'Internal server error',
       details: error.message 
     });
   }
 });
+
+// Funções auxiliares
+function convertDayToNumber(day) {
+  if (typeof day === 'number') {
+    return (day >= 1 && day <= 7) ? day : null;
+  }
+
+  const daysMap = {
+    'segunda': 1, 'segunda-feira': 1,
+    'terça': 2, 'terça-feira': 2,
+    'quarta': 3, 'quarta-feira': 3,
+    'quinta': 4, 'quinta-feira': 4,
+    'sexta': 5, 'sexta-feira': 5,
+    'sábado': 6, 'sabado': 6,
+    'domingo': 7
+  };
+
+  return daysMap[day.toLowerCase()] || null;
+}
+
+function formatTimeToHHMMSS(time) {
+  if (!time) return '09:00:00'; // Valor padrão
+  
+  // Se já está no formato HH:MM:SS
+  if (typeof time === 'string' && time.match(/^\d{2}:\d{2}:\d{2}$/)) {
+    return time;
+  }
+  
+  // Se está no formato HH:MM
+  if (typeof time === 'string' && time.match(/^\d{2}:\d{2}$/)) {
+    return `${time}:00`;
+  }
+  
+  // Se é um número como 800 (8:00) ou 1700 (17:00)
+  if (typeof time === 'number') {
+    const timeStr = String(time).padStart(4, '0');
+    return `${timeStr.substr(0, 2)}:${timeStr.substr(2, 2)}:00`;
+  }
+  
+  return '09:00:00'; // Valor padrão se não reconhecer
+}
+
+// Função auxiliar de validação
+function isValidTime(time) {
+  return /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time);
+}
 
 app.get("/schedules/:employee_id", async (req, res) => {
   try {

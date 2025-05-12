@@ -127,7 +127,7 @@ function addNewScheduleDay(day = '', startTime = '08:00', endTime = '17:00') {
       <div class="row">
         <div class="col-md-4 mb-3">
           <label class="form-label">Dia da semana</label>
-          <select class="form-select schedule-day-select" ${day ? 'disabled' : ''}>
+          <select class="form-select schedule-day-select" ${day ? 'data-fixed="true"' : ''}>
             ${dayOptions.map(d => `<option value="${d}" ${d === day ? 'selected' : ''}>${d}</option>`).join('')}
           </select>
         </div>
@@ -351,8 +351,10 @@ async function handleEmployeeSubmit(e) {
     
     if (daySelect && startTimeInput && endTimeInput) {
       // Garantir formato HH:MM
-      const startTime = startTimeInput.value.padStart(5, '0');
-      const endTime = endTimeInput.value.padStart(5, '0');
+      const startTime = startTimeInput.value.includes(':') ? startTimeInput.value : 
+                       `${startTimeInput.value.substr(0, 2)}:${startTimeInput.value.substr(2, 2)}`;
+      const endTime = endTimeInput.value.includes(':') ? endTimeInput.value : 
+                     `${endTimeInput.value.substr(0, 2)}:${endTimeInput.value.substr(2, 2)}`;
       
       schedules.push({
         day: daySelect.value,
@@ -369,6 +371,7 @@ async function handleEmployeeSubmit(e) {
   }
   
   try {
+    showLoading(true);
     let response;
     const employeeData = { name, email, phone, is_active: isActive };
     
@@ -395,55 +398,93 @@ async function handleEmployeeSubmit(e) {
     const employee = await response.json();
     const employeeId = id || employee.id;
     
-    // 2. Remover horários antigos (se for edição)
+    // 2. Para edição, primeiro deletar os horários existentes
     if (id) {
       const deleteResponse = await fetch(`/schedules/employees/${employeeId}`, { 
         method: 'DELETE' 
       });
       if (!deleteResponse.ok) {
-        throw new Error('Falha ao remover horários antigos');
+        console.error('Falha ao remover horários antigos:', await deleteResponse.text());
       }
     }
     
-    // 3. Adicionar novos horários
-    const scheduleResults = await Promise.all(
-      schedules.map(schedule =>
-        fetch('/schedules', {
+    /// 3. Adicionar novos horários
+    for (const schedule of schedules) {
+      try {
+        const scheduleData = {
+          day_of_week: convertDayNameToNumber(schedule.day), // Converter para número
+          start_time: formatTimeToHHMMSS(schedule.start_time),
+          end_time: formatTimeToHHMMSS(schedule.end_time),
+          is_available: true,
+          employee_id: employeeId
+        };
+        
+        const response = await fetch('/schedules', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...schedule,
-            employee_id: employeeId
-          })
-        })
-        .then(res => res.ok)
-        .catch(() => false)
-      )
-    );
+          body: JSON.stringify(scheduleData)
+        });
         
-    // Verificar se todos os horários foram salvos
-    if (scheduleResults.some(success => !success)) {
-      throw new Error('Alguns horários não foram salvos corretamente');
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Erro ${response.status}`);
+        }
+        
+        await response.json();
+      } catch (error) {
+        console.error(`Falha ao salvar horário para ${schedule.day}:`, error);
+        throw new Error(`Falha ao salvar horário: ${error.message}`);
+      }
     }
-    
-    showToast(id ? 'Funcionário atualizado com sucesso' : 'Funcionário criado com sucesso', 'success');
-    cancelEmployeeEdit();
-    loadEmployees();
+
+    showToast('Horários salvos com sucesso!', 'success');
     
   } catch (error) {
     console.error('Erro ao salvar funcionário:', error);
-    showToast(`Erro ao salvar funcionário: ${error.message}`, 'error');
-    
-    // Sugestão para o usuário
-    if (error.message.includes('Formato de horário inválido')) {
-      showToast('Verifique os horários - use o formato HH:MM (ex: 08:00)', 'error');
-    }
+    showToast(error.message, 'error');
+  } finally {
+    showLoading(false);
   }
-};
+}
+
+// Funções auxiliares no cliente
+function convertDayNameToNumber(dayName) {
+  const daysMap = {
+    'segunda-feira': 1,
+    'terça-feira': 2,
+    'quarta-feira': 3,
+    'quinta-feira': 4,
+    'sexta-feira': 5,
+    'sábado': 6,
+    'domingo': 7
+  };
+  return daysMap[dayName.toLowerCase()] || 1; // Default para Segunda
+}
+
+function formatTimeToHHMMSS(time) {
+  // Implementação similar à do servidor
+  if (typeof time === 'string' && time.includes(':')) {
+    return time.length === 5 ? `${time}:00` : time;
+  }
+  
+  if (typeof time === 'number') {
+    const timeStr = String(time).padStart(4, '0');
+    return `${timeStr.substr(0, 2)}:${timeStr.substr(2, 2)}:00`;
+  }
+  
+  return '09:00:00';
+}
 
 // Função para verificar formato de horário
-function isValidTime(time) {
-  return /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time);
+// Dentro do loop for (const schedule of schedules)
+const isValidTime = (time) => {
+  if (typeof time === 'number' && time >= 0 && time <= 2359) return true;
+  if (typeof time === 'string' && time.match(/^\d{1,2}:\d{2}$/)) return true;
+  return false;
+};
+
+if (!isValidTime(schedule.start_time) || !isValidTime(schedule.end_time)) {
+  throw new Error(`Horário inválido para ${schedule.day}. Use HH:MM ou número (ex: 800)`);
 }
 
 // Função para formatar horário para exibição
