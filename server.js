@@ -1095,7 +1095,7 @@ app.post("/schedules", async (req, res) => {
     if (dayNumber === null) {
       return res.status(400).json({ 
         error: 'Dia da semana inválido',
-        details: 'Use número (1-7) ou nome do dia (ex: "Segunda-feira")'
+        details: 'Use número (0-6) ou nome do dia (ex: "Segunda-feira")'
       });
     }
 
@@ -1130,17 +1130,17 @@ app.post("/schedules", async (req, res) => {
 // Funções auxiliares
 function convertDayToNumber(day) {
   if (typeof day === 'number') {
-    return (day >= 1 && day <= 7) ? day : null;
+    return (day >= 0 && day <= 6) ? day : null;
   }
 
   const daysMap = {
-    'segunda': 1, 'segunda-feira': 1,
-    'terça': 2, 'terça-feira': 2,
-    'quarta': 3, 'quarta-feira': 3,
-    'quinta': 4, 'quinta-feira': 4,
-    'sexta': 5, 'sexta-feira': 5,
-    'sábado': 6, 'sabado': 6,
-    'domingo': 7
+    'segunda': 0, 'segunda-feira': 0,
+    'terça': 1, 'terça-feira': 1,
+    'quarta': 2, 'quarta-feira': 2,
+    'quinta': 3, 'quinta-feira': 3,
+    'sexta': 4, 'sexta-feira': 4,
+    'sábado': 5, 'sabado': 5,
+    'domingo': 6
   };
 
   return daysMap[day.toLowerCase()] || null;

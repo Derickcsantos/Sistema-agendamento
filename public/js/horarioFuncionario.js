@@ -156,11 +156,6 @@ function addNewScheduleDay(day = '', startTime = '08:00', endTime = '17:00') {
   
   container.insertAdjacentHTML('beforeend', scheduleHtml);
 
-  // Remova completamente este bloco que desabilita o select
-  // if (day) {
-  //   const select = container.querySelector(`#schedule-${scheduleId} .schedule-day-select`);
-  //   if (select) select.disabled = true;
-  // }
 }
 
 // Remover dia de trabalho do formulário
@@ -466,21 +461,21 @@ async function handleEmployeeSubmit(e) {
 function convertDayNameToNumber(dayName) {
   // Mapeamento completo e case insensitive
   const daysMap = {
-    'segunda-feira': 1,
-    'terça-feira': 2,
-    'quarta-feira': 3,
-    'quinta-feira': 4,
-    'sexta-feira': 5,
-    'sábado': 6,
-    'domingo': 7,
+    'segunda-feira': 0,
+    'terça-feira': 1,
+    'quarta-feira': 2,
+    'quinta-feira': 3,
+    'sexta-feira': 4,
+    'sábado': 5,
+    'domingo': 6,
     // Adicione variações de escrita se necessário
-    'segunda': 1,
-    'terca': 2,
-    'terca-feira': 2,
-    'quarta': 3,
-    'quinta': 4,
-    'sexta': 5,
-    'sabado': 6
+    'segunda': 0,
+    'terca': 1,
+    'terca-feira': 1,
+    'quarta': 2,
+    'quinta': 3,
+    'sexta': 4,
+    'sabado': 5
   };
 
   // Normaliza o nome do dia (remove acentos, espaços extras, etc.)
