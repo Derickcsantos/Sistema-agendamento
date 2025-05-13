@@ -226,6 +226,8 @@ document.addEventListener('DOMContentLoaded', function() {
         alert('Erro ao carregar horários disponíveis. Por favor, tente novamente.');
       }
     }
+
+    
     
     // Atualizar dados de confirmação
     function updateConfirmationData() {
@@ -235,7 +237,7 @@ document.addEventListener('DOMContentLoaded', function() {
         ` - R$ ${parseFloat(serviceOption.dataset.price).toFixed(2)}` : '';
       
       confirmService.textContent = serviceText.includes(' - R$') ? 
-        serviceText : `${serviceText}${servicePrice}`;
+      serviceText : `${serviceText}${servicePrice}`;
       confirmEmployee.textContent = employeeSelect.options[employeeSelect.selectedIndex].text;
       confirmDate.textContent = appointmentDate.value;
       confirmTime.textContent = selectedTime ? `${selectedTime.start} - ${selectedTime.end}` : '';
@@ -330,10 +332,11 @@ document.addEventListener('DOMContentLoaded', function() {
           <li><strong>Nome:</strong> ${appointment.client_name}</li>
           <li><strong>Serviço:</strong> ${confirmService.textContent}</li>
           <li><strong>Profissional:</strong> ${confirmEmployee.textContent}</li>
-          <li><strong>Data:</strong> ${appointment.appointment_date}</li>
-          <li><strong>Horário:</strong> ${appointment.start_time} - ${appointment.end_time}</li>
+         <li><strong>Data:</strong> ${formatDateToBR(appointment.appointment_date)}</li>
+          <li><strong>Horário:</strong> ${appointment.start_time} 
           ${selectedService.price ? `<li><strong>Valor total:</strong> R$ ${selectedService.price.toFixed(2)}</li>` : ''}`
         
+        // Caso queira adicionar o horário de fim no modal de confirmação, adicione o código: " <li><strong>Horário:</strong> ${appointment.start_time} - ${appointment.end_time}</li>"
         // No evento de submit do formulário, após mostrar o modal:
         modal.show();
 
@@ -345,8 +348,8 @@ document.addEventListener('DOMContentLoaded', function() {
           phone: clientPhone,
           service: confirmService.textContent,
           professional: confirmEmployee.textContent,
-          date: appointment.appointment_date,
-          time: `${appointment.start_time} - ${appointment.end_time}`,
+          date: formatDateToBR(appointment.appointment_date),
+          time: `${appointment.start_time}`,
           price: selectedService.price ? `R$ ${selectedService.price.toFixed(2)}` : ''
         };
 
@@ -503,6 +506,27 @@ document.addEventListener('DOMContentLoaded', function() {
         alert('Erro ao confirmar agendamento. Por favor, tente novamente.');
       }
     });
+
+    function formatDateToBR(dateString) {
+      // Aceita formatos YYYY-MM-DD ou Date object
+      if (!dateString) return '';
+    
+      let year, month, day;
+    
+      if (typeof dateString === 'string' && dateString.includes('-')) {
+        // Suporta formato ISO: YYYY-MM-DD
+        [year, month, day] = dateString.split('-');
+      } else {
+        // Suporta objeto Date
+        const date = new Date(dateString);
+        day = String(date.getDate()).padStart(2, '0');
+        month = String(date.getMonth() + 1).padStart(2, '0');
+        year = date.getFullYear();
+      }
+    
+      return `${day}/${month}/${year}`;
+    }
+    
     
     // Inicialização
     loadCategories();
