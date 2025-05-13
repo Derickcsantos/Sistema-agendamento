@@ -115,9 +115,17 @@ function renderEmployeesTable(employees) {
 // Adicionar novo dia de trabalho ao formulário
 function addNewScheduleDay(day = '', startTime = '08:00', endTime = '17:00') {
   const container = document.getElementById('workSchedulesContainer');
-  const scheduleId = Date.now(); // ID único para o elemento
+  const scheduleId = Date.now();
   
-  const dayOptions = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'];
+  const dayOptions = [
+    'Segunda-feira', 
+    'Terça-feira',
+    'Quarta-feira',
+    'Quinta-feira',
+    'Sexta-feira',
+    'Sábado',
+    'Domingo'
+  ];
   
   const scheduleHtml = `
     <div class="schedule-day" id="schedule-${scheduleId}">
@@ -127,8 +135,11 @@ function addNewScheduleDay(day = '', startTime = '08:00', endTime = '17:00') {
       <div class="row">
         <div class="col-md-4 mb-3">
           <label class="form-label">Dia da semana</label>
-          <select class="form-select schedule-day-select" ${day ? 'data-fixed="true"' : ''}>
-            ${dayOptions.map(d => `<option value="${d}" ${d === day ? 'selected' : ''}>${d}</option>`).join('')}
+          <select class="form-select schedule-day-select">
+            <option value="">Selecione um dia</option>
+            ${dayOptions.map(d => 
+              `<option value="${d}" ${d === day ? 'selected' : ''}>${d}</option>`
+            ).join('')}
           </select>
         </div>
         <div class="col-md-3 mb-3">
@@ -144,6 +155,12 @@ function addNewScheduleDay(day = '', startTime = '08:00', endTime = '17:00') {
   `;
   
   container.insertAdjacentHTML('beforeend', scheduleHtml);
+
+  // Remova completamente este bloco que desabilita o select
+  // if (day) {
+  //   const select = container.querySelector(`#schedule-${scheduleId} .schedule-day-select`);
+  //   if (select) select.disabled = true;
+  // }
 }
 
 // Remover dia de trabalho do formulário
@@ -157,14 +174,9 @@ async function editEmployee(id) {
   try {
     if (!id) throw new Error('ID do funcionário não fornecido');
     
-    // Limpar container de horários
     const container = document.getElementById('workSchedulesContainer');
-    container.innerHTML = '';
-    
-    // Mostrar loading
     container.innerHTML = '<div class="text-center py-3">Carregando...</div>';
     
-    // Carregar dados do funcionário
     const [employeeResponse, schedulesResponse] = await Promise.all([
       fetch(`/api/admin/employees/${id}`),
       fetch(`/schedules/${id}`)
@@ -177,7 +189,7 @@ async function editEmployee(id) {
     const employee = await employeeResponse.json();
     const schedules = await schedulesResponse.json();
     
-    // Preencher formulário
+    // Preencher dados básicos
     document.getElementById('employeeId').value = employee.id;
     document.getElementById('employeeName').value = employee.name;
     document.getElementById('employeeEmail').value = employee.email || '';
@@ -191,26 +203,29 @@ async function editEmployee(id) {
       schedules.forEach(schedule => {
         const startTime = formatTimeForInput(schedule.start_time);
         const endTime = formatTimeForInput(schedule.end_time);
-        addNewScheduleDay(schedule.day, startTime, endTime);
+        
+        // Verifica se o dia existe antes de adicionar
+        if (schedule.day && schedule.day !== 'Dia inválido') {
+          addNewScheduleDay(schedule.day, startTime, endTime);
+        } else {
+          console.error('Dia inválido encontrado:', schedule);
+        }
       });
     } else {
       addNewScheduleDay(); // Adiciona um dia vazio por padrão
     }
     
-    // Mudar o texto do botão para "Atualizar"
+    // Atualizar botão de submit
     const submitBtn = document.querySelector('#employeeForm button[type="submit"]');
     if (submitBtn) submitBtn.textContent = 'Atualizar';
     
-    // Rolar até o formulário
     document.getElementById('employeeForm').scrollIntoView({ behavior: 'smooth' });
     
   } catch (error) {
     console.error('Erro ao editar funcionário:', error);
     showToast('Erro ao carregar dados do funcionário', 'error');
-    
-    // Limpar container em caso de erro
     document.getElementById('workSchedulesContainer').innerHTML = '';
-    addNewScheduleDay(); // Adiciona um dia vazio para permitir edição
+    addNewScheduleDay();
   }
 }
 
@@ -344,12 +359,12 @@ async function handleEmployeeSubmit(e) {
   const schedules = [];
   const scheduleElements = document.querySelectorAll('.schedule-day');
   
-  scheduleElements.forEach(element => {
-    const daySelect = element.querySelector('.schedule-day-select');
-    const startTimeInput = element.querySelector('.schedule-start-time');
-    const endTimeInput = element.querySelector('.schedule-end-time');
+    scheduleElements.forEach(element => {
+      const daySelect = element.querySelector('.schedule-day-select');
+      const startTimeInput = element.querySelector('.schedule-start-time');
+      const endTimeInput = element.querySelector('.schedule-end-time');
     
-    if (daySelect && startTimeInput && endTimeInput) {
+    if (daySelect && startTimeInput && endTimeInput && daySelect.value){
       // Garantir formato HH:MM
       const startTime = startTimeInput.value.includes(':') ? startTimeInput.value : 
                        `${startTimeInput.value.substr(0, 2)}:${startTimeInput.value.substr(2, 2)}`;
@@ -449,6 +464,7 @@ async function handleEmployeeSubmit(e) {
 
 // Funções auxiliares no cliente
 function convertDayNameToNumber(dayName) {
+  // Mapeamento completo e case insensitive
   const daysMap = {
     'segunda-feira': 1,
     'terça-feira': 2,
@@ -456,9 +472,31 @@ function convertDayNameToNumber(dayName) {
     'quinta-feira': 4,
     'sexta-feira': 5,
     'sábado': 6,
-    'domingo': 7
+    'domingo': 7,
+    // Adicione variações de escrita se necessário
+    'segunda': 1,
+    'terca': 2,
+    'terca-feira': 2,
+    'quarta': 3,
+    'quinta': 4,
+    'sexta': 5,
+    'sabado': 6
   };
-  return daysMap[dayName.toLowerCase()] || 1; // Default para Segunda
+
+  // Normaliza o nome do dia (remove acentos, espaços extras, etc.)
+  const normalizedDay = dayName
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove acentos
+    .trim();
+
+  const dayNumber = daysMap[normalizedDay];
+  
+  if (dayNumber === undefined) {
+    console.error(`Dia não reconhecido: "${dayName}" (normalizado: "${normalizedDay}")`);
+    throw new Error(`Dia da semana "${dayName}" não é válido`);
+  }
+  
+  return dayNumber;
 }
 
 function formatTimeToHHMMSS(time) {

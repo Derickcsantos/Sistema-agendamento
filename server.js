@@ -577,9 +577,11 @@ app.get('/api/employees/:serviceId', async (req, res) => {
 app.get('/api/available-times', async (req, res) => {
   try {
     const { employeeId, date, duration } = req.query;
+    console.log('Parâmetros recebidos:', { employeeId, date, duration });
     
     const dateObj = new Date(date);
-    const dayOfWeek = dateObj.getDay();
+    const dayOfWeek = dateObj.getDay(); // 0-6 (Domingo-Sábado)
+    console.log('Dia da semana calculado:', dayOfWeek)
 
     const { data: schedule, error: scheduleError } = await supabase
       .from('work_schedules')
@@ -1181,9 +1183,24 @@ app.get("/schedules/:employee_id", async (req, res) => {
 
     if (error) throw error;
     
-    // Formatar os horários antes de retornar
+    // Função para converter número para nome do dia
+    const convertNumberToDayName = (dayNumber) => {
+      const days = [
+        'Segunda-feira', 
+        'Terça-feira',
+        'Quarta-feira',
+        'Quinta-feira',
+        'Sexta-feira',
+        'Sábado',
+        'Domingo'
+      ];
+      return days[dayNumber] || 'Dia inválido';
+    };
+
+    // Formatar os dados antes de retornar
     const formattedData = data.map(schedule => ({
       ...schedule,
+      day: convertNumberToDayName(schedule.day_of_week), // Adiciona o nome do dia
       start_time: formatTimeFromDB(schedule.start_time),
       end_time: formatTimeFromDB(schedule.end_time)
     }));
