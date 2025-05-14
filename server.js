@@ -1314,6 +1314,139 @@ app.get('/api/admin/dashboard', async (req, res) => {
 });
 
 
+// Rotas de Cupons
+app.get('/api/coupons', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('coupons')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/coupons/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('coupons')
+      .select('*')
+      .eq('id', req.params.id)
+      .single();
+    
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/coupons', async (req, res) => {
+  try {
+    const couponData = {
+      ...req.body,
+      code: req.body.code.toUpperCase()
+    };
+    
+    const { data, error } = await supabase
+      .from('coupons')
+      .insert(couponData)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    res.status(201).json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/coupons/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('coupons')
+      .update(req.body)
+      .eq('id', req.params.id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/coupons/:id', async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('coupons')
+      .delete()
+      .eq('id', req.params.id);
+    
+    if (error) throw error;
+    res.status(204).end();
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/validate-coupon', async (req, res) => {
+  try {
+    const { code, serviceId } = req.query;
+    
+    // Primeiro verifique se o serviço existe e obtenha seu preço
+    const { data: service, error: serviceError } = await supabase
+      .from('services')
+      .select('price')
+      .eq('id', serviceId)
+      .single();
+    
+    if (serviceError) throw serviceError;
+    if (!service) throw new Error('Serviço não encontrado');
+    
+    // Agora verifique o cupom
+    const { data: coupon, error: couponError } = await supabase
+      .from('coupons')
+      .select('*')
+      .eq('code', code.toUpperCase())
+      .eq('is_active', true)
+      .gte('valid_until', new Date().toISOString())
+      .or(`max_uses.is.null,current_uses.lt.max_uses`)
+      .single();
+    
+    if (couponError || !coupon) {
+      return res.json({ 
+        valid: false, 
+        message: 'Cupom inválido, expirado ou já utilizado' 
+      });
+    }
+    
+    // Verificar valor mínimo do serviço
+    if (service.price < coupon.min_service_value) {
+      return res.json({
+        valid: false,
+        message: `Este cupom requer um serviço de valor mínimo de R$ ${coupon.min_service_value.toFixed(2)}`
+      });
+    }
+    
+    res.json({
+      valid: true,
+      discount: coupon.discount_value,
+      discountType: coupon.discount_type,
+      message: `Cupom aplicado! Desconto de ${coupon.discount_value}${coupon.discount_type === 'percentage' ? '%' : 'R$'}`
+    });
+    
+  } catch (error) {
+    res.status(500).json({ 
+      valid: false, 
+      message: error.message || 'Erro ao validar cupom' 
+    });
+  }
+});
 
 
 // Iniciar o servidor

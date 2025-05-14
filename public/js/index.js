@@ -11,6 +11,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const appointmentDate = document.getElementById('appointmentDate');
     const timeSlotsContainer = document.getElementById('timeSlots');
     const selectedTimeInput = document.getElementById('selectedTime');
+    const couponCode = document.getElementById('couponCode');
+    const applyCouponBtn = document.getElementById('applyCoupon');
+    const couponMessage = document.getElementById('couponMessage');
+    const couponConfirmation = document.getElementById('couponConfirmation');
+    let appliedCoupon = null;
+    let originalPrice = 0;
     
     // Elementos de confirmação
     const confirmService = document.getElementById('confirmService');
@@ -77,37 +83,101 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     });
     
-    // Validação de cada passo antes de avançar
     function validateStep(stepNumber) {
-      switch(stepNumber) {
-        case 1:
-          if (!categorySelect.value || !serviceSelect.value) {
-            alert('Por favor, selecione uma categoria e um serviço');
-            return false;
-          }
-          return true;
-        case 2:
-          if (!employeeSelect.value) {
-            alert('Por favor, selecione um profissional');
-            return false;
-          }
-          return true;
-        case 3:
-          if (!appointmentDate.value) {
-            alert('Por favor, selecione uma data');
-            return false;
-          }
-          return true;
-        case 4:
-          if (!selectedTimeInput.value) {
-            alert('Por favor, selecione um horário');
-            return false;
-          }
-          return true;
-        default:
-          return true;
-      }
+    switch(stepNumber) {
+      case 1:
+        if (!categorySelect.value) {
+          alert('Por favor, selecione uma categoria');
+          return false;
+        }
+        return true;
+      case 2:
+        if (!serviceSelect.value) {
+          alert('Por favor, selecione um serviço');
+          return false;
+        }
+        return true;
+      case 3:
+        if (!employeeSelect.value) {
+          alert('Por favor, selecione um profissional');
+          return false;
+        }
+        return true;
+      case 4:
+        if (!appointmentDate.value) {
+          alert('Por favor, selecione uma data');
+          return false;
+        }
+        return true;
+      case 5:
+        if (!selectedTimeInput.value) {
+          alert('Por favor, selecione um horário');
+          return false;
+        }
+        return true;
+      case 6:
+        // Cupom é opcional, sempre válido
+        return true;
+      default:
+        return true;
     }
+  }
+
+  // Adicione esta função para validar cupom
+async function validateCoupon(code, serviceId) {
+  try {
+    const response = await fetch(`/api/validate-coupon?code=${code}&serviceId=${serviceId}`);
+    if (!response.ok) throw new Error('Erro ao validar cupom');
+    return await response.json();
+  } catch (error) {
+    console.error('Erro ao validar cupom:', error);
+    return { valid: false, message: 'Erro ao validar cupom' };
+  }
+}
+
+  // Adicione este event listener para o botão de cupom
+  applyCouponBtn.addEventListener('click', async function() {
+    const code = couponCode.value.trim();
+    if (!code) {
+      couponMessage.textContent = 'Digite um código de cupom';
+      couponMessage.className = 'text-small text-danger';
+      return;
+    }
+
+    if (!selectedService) {
+      couponMessage.textContent = 'Selecione um serviço primeiro';
+      couponMessage.className = 'text-small text-danger';
+      return;
+    }
+
+    const result = await validateCoupon(code, selectedService.id);
+    
+    if (result.valid) {
+      appliedCoupon = {
+        code: code,
+        discount: result.discount,
+        type: result.discountType,
+        message: result.message
+      };
+      
+      // Calcular desconto
+      let discountValue = 0;
+      if (appliedCoupon.type === 'percentage') {
+        discountValue = originalPrice * (appliedCoupon.discount / 100);
+      } else {
+        discountValue = appliedCoupon.discount;
+      }
+      
+      selectedService.price = originalPrice - discountValue;
+      
+      couponMessage.textContent = result.message || 'Cupom aplicado com sucesso!';
+      couponMessage.className = 'text-small text-success';
+      updateConfirmationData();
+    } else {
+      couponMessage.textContent = result.message || 'Cupom inválido';
+      couponMessage.className = 'text-small text-danger';
+    }
+  });
     
     // Carregar categorias do banco de dados
     async function loadCategories() {
@@ -228,7 +298,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     
-    
     // Atualizar dados de confirmação
     function updateConfirmationData() {
       const serviceOption = serviceSelect.options[serviceSelect.selectedIndex];
@@ -236,11 +305,11 @@ document.addEventListener('DOMContentLoaded', function() {
       const servicePrice = serviceOption.dataset.price ? 
         ` - R$ ${parseFloat(serviceOption.dataset.price).toFixed(2)}` : '';
       
-      confirmService.textContent = serviceText.includes(' - R$') ? 
-      serviceText : `${serviceText}${servicePrice}`;
       confirmEmployee.textContent = employeeSelect.options[employeeSelect.selectedIndex].text;
       confirmDate.textContent = appointmentDate.value;
       confirmTime.textContent = selectedTime ? `${selectedTime.start} - ${selectedTime.end}` : '';
+      confirmService.textContent = serviceText.includes(' - R$') ? 
+      serviceText : `${serviceText}${servicePrice}`;
       
       // Se você tem um elemento separado para o preço:
       if (document.getElementById('confirmPrice')) {

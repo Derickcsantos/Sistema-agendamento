@@ -46,6 +46,11 @@
               </a>
             </li>
             <li class="nav-item">
+              <a class="nav-link" href="#" data-bs-toggle="tab" data-bs-target="#coupons">
+                <i class="bi bi-percent me-2"></i>Cupons
+              </a>
+            </li>
+            <li class="nav-item">
               <a class="nav-link" href="#" data-bs-toggle="tab" data-bs-target="#settings">
                 <i class="bi-gear me-2"></i>Configurações
               </a>
@@ -405,6 +410,94 @@
             </div>
           </div>
 
+          <!-- Cupons -->
+          <div class="tab-pane fade" id="coupons">
+            <h2>Gerenciamento de Cupons</h2>
+            <div class="form-section mb-4">
+              <h4>Adicionar/Editar Cupom</h4>
+              <form id="couponForm">
+                <input type="hidden" id="couponId">
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <label for="couponName" class="form-label">Nome do Cupom</label>
+                    <input type="text" class="form-control" id="couponName" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="couponCode" class="form-label">Código</label>
+                    <input type="text" class="form-control" id="couponCode" required>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <label for="couponDiscountType" class="form-label">Tipo de Desconto</label>
+                    <select class="form-select" id="couponDiscountType" required>
+                      <option value="percentage">Porcentagem</option>
+                      <option value="fixed">Valor Fixo</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="couponDiscountValue" class="form-label">Valor do Desconto</label>
+                    <input type="number" step="0.01" class="form-control" id="couponDiscountValue" required>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <label for="couponValidFrom" class="form-label">Válido de</label>
+                    <input type="datetime-local" class="form-control" id="couponValidFrom">
+                  </div>
+                  <div class="col-md-6">
+                    <label for="couponValidUntil" class="form-label">Válido até</label>
+                    <input type="datetime-local" class="form-control" id="couponValidUntil">
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <label for="couponMaxUses" class="form-label">Máximo de Usos (0 = ilimitado)</label>
+                    <input type="number" class="form-control" id="couponMaxUses" min="0" value="0">
+                  </div>
+                  <div class="col-md-6">
+                    <label for="couponMinValue" class="form-label">Valor Mínimo do Serviço</label>
+                    <input type="number" step="0.01" class="form-control" id="couponMinValue" min="0" value="0">
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <div class="col-md-12">
+                    <label for="couponDescription" class="form-label">Descrição</label>
+                    <textarea class="form-control" id="couponDescription" rows="2"></textarea>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Status</label>
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox" id="couponStatus" checked>
+                      <label class="form-check-label" for="couponStatus">Ativo</label>
+                    </div>
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Salvar</button>
+                <button type="button" class="btn btn-secondary" id="cancelCouponEdit">Cancelar</button>
+              </form>
+            </div>
+            
+            <div class="table-responsive">
+              <table class="table table-striped">
+                <thead>
+                  <tr>
+                    <th>Código</th>
+                    <th>Nome</th>
+                    <th>Desconto</th>
+                    <th>Válido até</th>
+                    <th>Usos</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="couponsTable"></tbody>
+              </table>
+            </div>
+          </div>
+
           <!-- Configurações -->
           <div class="tab-pane fade" id="settings">
             <h2>Configurações</h2>
@@ -507,6 +600,7 @@
   <script src="js/admin.js"></script>
   <script src="js/charts.js"></script>
   <script src="js/users.js"></script>
+   <script src="js/cupom.js"></script>
   <script src="js/horarioFuncionario.js"></script>
 </body>
 </html>

@@ -286,3 +286,23 @@ select option {
   margin-bottom: 5px;
   display: inline-block;
 }
+
+/* Estilos para a seção de cupons */
+#couponsTable td {
+  vertical-align: middle;
+}
+
+#couponsTable .badge {
+  font-size: 0.85em;
+}
+
+/* Estilo para o formulário de cupom */
+#couponForm .form-control, 
+#couponForm .form-select {
+  margin-bottom: 0.5rem;
+}
+
+/* Feedback */
+.alert {
+  margin-top: 1rem;
+}

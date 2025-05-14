@@ -17,29 +17,25 @@
     <div class="card">
       <div class="card-header">
         <ul class="nav nav-pills card-header-pills justify-content-center">
-          <li class="nav-item"><a class="nav-link step-indicator active" data-step="1">Serviço</a></li>
-          <li class="nav-item"><a class="nav-link step-indicator" data-step="2">Profissional</a></li>
-          <li class="nav-item"><a class="nav-link step-indicator" data-step="3">Data</a></li>
-          <li class="nav-item"><a class="nav-link step-indicator" data-step="4">Horário</a></li>
-          <li class="nav-item"><a class="nav-link step-indicator" data-step="5">Confirmar</a></li>
+          <li class="nav-item"><a class="nav-link step-indicator active" data-step="1">Categoria</a></li>
+          <li class="nav-item"><a class="nav-link step-indicator" data-step="2">Serviço</a></li>
+          <li class="nav-item"><a class="nav-link step-indicator" data-step="3">Profissional</a></li>
+          <li class="nav-item"><a class="nav-link step-indicator" data-step="4">Data</a></li>
+          <li class="nav-item"><a class="nav-link step-indicator" data-step="5">Horário</a></li>
+          <li class="nav-item"><a class="nav-link step-indicator" data-step="6">Cupom</a></li>
+          <li class="nav-item"><a class="nav-link step-indicator" data-step="7">Confirmar</a></li>
         </ul>
       </div>
       
       <div class="card-body">
         <form id="appointmentForm">
-          <!-- Passo 1: Selecionar Categoria e Serviço -->
+          <!-- Passo 1: Selecionar Categoria  -->
           <div class="step active" id="step1">
-            <h3>Selecione o serviço desejado</h3>
+            <h3>Selecione a categoria</h3>
             <div class="mb-3">
               <label for="category" class="form-label">Categoria</label>
               <select class="form-select" id="category" required>
                 <option value="" selected disabled>Selecione uma categoria</option>
-              </select>
-            </div>
-            <div class="mb-3">
-              <label for="service" class="form-label">Serviço</label>
-              <select class="form-select" id="service" disabled required>
-                <option value="" selected disabled>Primeiro selecione uma categoria</option>
               </select>
             </div>
             <div class="d-flex justify-content-between">
@@ -48,13 +44,13 @@
             </div>
           </div>
           
-          <!-- Passo 2: Selecionar Profissional -->
+          <!-- Passo 2: Selecionar Serviço -->
           <div class="step" id="step2">
-            <h3>Selecione o profissional</h3>
+            <h3>Selecione o serviço</h3>
             <div class="mb-3">
-              <label for="employee" class="form-label">Profissional</label>
-              <select class="form-select" id="employee" required>
-                <option value="" selected disabled>Selecione um profissional</option>
+              <label for="service" class="form-label">Serviço</label>
+              <select class="form-select" id="service" required>
+                <option value="" selected disabled>Selecione um serviço</option>
               </select>
             </div>
             <div class="d-flex justify-content-between">
@@ -63,12 +59,14 @@
             </div>
           </div>
           
-          <!-- Passo 3: Selecionar Data -->
+          <!-- Passo 3: Selecionar Profissional -->
           <div class="step" id="step3">
-            <h3>Selecione a data</h3>
+            <h3>Selecione o profissional</h3>
             <div class="mb-3">
-              <label for="appointmentDate" class="form-label">Data</label>
-              <input type="text" class="form-control" id="appointmentDate" required>
+              <label for="employee" class="form-label">Profissional</label>
+              <select class="form-select" id="employee" required>
+                <option value="" selected disabled>Selecione um profissional</option>
+              </select>
             </div>
             <div class="d-flex justify-content-between">
               <button type="button" class="btn btn-secondary prev-step" data-prev="2">Voltar</button>
@@ -76,22 +74,53 @@
             </div>
           </div>
           
-          <!-- Passo 4: Selecionar Horário -->
+          <!-- Passo 4: Selecionar Data -->
           <div class="step" id="step4">
-            <h3>Selecione o horário</h3>
+            <h3>Selecione a data</h3>
             <div class="mb-3">
-              <label class="form-label">Horários disponíveis</label>
-              <div id="timeSlots" class="d-flex flex-wrap"></div>
+              <label for="appointmentDate" class="form-label">Data</label>
+              <input type="text" class="form-control" id="appointmentDate" required>
             </div>
-            <input type="hidden" id="selectedTime" required>
             <div class="d-flex justify-content-between">
               <button type="button" class="btn btn-secondary prev-step" data-prev="3">Voltar</button>
               <button type="button" class="btn btn-primary next-step" data-next="5">Próximo</button>
             </div>
           </div>
           
-          <!-- Passo 5: Confirmar Agendamento -->
+         <!-- Passo 5: Selecionar Horário -->
           <div class="step" id="step5">
+            <h3>Selecione o horário</h3>
+            <div class="mb-3">
+              <label class="form-label">Horários disponíveis</label>
+              <div id="timeSlots" class="d-flex flex-wrap gap-2"></div>
+            </div>
+            <input type="hidden" id="selectedTime" required>
+            <div class="d-flex justify-content-between">
+              <button type="button" class="btn btn-secondary prev-step" data-prev="4">Voltar</button>
+              <button type="button" class="btn btn-primary next-step" data-next="6">Próximo</button>
+            </div>
+          </div>
+
+          <!-- Passo 6: Adicionar Cupom -->
+          <div class="step" id="step6">
+            <h3>Adicionar cupom de desconto</h3>
+            <div class="mb-3">
+              <label for="couponCode" class="form-label">Código do Cupom (opcional)</label>
+              <div class="input-group mb-3">
+                <input type="text" class="form-control" id="couponCode" placeholder="Digite seu cupom">
+                <button class="btn btn-outline-primary" type="button" id="applyCoupon">Aplicar</button>
+              </div>
+              <div id="couponMessage" class="text-small"></div>
+            </div>
+            <div class="d-flex justify-content-between">
+              <button type="button" class="btn btn-secondary prev-step" data-prev="5">Voltar</button>
+              <button type="button" class="btn btn-primary next-step" data-next="7">Próximo</button>
+            </div>
+          </div>
+
+            
+           <!-- Passo 7: Confirmação -->
+          <div class="step" id="step7">
             <h3>Confirme seu agendamento</h3>
             <div class="mb-3">
               <label for="clientName" class="form-label">Nome completo</label>
@@ -103,9 +132,7 @@
             </div>
             <div class="mb-3">
               <label for="clientPhone" class="form-label">Telefone</label>
-              <input type="tel" class="form-control" id="clientPhone" required 
-              pattern="^(\+55)?[\s-]?\(?[1-9]{2}\)?[\s-]?9?[\s-]?[0-9]{4}[\s-]?[0-9]{4}$"
-              title="Digite um número de telefone válido (ex: 11986362008 ou (11) 98636-2008)">
+              <input type="tel" class="form-control" id="clientPhone" required>
             </div>
             
             <div class="card mb-4">
@@ -116,11 +143,12 @@
                 <p><strong>Data:</strong> <span id="confirmDate"></span></p>
                 <p><strong>Horário:</strong> <span id="confirmTime"></span></p>
                 <p><strong>Preço:</strong> <span id="confirmPrice"></span></p>
+                <p id="couponConfirmation" class="text-success"></p>
               </div>
             </div>
             
             <div class="d-flex justify-content-between">
-              <button type="button" class="btn btn-secondary prev-step" data-prev="4">Voltar</button>
+              <button type="button" class="btn btn-secondary prev-step" data-prev="6">Voltar</button>
               <button type="submit" class="btn btn-success">Confirmar Agendamento</button>
             </div>
           </div>
@@ -269,5 +297,6 @@
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
   <script src="js/index.js"></script>
+  <script src="js/cupom.js"></script>
 </body>
 </html>
