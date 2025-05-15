@@ -1397,54 +1397,62 @@ app.delete('/api/coupons/:id', async (req, res) => {
 app.get('/api/validate-coupon', async (req, res) => {
   try {
     const { code, serviceId } = req.query;
-    
-    // Primeiro verifique se o serviço existe e obtenha seu preço
+    const cleanCode = code.trim().toUpperCase();
+
+    // Busca o serviço
     const { data: service, error: serviceError } = await supabase
       .from('services')
-      .select('price')
+      .select('price, name')
       .eq('id', serviceId)
       .single();
-    
-    if (serviceError) throw serviceError;
-    if (!service) throw new Error('Serviço não encontrado');
-    
-    // Agora verifique o cupom
+
+    if (serviceError || !service) {
+      return res.json({ valid: false, message: 'Serviço não encontrado' });
+    }
+
+    // Busca o cupom básico
     const { data: coupon, error: couponError } = await supabase
       .from('coupons')
       .select('*')
-      .eq('code', code.toUpperCase())
+      .eq('code', cleanCode)
       .eq('is_active', true)
-      .gte('valid_until', new Date().toISOString())
-      .or(`max_uses.is.null,current_uses.lt.max_uses`)
       .single();
-    
+
     if (couponError || !coupon) {
-      return res.json({ 
-        valid: false, 
-        message: 'Cupom inválido, expirado ou já utilizado' 
-      });
+      return res.json({ valid: false, message: 'Cupom não encontrado ou inativo' });
     }
-    
-    // Verificar valor mínimo do serviço
+
+    const now = new Date();
+
+    // Valida data de validade
+    if (coupon.valid_until && new Date(coupon.valid_until) < now) {
+      return res.json({ valid: false, message: 'Este cupom expirou' });
+    }
+
+    // Valida número máximo de usos
+    if (coupon.max_uses !== null && coupon.current_uses >= coupon.max_uses) {
+      return res.json({ valid: false, message: 'Este cupom atingiu o número máximo de usos' });
+    }
+
+    // Valida valor mínimo do serviço
     if (service.price < coupon.min_service_value) {
       return res.json({
         valid: false,
-        message: `Este cupom requer um serviço de valor mínimo de R$ ${coupon.min_service_value.toFixed(2)}`
+        message: `Este cupom requer serviço com valor mínimo de R$ ${coupon.min_service_value.toFixed(2)}`
       });
     }
-    
-    res.json({
+
+    // Cupom válido
+    return res.json({
       valid: true,
       discount: coupon.discount_value,
       discountType: coupon.discount_type,
       message: `Cupom aplicado! Desconto de ${coupon.discount_value}${coupon.discount_type === 'percentage' ? '%' : 'R$'}`
     });
-    
+
   } catch (error) {
-    res.status(500).json({ 
-      valid: false, 
-      message: error.message || 'Erro ao validar cupom' 
-    });
+    console.error('Erro na validação:', error);
+    return res.status(500).json({ valid: false, message: 'Erro interno ao validar cupom' });
   }
 });
 

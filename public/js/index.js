@@ -127,17 +127,29 @@ document.addEventListener('DOMContentLoaded', function() {
   // Validar cupom
   async function validateCoupon(code, serviceId) {
     try {
-      const response = await fetch(`/api/validate-coupon?code=${code}&serviceId=${serviceId}`);
-      if (!response.ok) throw new Error('Erro ao validar cupom');
+      console.log('Validando cupom:', code, 'para serviço:', serviceId); // Debug
+      const response = await fetch(`/api/validate-coupon?code=${encodeURIComponent(code)}&serviceId=${serviceId}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao validar cupom');
+      }
+      
       return await response.json();
     } catch (error) {
-      console.error('Erro ao validar cupom:', error);
-      return { valid: false, message: 'Erro ao validar cupom' };
+      console.error('Erro na validação do cupom:', error);
+      return { 
+        valid: false, 
+        message: error.message || 'Erro ao validar cupom' 
+      };
     }
   }
 
   // Aplicar cupom
   applyCouponBtn.addEventListener('click', async function() {
+    console.log('Clicou em aplicar cupom');
+    console.log('Código digitado:', couponCode.value.trim());
+    console.log('Serviço selecionado:', selectedService);
     const code = couponCode.value.trim();
     if (!code) {
       couponMessage.textContent = 'Digite um código de cupom';
@@ -382,7 +394,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const clientName = document.getElementById('clientName').value;
     const clientEmail = document.getElementById('clientEmail').value;
     const clientPhone = document.getElementById('clientPhone').value;
-    
+
+    const startHHMM = `${appointment.start_time.substring(0,2)}:${appointment.start_time.substring(2,4)}`;
+    const endHHMM = `${appointment.end_time.substring(0,2)}:${appointment.end_time.substring(2,4)}`;
+
+    // Calcular duração
+    const startMinutes = parseInt(appointment.start_time.substring(0,2)) * 60 + parseInt(appointment.start_time.substring(2,4));
+    const endMinutes = parseInt(appointment.end_time.substring(0,2)) * 60 + parseInt(appointment.end_time.substring(2,4));
+    const durationMinutes = endMinutes - startMinutes;
+    const duration = `${String(Math.floor(durationMinutes / 60)).padStart(2, '0')}:${String(durationMinutes % 60).padStart(2, '0')}`;
+        
     try {
       // Calcular preço final considerando o cupom
       let finalPrice = originalPrice;
