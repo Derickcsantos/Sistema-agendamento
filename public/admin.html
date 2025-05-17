@@ -377,6 +377,16 @@
                   <label class="form-check-label" for="employeeStatus">Ativo</label>
                 </div>
               </div>
+              <div class="col-md-6 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-primary" id="manageServicesBtn" style="display: none;">
+                  <i class="bi bi-gear"></i> Gerenciar Serviços
+                </button>
+              </div>
+              <div class="col-md-4 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-primary" id="manageSchedulesBtn" style="display: none;">
+                  <i class="bi bi-clock"></i> Gerenciar Horários
+                </button>
+              </div>
             </div>
 
             <h5 class="mt-4">Horário de Trabalho</h5>
@@ -393,6 +403,40 @@
             </div>
           </form>
         </div>
+
+        <!-- Modal de Gerenciamento de Serviços -->
+        <div class="modal fade" id="manageServicesModal" tabindex="-1" aria-labelledby="manageServicesModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="manageServicesModalLabel">Gerenciar Serviços do Funcionário</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <div class="mb-3">
+                  <label for="serviceSearch" class="form-label">Pesquisar Serviços</label>
+                  <input type="text" class="form-control" id="serviceSearch" placeholder="Digite para filtrar serviços...">
+                </div>
+                
+                <div class="list-group" id="servicesList">
+                  <!-- Lista de serviços será carregada aqui -->
+                  <div class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status">
+                      <span class="visually-hidden">Carregando...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-primary" id="saveServicesBtn">Salvar Alterações</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal de Gerenciamento de Horários -->
+
         
         <div class="table-responsive mt-4">
           <table class="table table-striped">
@@ -714,6 +758,43 @@
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
             <button type="button" class="btn btn-danger" id="confirmAction">Confirmar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Template para um item de horário (hidden) -->
+    <div class="d-none">
+      <div id="scheduleItemTemplate">
+        <div class="card mb-3 schedule-item" data-id="">
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label">Dia da Semana</label>
+                <select class="form-select day-select">
+                  <option value="0">Segunda-feira</option>
+                  <option value="1">Terça-feira</option>
+                  <option value="2">Quarta-feira</option>
+                  <option value="3">Quinta-feira</option>
+                  <option value="4">Sexta-feira</option>
+                  <option value="5">Sábado</option>
+                  <option value="6">Domingo</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Horário de Entrada</label>
+                <input type="time" class="form-control start-time" value="08:00">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Horário de Saída</label>
+                <input type="time" class="form-control end-time" value="17:00">
+              </div>
+              <div class="col-md-2 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-danger btn-sm remove-schedule">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

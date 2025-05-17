@@ -851,6 +851,21 @@ app.delete('/api/admin/categories/:id', async (req, res) => {
   }
 });
 
+app.get('/api/services', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('services')
+      .select('*')
+      .order('name', { ascending: true });
+
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching services:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Rotas para serviços
 app.get('/api/admin/services', async (req, res) => {
   try {
@@ -936,7 +951,6 @@ app.delete('/api/admin/services/:id', async (req, res) => {
   }
 });
 
-// ROTAS DE FUNCIONÁRIOS
 app.get('/api/admin/employees', async (req, res) => {
   try {
     // Buscar funcionários
@@ -947,9 +961,18 @@ app.get('/api/admin/employees', async (req, res) => {
 
     if (employeesError) throw employeesError;
 
-    // Buscar horários para cada funcionário
-    const employeesWithSchedules = await Promise.all(
+    // Buscar serviços e horários para cada funcionário
+    const employeesWithDetails = await Promise.all(
       employees.map(async employee => {
+        // Buscar serviços
+        const { data: services, error: servicesError } = await supabase
+          .from('employee_services')
+          .select('services(name)')
+          .eq('employee_id', employee.id);
+
+        if (servicesError) throw servicesError;
+
+        // Buscar horários
         const { data: schedules, error: schedulesError } = await supabase
           .from('work_schedules')
           .select('*')
@@ -959,12 +982,13 @@ app.get('/api/admin/employees', async (req, res) => {
 
         return { 
           ...employee, 
+          services: services?.map(item => item.services) || [],
           work_schedules: schedules || [] 
         };
       })
     );
 
-    res.json(employeesWithSchedules);
+    res.json(employeesWithDetails);
   } catch (error) {
     console.error('Error fetching employees:', error);
     res.status(500).json({ 
@@ -1060,6 +1084,53 @@ app.delete('/api/admin/employees/:id', async (req, res) => {
     res.status(204).end();
   } catch (error) {
     console.error('Error deleting employee:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Rota para obter serviços de um funcionário
+app.get('/api/employee-services/:employeeId', async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const { data, error } = await supabase
+      .from('employee_services')
+      .select('service_id')
+      .eq('employee_id', employeeId);
+
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching employee services:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Rota para atualizar serviços de um funcionário
+app.put('/api/employee-services/:employeeId', async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const services = req.body;
+
+    // Primeiro deletar todos os serviços atuais
+    const { error: deleteError } = await supabase
+      .from('employee_services')
+      .delete()
+      .eq('employee_id', employeeId);
+
+    if (deleteError) throw deleteError;
+
+    // Depois inserir os novos serviços (se houver)
+    if (services.length > 0) {
+      const { error: insertError } = await supabase
+        .from('employee_services')
+        .insert(services);
+
+      if (insertError) throw insertError;
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating employee services:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -1229,6 +1300,63 @@ function formatTimeFromDB(time) {
   
   return time;
 }
+
+app.put('/schedules/:employee_id', async (req, res) => {
+  try {
+    const { employee_id } = req.params;
+    const schedules = req.body;
+
+    // Verificar se o funcionário existe
+    const { data: employee, error: employeeError } = await supabase
+      .from('employees')
+      .select('id')
+      .eq('id', employee_id)
+      .single();
+
+    if (employeeError || !employee) {
+      throw new Error('Funcionário não encontrado');
+    }
+
+    // Deletar horários existentes
+    const { error: deleteError } = await supabase
+      .from('work_schedules')
+      .delete()
+      .eq('employee_id', employee_id);
+
+    if (deleteError) throw deleteError;
+
+    // Inserir novos horários (se houver)
+    if (schedules.length > 0) {
+      // Validar horários
+      const validSchedules = schedules.map(schedule => {
+        if (isNaN(schedule.day_of_week) || schedule.day_of_week < 0 || schedule.day_of_week > 6) {
+          throw new Error('Dia da semana inválido');
+        }
+
+        return {
+          employee_id,
+          day_of_week: schedule.day_of_week,
+          start_time: schedule.start_time,
+          end_time: schedule.end_time
+        };
+      });
+
+      const { error: insertError } = await supabase
+        .from('work_schedules')
+        .insert(validSchedules);
+
+      if (insertError) throw insertError;
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating schedules:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
 
 app.delete("/schedules/employees/:employee_id", async (req, res) => {
   try {
