@@ -202,7 +202,7 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     } catch (error) {
       console.error('Erro ao carregar categorias:', error);
-      alert('Erro ao carregar categorias. Por favor, recarregue a página.');
+      console.log('Erro ao carregar categorias. Por favor, recarregue a página.');
     }
   }
   
@@ -230,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     } catch (error) {
       console.error('Erro ao carregar serviços:', error);
-      alert('Erro ao carregar serviços. Por favor, tente novamente.');
+      console.log('Erro ao carregar serviços. Por favor, tente novamente.');
     }
   }
   
@@ -253,7 +253,7 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     } catch (error) {
       console.error('Erro ao carregar profissionais:', error);
-      alert('Erro ao carregar profissionais. Por favor, tente novamente.');
+      console.log('Erro ao carregar profissionais. Por favor, tente novamente.');
     }
   }
   
@@ -298,7 +298,7 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     } catch (error) {
       console.error('Erro ao carregar horários disponíveis:', error);
-      alert('Erro ao carregar horários disponíveis. Por favor, tente novamente.');
+      console.log('Erro ao carregar horários disponíveis. Por favor, tente novamente.');
     }
   }
 
@@ -395,14 +395,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const clientEmail = document.getElementById('clientEmail').value;
     const clientPhone = document.getElementById('clientPhone').value;
 
-    const startHHMM = `${appointment.start_time.substring(0,2)}:${appointment.start_time.substring(2,4)}`;
-    const endHHMM = `${appointment.end_time.substring(0,2)}:${appointment.end_time.substring(2,4)}`;
-
-    // Calcular duração
-    const startMinutes = parseInt(appointment.start_time.substring(0,2)) * 60 + parseInt(appointment.start_time.substring(2,4));
-    const endMinutes = parseInt(appointment.end_time.substring(0,2)) * 60 + parseInt(appointment.end_time.substring(2,4));
-    const durationMinutes = endMinutes - startMinutes;
-    const duration = `${String(Math.floor(durationMinutes / 60)).padStart(2, '0')}:${String(durationMinutes % 60).padStart(2, '0')}`;
         
     try {
       // Calcular preço final considerando o cupom
@@ -436,20 +428,29 @@ document.addEventListener('DOMContentLoaded', function() {
         })
       });
       
-      if (!response.ok) throw new Error('Erro ao confirmar agendamento');
+      if (!response.ok) console.log('Erro ao confirmar agendamento');
       
       const appointment = await response.json();
       
       // Mostrar modal de confirmação
       const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
       const detailsList = document.getElementById('appointmentDetails');
-      
+
+      const startHHMM = `${appointment.start_time.substring(0,2)}:${appointment.start_time.substring(2,4)}`;
+      const endHHMM = `${appointment.end_time.substring(0,2)}:${appointment.end_time.substring(2,4)}`;
+      // Calcular duração
+      const startMinutes = parseInt(appointment.start_time.substring(0,2)) * 60 + parseInt(appointment.start_time.substring(2,4));
+      const endMinutes = parseInt(appointment.end_time.substring(0,2)) * 60 + parseInt(appointment.end_time.substring(2,4));
+      const durationMinutes = endMinutes - startMinutes;
+      const duration = `${String(Math.floor(durationMinutes / 60)).padStart(2, '0')}:${String(durationMinutes % 60).padStart(2, '0')}`;
+        
       detailsList.innerHTML = `
         <li><strong>Nome:</strong> ${appointment.client_name}</li>
         <li><strong>Serviço:</strong> ${confirmService.textContent}</li>
         <li><strong>Profissional:</strong> ${confirmEmployee.textContent}</li>
         <li><strong>Data:</strong> ${formatDateToBR(appointment.appointment_date)}</li>
         <li><strong>Horário:</strong> ${appointment.start_time}</li>
+        <li><strong>Duração:</strong> ${duration}</li>
         ${originalPrice ? `
           <li><strong>Valor original:</strong> R$ ${originalPrice.toFixed(2)}</li>
           ${appliedCoupon ? `<li><strong>Desconto:</strong> ${appliedCoupon.discount}${appliedCoupon.type === 'percentage' ? '%' : 'R$'}</li>` : ''}
@@ -458,7 +459,7 @@ document.addEventListener('DOMContentLoaded', function() {
       `;
       
       modal.show();
-
+      
       // Armazenar os dados do agendamento para uso nos botões
       let currentAppointment = {
         name: appointment.client_name,
@@ -531,7 +532,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (!/^(\+55|55|0)?[\s-]?\(?[1-9]{2}\)?[\s-]?9?[\s-]?[0-9]{4}[\s-]?[0-9]{4}$/.test(currentAppointment.phone)) {
-          alert('Por favor, digite um número de telefone válido com DDD');
+          console.log('Por favor, digite um número de telefone válido com DDD');
           return;
         }
         
@@ -584,6 +585,90 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       });
 
+      document.getElementById('calendarBtn').addEventListener('click', () => {
+        try {
+            // Criar variáveis específicas para o calendário
+            const calendarAppointment = {
+                service: currentAppointment.service,
+                professional: currentAppointment.professional,
+                name: currentAppointment.name,
+                finalPrice: currentAppointment.finalPrice,
+                date: currentAppointment.date, // formato dd/mm/yyyy
+                startTime: appointment.start_time, // "14:20:00" ou "1420"
+                endTime: appointment.end_time    // "20:20:00" ou "2020"
+            };
+    
+            // Preparar dados para o Google Calendar
+            const title = encodeURIComponent(`Agendamento: ${calendarAppointment.service}`);
+            const details = encodeURIComponent(
+                `Profissional: ${calendarAppointment.professional}\n` +
+                `Valor: ${calendarAppointment.finalPrice}\n` +
+                `Cliente: ${calendarAppointment.name}`
+            );
+            const location = encodeURIComponent('Online ou no local do serviço');
+    
+            // Converter data (dd/mm/yyyy) para yyyy-mm-dd
+            const [day, month, year] = calendarAppointment.date.split('/');
+            
+            // Função para normalizar e adicionar 3 horas
+            const normalizeAndAdjustTime = (timeStr) => {
+                // Remover todos os ':' se existirem
+                const cleanTime = timeStr.replace(/:/g, '');
+                // Garantir que tem 4 dígitos
+                const paddedTime = cleanTime.padStart(4, '0');
+                
+                // Converter para objeto Date e adicionar 3 horas
+                const hours = parseInt(paddedTime.substring(0, 2));
+                const minutes = parseInt(paddedTime.substring(2, 4));
+                
+                let adjustedHours = hours + 3;
+                if (adjustedHours >= 24) {
+                    adjustedHours -= 24;
+                    // Aqui você precisaria ajustar o dia também se necessário
+                }
+                
+                return `${String(adjustedHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+            };
+    
+            const startTime = normalizeAndAdjustTime(calendarAppointment.startTime);
+            const endTime = normalizeAndAdjustTime(calendarAppointment.endTime);
+    
+            // Criar strings de data/hora no formato ISO
+            const startDateStr = `${year}-${month}-${day}T${startTime}:00`;
+            const endDateStr = `${year}-${month}-${day}T${endTime}:00`;
+    
+            // Formatar para o padrão do Google Calendar
+            const formatForGoogleCalendar = (dateStr) => {
+                return dateStr.replace(/-/g, '')
+                             .replace(/:/g, '')
+                             .replace('T', 'T') + 'Z';
+            };
+    
+            const formattedStart = formatForGoogleCalendar(startDateStr);
+            const formattedEnd = formatForGoogleCalendar(endDateStr);
+    
+            // Montar URL do Google Calendar
+            const calendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE` +
+                `&text=${title}` +
+                `&dates=${formattedStart}/${formattedEnd}` +
+                `&details=${details}` +
+                `&location=${location}` +
+                `&sf=true` +
+                `&output=xml`;
+    
+            window.open(calendarUrl, '_blank');
+    
+        } catch (error) {
+            console.error('Erro ao gerar link para Google Calendar:', error);
+            console.log('Dados usados:', {
+                date: currentAppointment.date,
+                startTime: appointment.start_time,
+                endTime: appointment.end_time
+            });
+        }
+    });
+    
+
       document.getElementById('pdfBtn').addEventListener('click', () => {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
@@ -630,7 +715,7 @@ document.addEventListener('DOMContentLoaded', function() {
       
     } catch (error) {
       console.error('Erro ao confirmar agendamento:', error);
-      alert('Erro ao confirmar agendamento. Por favor, tente novamente.');
+      console.log('Erro ao confirmar agendamento. Por favor, tente novamente.');
     }
   });
 

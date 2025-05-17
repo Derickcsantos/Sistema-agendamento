@@ -1,19 +1,22 @@
 // Variáveis globais para os gráficos
 let charts = {
-    employees: null,
-    categories: null,
-    services: null,
-    appointments: null
-  };
+  employees: null,
+  categories: null,
+  services: null,
+  appointments: null,
+  users: null,
+  coupons: null
+};
+
   
   // Configurações dos gráficos
   const chartConfigs = {
     employees: {
       type: 'doughnut',
       data: {
-        labels: ['Funcionários'],
+        labels: ['Ativos', 'Inativos'],
         datasets: [{
-          backgroundColor: ['#36a2eb', '#ff6384', '#4bc0c0', '#ff9f40'],
+          backgroundColor: ['#36a2eb', '#ff6384'],
           borderColor: '#fff',
           borderWidth: 2
         }]
@@ -23,7 +26,7 @@ let charts = {
         maintainAspectRatio: false,
         plugins: {
           legend: { position: 'bottom' },
-          title: { display: true, text: 'Total de Funcionários', padding: 10 },
+          title: { display: true, text: 'Status dos Funcionários', padding: 10 },
           tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.raw}` } }
         },
         cutout: '70%'
@@ -78,13 +81,11 @@ let charts = {
         labels: [
           'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
           'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'],
-          datasets: [{
+        datasets: [{
           label: 'Agendamentos Confirmados',
           backgroundColor: 'rgba(255, 159, 64, 0.2)',
           borderColor: '#ff9f40',
-          borderWidth: 1,
-        //   fill: true,
-        //   tension: 0.4
+          borderWidth: 1
         }]
       },
       options: {
@@ -93,25 +94,60 @@ let charts = {
         plugins: {
           legend: { position: 'bottom' },
           title: { display: true, text: 'Agendamentos por Mês', padding: 10 },
-          tooltip: {
-            callbacks: {
-              label: ctx => `${ctx.label}: ${ctx.raw}`
-            }
-          }
+          tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.raw}` } }
         },
         scales: {
-            y: {
-            beginAtZero: true,
-            ticks: { precision: 0 }
-            }
+          y: { beginAtZero: true, ticks: { precision: 0 } }
         }
+      }
+    },
+    users: {
+      type: 'doughnut',
+      data: {
+        labels: ['Administradores', 'Usuários Comuns'],
+        datasets: [{
+          backgroundColor: ['#4bc0c0', '#ff9f40'],
+          borderColor: '#fff',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom' },
+          title: { display: true, text: 'Distribuição de Usuários', padding: 10 },
+          tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.raw}` } }
+        },
+        cutout: '70%'
+      }
+    },
+    coupons: {
+      type: 'pie',
+      data: {
+        labels: ['Ativos', 'Inativos'],
+        datasets: [{
+          backgroundColor: ['#36a2eb', '#ff6384'],
+          borderColor: '#fff',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom' },
+          title: { display: true, text: 'Status dos Cupons', padding: 10 },
+          tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.raw}` } }
+        }
+      }
     }
-}
-};
+  };
   
-  // Na função DOMContentLoaded
+  // Inicialização quando o DOM estiver pronto
   document.addEventListener('DOMContentLoaded', function() {
-    // ... código existente ...
+    // Carrega os dados imediatamente
+    loadDashboardData();
     
     // Adicionar listener para a tab Home
     const homeTab = document.querySelector('[data-bs-target="#home"]');
@@ -134,52 +170,122 @@ let charts = {
     }
   });
   
-  // Carregar dados do dashboard
-  async function loadDashboardData() {
-    try {
-      showLoading(true);
-      
-      const response = await fetch('/api/admin/dashboard');
-      if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status}`);
-      
-      const data = await response.json();
-      renderCharts(data);
-      updateStatsCards(data);
-      
-    } catch (error) {
-      console.error('Erro ao carregar dados do dashboard:', error);
-      showToast(`Erro ao carregar dashboard: ${error.message}`, 'error');
-    } finally {
-      showLoading(false);
+  // Função para carregar dados do dashboard
+async function loadDashboardData() {
+  try {
+    showLoading(true);
+
+    // Busca todos os dados em paralelo
+    const response = await fetch('/api/admin/dashboard');
+    if (!response.ok) {
+      throw new Error(`Erro HTTP! status: ${response.status}`);
     }
+    
+    
+    // Buscar todos os dados necessários
+    const [dashboardRes, employeesRes, usersRes, couponsRes] = await Promise.all([
+      fetch('/api/admin/dashboard'),
+      fetch('/api/admin/employees'),
+      fetch('/api/users'),
+      fetch('/api/coupons')
+    ]);
+    
+    if (!dashboardRes.ok) throw new Error('Erro ao carregar dados do dashboard');
+    if (!employeesRes.ok) throw new Error('Erro ao carregar funcionários');
+    if (!usersRes.ok) throw new Error('Erro ao carregar usuários');
+    if (!couponsRes.ok) throw new Error('Erro ao carregar cupons');
+    
+    const dashboardData = await dashboardRes.json();
+    const employeesData = await employeesRes.json();
+    const usersData = await usersRes.json();
+    const couponsData = await couponsRes.json();
+    
+    // Processar dados para os gráficos
+    const processedData = {
+      ...dashboardData,
+      employeesStatus: processEmployeesData(employeesData),
+      usersDistribution: processUsersData(usersData),
+      couponsStatus: processCouponsData(couponsData)
+    };
+    
+    renderCharts(processedData);
+    updateStatsCards(processedData);
+    
+  } catch (error) {
+    console.error('Erro ao carregar dados do dashboard:', error);
+    showToast(`Erro ao carregar dashboard: ${error.message}`, 'error');
+  } finally {
+    showLoading(false);
+  }
+}
+
+// Processar dados de funcionários
+function processEmployeesData(employees) {
+  const active = employees.filter(e => e.is_active).length;
+  const inactive = employees.filter(e => !e.is_active).length;
+  return { active, inactive };
+}
+
+// Processar dados de usuários
+function processUsersData(users) {
+  const admins = users.filter(u => u.tipo === 'admin').length;
+  const common = users.filter(u => u.tipo === 'comum').length;
+  return { admins, common };
+}
+
+// Processar dados de cupons
+function processCouponsData(coupons) {
+  const active = coupons.filter(c => c.is_active).length;
+  const inactive = coupons.filter(c => !c.is_active).length;
+  return { active, inactive };
+}
+
+ // Renderizar gráficos com dados processados
+function renderCharts(data) {
+  // Gráfico de funcionários (ativos/inativos)
+  renderChart('employees', [data.employeesStatus.active, data.employeesStatus.inactive]);
+  
+  // Gráficos existentes
+  renderChart('categories', [data.totalCategories]);
+  renderChart('services', [data.totalServices]);
+  
+  // Gráfico de agendamentos (mantendo os meses)
+  if (data.monthlyAppointments) {
+    renderChart('appointments', data.monthlyAppointments);
   }
   
-  // Renderizar gráficos
-  function renderCharts(data) {
-    // Atualizar ou criar cada gráfico
-    Object.keys(chartConfigs).forEach(chartKey => {
-      const ctx = document.getElementById(`${chartKey}Chart`)?.getContext('2d');
-      if (!ctx) return;
-      
-      // Clonar a configuração base para evitar mutações
-      const config = JSON.parse(JSON.stringify(chartConfigs[chartKey]));
-      
-      // Atualizar dados
-      config.data.datasets[0].data = [data[`total${chartKey.charAt(0).toUpperCase() + chartKey.slice(1)}`]];
+  // Novo gráfico de usuários
+  renderChart('users', [data.usersDistribution.admins, data.usersDistribution.common]);
+  
+  // Novo gráfico de cupons
+  renderChart('coupons', [data.couponsStatus.active, data.couponsStatus.inactive]);
+}
 
-      if (chartKey === 'appointments') {
-        config.data.datasets[0].data = data.monthlyAppointments || [];
-      } else {
-        config.data.datasets[0].data = [data[`total${chartKey.charAt(0).toUpperCase() + chartKey.slice(1)}`]];
-      }
-      
-      // Destruir gráfico existente se houver
-      if (charts[chartKey]) charts[chartKey].destroy();
-      
-      // Criar novo gráfico
-      charts[chartKey] = new Chart(ctx, config);
-    });
-  }
+// Função auxiliar para renderizar um gráfico específico
+function renderChart(chartKey, data) {
+  // Obter a altura máxima disponível
+  const chartContainers = document.querySelectorAll('.chart-container');
+  let maxHeight = 0;
+  
+  chartContainers.forEach(container => {
+    const height = container.clientHeight;
+    if (height > maxHeight) maxHeight = height;
+  });
+
+  Object.keys(chartConfigs).forEach(key => {
+    chartConfigs[key].options.maintainAspectRatio = false;
+    chartConfigs[key].options.responsive = true;
+  });
+
+  const ctx = document.getElementById(`${chartKey}Chart`)?.getContext('2d');
+  if (!ctx) return;
+  
+  const config = JSON.parse(JSON.stringify(chartConfigs[chartKey]));
+  config.data.datasets[0].data = data;
+  
+  if (charts[chartKey]) charts[chartKey].destroy();
+  charts[chartKey] = new Chart(ctx, config);
+}
   
   // Atualizar cards de estatísticas (opcional)
   function updateStatsCards(data) {

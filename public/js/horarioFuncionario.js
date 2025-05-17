@@ -96,6 +96,7 @@ function renderEmployeesTable(employees) {
       <td>${employee.name || '-'}</td>
       <td>${employee.email || '-'}</td>
       <td>${employee.phone || '-'}</td>
+      <td>${employee.comissao || '-'}</td>
       <td>${statusBadge}</td>
       <td>${schedulesHtml}</td>
       <td>
@@ -189,6 +190,7 @@ async function editEmployee(id) {
     document.getElementById('employeeName').value = employee.name;
     document.getElementById('employeeEmail').value = employee.email || '';
     document.getElementById('employeePhone').value = employee.phone || '';
+    document.getElementById('employeeComissao').value = employee.comissao || '';
     document.getElementById('employeeStatus').checked = employee.is_active !== false;
     
     // Adicionar horários ao formulário
@@ -343,6 +345,7 @@ async function handleEmployeeSubmit(e) {
   const name = document.getElementById('employeeName').value.trim();
   const email = document.getElementById('employeeEmail').value.trim();
   const phone = document.getElementById('employeePhone').value.trim() || null;
+  const comissao = document.getElementById('employeeComissao').value.trim() || null;
   const isActive = document.getElementById('employeeStatus').checked;
   
   if (!name || !email) {
@@ -383,7 +386,7 @@ async function handleEmployeeSubmit(e) {
   try {
     showLoading(true);
     let response;
-    const employeeData = { name, email, phone, is_active: isActive };
+    const employeeData = { name, email, phone, comissao , is_active: isActive };
     
     // 1. Salvar/Atualizar funcionário
     if (id) {

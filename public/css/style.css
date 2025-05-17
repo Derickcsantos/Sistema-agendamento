@@ -90,25 +90,6 @@ color: var(--text-color);
 border-color: var(--border-color);
 }
 
-.chart-loading {
-position: absolute;
-top: 0;
-left: 0;
-right: 0;
-bottom: 0;
-background: rgba(255, 255, 255, 0.8);
-display: none;
-align-items: center;
-justify-content: center;
-z-index: 10;
-border-radius: 5px;
-}
-
-.chart-container {
-position: relative;
-min-height: 300px;
-}
-
 .theme-toggle-btn {
 cursor: pointer;
 border: none;
@@ -240,26 +221,6 @@ select option {
 #appointmentDetails li strong {
   display: inline-block;
   min-width: 70px;
-}
-
-/* Garantir que os gráficos tenham altura adequada */
-.card-body canvas {
-    min-height: 300px;
-    max-height: 400px;
-    width: 100% !important;
-}
-
-/* Estilo para gráficos horizontais */
-#popularServicesChart {
-    min-height: 400px;
-}
-
-/* Melhorar legibilidade dos tooltips */
-.chartjs-tooltip {
-    background-color: rgba(0, 0, 0, 0.8) !important;
-    border-radius: 4px;
-    color: white;
-    padding: 8px;
 }
 
 .schedule-day {

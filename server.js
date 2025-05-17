@@ -993,13 +993,14 @@ app.get('/api/admin/employees/:id', async (req, res) => {
 
 app.post('/api/admin/employees', async (req, res) => {
   try {
-    const { name, email, phone, is_active } = req.body;
+    const { name, email, phone, comissao , is_active } = req.body;
     const { data, error } = await supabase
       .from('employees')
       .insert([{ 
         name, 
         email, 
-        phone, 
+        phone,
+        comissao, 
         is_active: is_active !== false 
       }])
       .select();
@@ -1015,13 +1016,14 @@ app.post('/api/admin/employees', async (req, res) => {
 app.put('/api/admin/employees/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, phone, is_active } = req.body;
+    const { name, email, phone, comissao , is_active } = req.body;
     const { data, error } = await supabase
       .from('employees')
       .update({ 
         name, 
         email, 
         phone, 
+        comissao,
         is_active 
       })
       .eq('id', id)
@@ -1261,58 +1263,97 @@ app.delete("/schedules/:id", async (req, res) => {
 });
 
 // Rota para dados do dashboard
+// Rota para dados do dashboard
 app.get('/api/admin/dashboard', async (req, res) => {
   try {
-    // Contar funcionários
-    const { count: employeesCount } = await supabase
-      .from('employees')
-      .select('*', { count: 'exact', head: true });
+    // 1. Contagem básica de funcionários, categorias, serviços e agendamentos
+    const [
+      { count: employeesCount },
+      { count: categoriesCount },
+      { count: servicesCount },
+      { count: appointmentsCount }
+    ] = await Promise.all([
+      supabase.from('employees').select('*', { count: 'exact', head: true }),
+      supabase.from('categories').select('*', { count: 'exact', head: true }),
+      supabase.from('services').select('*', { count: 'exact', head: true }),
+      supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('status', 'confirmed')
+    ]);
 
-    // Contar categorias
-    const { count: categoriesCount } = await supabase
-      .from('categories')
-      .select('*', { count: 'exact', head: true });
+    // 2. Dados detalhados para os gráficos
+    const [
+      { data: employeesData, error: employeesError },
+      { data: usersData, error: usersError },
+      { data: couponsData, error: couponsError },
+      { data: appointmentsData, error: appointmentsError }
+    ] = await Promise.all([
+      supabase.from('employees').select('is_active'),
+      supabase.from('users').select('tipo'),
+      supabase.from('coupons').select('is_active'),
+      supabase.from('appointments').select('appointment_date').eq('status', 'confirmed')
+    ]);
 
-    // Contar serviços
-    const { count: servicesCount } = await supabase
-      .from('services')
-      .select('*', { count: 'exact', head: true });
+    // Verificar erros nas consultas
+    if (employeesError || usersError || couponsError || appointmentsError) {
+      throw new Error(
+        employeesError?.message || 
+        usersError?.message || 
+        couponsError?.message || 
+        appointmentsError?.message
+      );
+    }
 
-    // Contar agendamentos (apenas confirmados)
-    const { count: appointmentsCount } = await supabase
-      .from('appointments')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'confirmed');
+    // 3. Processamento dos dados para os gráficos
+    // Funcionários (ativos/inativos)
+    const employeesStatus = {
+      active: employeesData.filter(e => e.is_active).length,
+      inactive: employeesData.filter(e => !e.is_active).length
+    };
 
-    // Buscar agendamentos confirmados agrupados por mês
-    const { data: appointmentsData, error } = await supabase
-      .from('appointments')
-      .select('appointment_date')
-      .eq('status', 'confirmed');
+    // Usuários (admin/comum)
+    const usersDistribution = {
+      admin: usersData.filter(u => u.tipo === 'admin').length,
+      comum: usersData.filter(u => u.tipo === 'comum').length
+    };
 
-    if (error) throw error;
+    // Cupons (ativos/inativos)
+    const couponsStatus = {
+      active: couponsData.filter(c => c.is_active).length,
+      inactive: couponsData.filter(c => !c.is_active).length
+    };
 
-    // Preparar os dados por mês
+    // Agendamentos por mês
     const monthlyAppointments = Array(12).fill(0); // Janeiro a Dezembro
-
     appointmentsData.forEach(item => {
       const month = new Date(item.appointment_date).getMonth(); // 0-11
       monthlyAppointments[month]++;
     });
 
+    // 4. Retornar todos os dados consolidados
     res.json({
+      // Totais básicos
       totalEmployees: employeesCount || 0,
       totalCategories: categoriesCount || 0,
       totalServices: servicesCount || 0,
       totalAppointments: appointmentsCount || 0,
-      monthlyAppointments // <== enviando isso pro frontend
+      
+      // Dados para gráficos
+      monthlyAppointments,
+      employeesStatus,
+      usersDistribution,
+      couponsStatus,
+      
+      // Metadados
+      lastUpdated: new Date().toISOString()
     });
+
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: error.message 
+    });
   }
 });
-
 
 // Rotas de Cupons
 app.get('/api/coupons', async (req, res) => {

@@ -325,6 +325,7 @@ async function loadEmployees() {
         <td>${employee.name}</td>
         <td>${employee.email}</td>
         <td>${employee.phone || ''}</td>
+        <td>${employee.comissao}</td>
         <td>
           <button class="btn btn-sm btn-primary edit-employee" data-id="${employee.id}">Editar</button>
           <button class="btn btn-sm btn-danger delete-employee" data-id="${employee.id}">Excluir</button>
@@ -757,6 +758,7 @@ async function handleEmployeeSubmit(e) {
     const name = document.getElementById('employeeName').value.trim();
     const email = document.getElementById('employeeEmail').value.trim();
     const phone = document.getElementById('employeePhone').value.trim() || null;
+    const comissao = document.getElementById('employeeComissao').value.trim()  || null;
     
     if (!name) throw new Error('O nome do funcionário é obrigatório');
     if (!email || !email.includes('@')) throw new Error('Informe um e-mail válido');
@@ -771,7 +773,7 @@ async function handleEmployeeSubmit(e) {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      body: JSON.stringify({ name, email, phone })
+      body: JSON.stringify({ name, email, phone, comissao })
     });
     
     if (!response.ok) {
@@ -808,6 +810,7 @@ async function editEmployee(id) {
     document.getElementById('employeeName').value = employee.name;
     document.getElementById('employeeEmail').value = employee.email;
     document.getElementById('employeePhone').value = employee.phone || '';
+    document.getElementById('employeeComissao').value = employee.comissao  || '';
     
     // Mudar o texto do botão para "Atualizar"
     const submitBtn = document.querySelector('#employeeForm button[type="submit"]');
