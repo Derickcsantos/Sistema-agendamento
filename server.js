@@ -23,16 +23,6 @@ const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 app.use(cookieParser());
 
-let whatsappClient;
-
-// Configurações da sessão
-const SESSION_DIR = path.join(__dirname, 'tokens');
-const SESSION_FILE = path.join(SESSION_DIR, 'salon-bot.json');
-
-// Criar diretório se não existir
-if (!fs.existsSync(SESSION_DIR)) {
-  fs.mkdirSync(SESSION_DIR, { recursive: true });
-}
 
 
 const corsOptions = {
@@ -79,6 +69,18 @@ app.use(express.json());
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+let whatsappClient;
+
+// Configurações da sessão
+const SESSION_DIR = path.join(__dirname, 'tokens');
+const SESSION_FILE = path.join(SESSION_DIR, 'salon-bot.json');
+
+// Criar diretório se não existir
+if (!fs.existsSync(SESSION_DIR)) {
+  fs.mkdirSync(SESSION_DIR, { recursive: true });
+}
+
+const SESSION_DIR = path.join(__dirname, 'tokens');
 
 const checkAuth = (req, res, next) => {
   const userData = req.cookies.userData;  // Obtendo os dados do usuário do cookie
