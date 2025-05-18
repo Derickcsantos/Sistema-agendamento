@@ -21,7 +21,16 @@ const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 app.use(cookieParser());
 
-let whatsappClient = null;
+let whatsappClient;
+
+// Configurações da sessão
+const SESSION_DIR = path.join(__dirname, 'tokens');
+const SESSION_FILE = path.join(SESSION_DIR, 'salon-bot.json');
+
+// Criar diretório se não existir
+if (!fs.existsSync(SESSION_DIR)) {
+  fs.mkdirSync(SESSION_DIR, { recursive: true });
+}
 
 
 const corsOptions = {
@@ -269,35 +278,64 @@ app.post('/api/send-whatsapp-confirmation', async (req, res) => {
   }
 });
 
-async function startWhatsAppBot() {
+// Health Check
+app.get('/health', (req, res) => {
+  res.status(whatsappClient ? 200 : 503).json({
+    status: whatsappClient ? 'healthy' : 'unavailable',
+    timestamp: new Date()
+  });
+});
+
+async function startBot() {
   try {
-    whatsappClient = await create({
+    // Verifica se já existe sessão salva
+    const sessionExists = fs.existsSync(SESSION_FILE);
+    
+    const client = await create({
       session: 'salon-bot',
-      puppeteerOptions: { 
-        headless: true, // Modo invisível
+      puppeteerOptions: {
+        headless: true,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
-          '--disable-gpu',
-          '--disable-dev-shm-usage'
+          '--disable-gpu'
         ]
       },
-      disableWelcome: true,
-      catchQR: (base64Qr, asciiQR) => {
-        console.log('=== QR Code para conexão ===');
-        console.log(asciiQR); // Mostra apenas no terminal
-        console.log('===========================');
+      catchQR: (base64Qr) => {
+        if (!sessionExists) {
+          console.log('=== SCANEAE ESTE QR CODE UMA VEZ ===');
+          console.log('Base64 QR (para frontend):', base64Qr);
+        }
       },
-      logQR: false // Desativa log adicional do QR
+      statusFind: (status) => {
+        console.log('Status:', status);
+        if (status === 'authenticated') {
+          console.log('✅ Login realizado! Próximas execuções serão automáticas.');
+        }
+      }
     });
 
-    console.log('✅ Bot pronto para conexão via QR Code no terminal!');
+    // Salva a sessão quando autenticado
+    client.on('authenticated', (session) => {
+      fs.writeFileSync(SESSION_FILE, JSON.stringify(session));
+    });
+
+    // Lógica do bot
+    client.onMessage(async (message) => {
+      if (message.body === '!ping') {
+        await client.sendText(message.from, '🏓 Pong!');
+      }
+      // Adicione outras respostas aqui
+    });
+
+    console.log('🤖 Bot iniciado - Pronto para receber mensagens');
 
   } catch (error) {
-    console.error('Erro ao iniciar bot:', error);
+    console.error('Erro no bot:', error);
     process.exit(1);
   }
 }
+
 
 // Rota para obter todos os usuários
 app.get('/api/users', async (req, res) => {
