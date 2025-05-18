@@ -282,84 +282,57 @@ app.get('/health', (req, res) => {
     timestamp: new Date()
   });
 });
-
-async function initializeWhatsAppBot() {
-  // Lista de possíveis caminhos do Chromium na Render
-  const chromiumPaths = [
-    '/usr/bin/chromium-browser',
-    '/usr/bin/chromium',
-    '/usr/bin/chrome',
-    '/usr/local/bin/chromium'
-  ];
-
-  // Encontra o caminho válido do Chromium
-  let executablePath = chromiumPaths.find(p => fs.existsSync(p));
-  
-  if (!executablePath) {
-    console.error('Chromium não encontrado nos caminhos padrão. Tentando continuar...');
-    executablePath = 'chromium'; // Tenta usar o comando genérico
-  }
-
+async function startWhatsappBot() {
   try {
-    console.log(`Tentando iniciar WhatsApp Bot com Chromium em: ${executablePath}`);
+    const sessionExists = fs.existsSync(SESSION_FILE);
     
-    whatsappClient = await create({
+    const client = await create({
       session: 'salon-bot',
       puppeteerOptions: {
-        executablePath,
-        headless: true,
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
+        headless: "new",
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-gpu',
           '--disable-dev-shm-usage',
-          '--single-process'
+          '--single-process',
+          '--no-zygote'
         ],
-        ignoreHTTPSErrors: true
+        ignoreDefaultArgs: ['--disable-extensions']
       },
       catchQR: (base64Qr) => {
-        console.log('QR Code recebido (base64):', base64Qr.substring(0, 50) + '...');
+        if (!sessionExists) {
+          console.log('=== SCANEAE ESTE QR CODE UMA VEZ ===');
+          console.log('Base64 QR:', base64Qr);
+        }
       },
       statusFind: (status) => {
-        console.log('Status da conexão:', status);
+        console.log('Status:', status);
+        if (status === 'authenticated') {
+          console.log('✅ Login realizado!');
+        }
       }
     });
 
-    whatsappClient.on('authenticated', (session) => {
-      console.log('Autenticado com sucesso!');
+    client.on('authenticated', (session) => {
       fs.writeFileSync(SESSION_FILE, JSON.stringify(session));
     });
 
-    whatsappClient.on('disconnected', () => {
-      console.log('Desconectado! Tentando reconectar...');
-      setTimeout(initializeWhatsAppBot, 30000);
+    client.onMessage(async (message) => {
+      if (message.body === '!ping') {
+        await client.sendText(message.from, '🏓 Pong!');
+      }
     });
 
-    whatsappClient.onMessage(async (message) => {
-      console.log('Mensagem recebida:', message.body);
-      // Sua lógica de mensagens aqui
-    });
-
-    console.log('WhatsApp Bot iniciado com sucesso!');
+    console.log('🤖 Bot iniciado com sucesso');
 
   } catch (error) {
-    console.error('Falha ao iniciar WhatsApp Bot:', error.message);
-    console.log('Tentando novamente em 1 minuto...');
-    setTimeout(initializeWhatsAppBot, 60000);
+    console.error('Erro crítico no bot:', error);
+    // Não encerre o processo, permita reinicialização
+    setTimeout(startWhatsappBot, 30000); // Tenta reiniciar em 30 segundos
   }
 }
-
-// Inicia o bot quando o servidor começa
-initializeWhatsAppBot();
-
-// Mantém o servidor rodando mesmo se o bot falhar
-process.on('uncaughtException', (err) => {
-  console.error('Erro não tratado:', err);
-});
-
-process.on('unhandledRejection', (reason) => {
-  console.error('Promise rejeitada:', reason);
-});
 
 // Rota para obter todos os usuários
 app.get('/api/users', async (req, res) => {
