@@ -11,6 +11,7 @@ const ExcelJS = require('exceljs');
 const multer = require('multer');
 const fs = require('fs');
 
+let whatsappClient = null;
 const SESSION_DIR = path.join(__dirname, 'tokens');
 const SESSION_FILE = path.join(SESSION_DIR, 'salon-bot.json');
 
@@ -22,9 +23,6 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 app.use(cookieParser());
-
-let whatsappClient;
-
 
 // Criar diretório se não existir
 if (!fs.existsSync(SESSION_DIR)) {
@@ -284,57 +282,84 @@ app.get('/health', (req, res) => {
     timestamp: new Date()
   });
 });
-async function startWhatsappBot() {
+
+async function initializeWhatsAppBot() {
+  // Lista de possíveis caminhos do Chromium na Render
+  const chromiumPaths = [
+    '/usr/bin/chromium-browser',
+    '/usr/bin/chromium',
+    '/usr/bin/chrome',
+    '/usr/local/bin/chromium'
+  ];
+
+  // Encontra o caminho válido do Chromium
+  let executablePath = chromiumPaths.find(p => fs.existsSync(p));
+  
+  if (!executablePath) {
+    console.error('Chromium não encontrado nos caminhos padrão. Tentando continuar...');
+    executablePath = 'chromium'; // Tenta usar o comando genérico
+  }
+
   try {
-    const sessionExists = fs.existsSync(SESSION_FILE);
+    console.log(`Tentando iniciar WhatsApp Bot com Chromium em: ${executablePath}`);
     
-    const client = await create({
+    whatsappClient = await create({
       session: 'salon-bot',
       puppeteerOptions: {
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
-        headless: "new",
+        executablePath,
+        headless: true,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-gpu',
           '--disable-dev-shm-usage',
-          '--single-process',
-          '--no-zygote'
+          '--single-process'
         ],
-        ignoreDefaultArgs: ['--disable-extensions']
+        ignoreHTTPSErrors: true
       },
       catchQR: (base64Qr) => {
-        if (!sessionExists) {
-          console.log('=== SCANEAE ESTE QR CODE UMA VEZ ===');
-          console.log('Base64 QR:', base64Qr);
-        }
+        console.log('QR Code recebido (base64):', base64Qr.substring(0, 50) + '...');
       },
       statusFind: (status) => {
-        console.log('Status:', status);
-        if (status === 'authenticated') {
-          console.log('✅ Login realizado!');
-        }
+        console.log('Status da conexão:', status);
       }
     });
 
-    client.on('authenticated', (session) => {
+    whatsappClient.on('authenticated', (session) => {
+      console.log('Autenticado com sucesso!');
       fs.writeFileSync(SESSION_FILE, JSON.stringify(session));
     });
 
-    client.onMessage(async (message) => {
-      if (message.body === '!ping') {
-        await client.sendText(message.from, '🏓 Pong!');
-      }
+    whatsappClient.on('disconnected', () => {
+      console.log('Desconectado! Tentando reconectar...');
+      setTimeout(initializeWhatsAppBot, 30000);
     });
 
-    console.log('🤖 Bot iniciado com sucesso');
+    whatsappClient.onMessage(async (message) => {
+      console.log('Mensagem recebida:', message.body);
+      // Sua lógica de mensagens aqui
+    });
+
+    console.log('WhatsApp Bot iniciado com sucesso!');
 
   } catch (error) {
-    console.error('Erro crítico no bot:', error);
-    // Não encerre o processo, permita reinicialização
-    setTimeout(startWhatsappBot, 30000); // Tenta reiniciar em 30 segundos
+    console.error('Falha ao iniciar WhatsApp Bot:', error.message);
+    console.log('Tentando novamente em 1 minuto...');
+    setTimeout(initializeWhatsAppBot, 60000);
   }
 }
+
+// Inicia o bot quando o servidor começa
+initializeWhatsAppBot();
+
+// Mantém o servidor rodando mesmo se o bot falhar
+process.on('uncaughtException', (err) => {
+  console.error('Erro não tratado:', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Promise rejeitada:', reason);
+});
 
 // Rota para obter todos os usuários
 app.get('/api/users', async (req, res) => {
