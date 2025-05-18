@@ -7,6 +7,9 @@ const nodemailer = require('nodemailer');
 const bodyParser = require('body-parser');
 const { create } = require('@wppconnect-team/wppconnect');
 const cookieParser = require('cookie-parser');
+const ExcelJS = require('exceljs');
+const multer = require('multer');
+const fs = require('fs');
 
 
 const app = express();
@@ -27,6 +30,35 @@ const corsOptions = {
   allowedHeaders: ['Content-Type'], // Permite esses cabeçalhos específicos
   credentials: true,        // Permite cookies (importante se for necessário)
 };
+
+// Configuração do Multer para upload de imagens
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadPath = path.join(__dirname, 'public/uploads');
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
+    cb(null, uploadPath);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Apenas imagens são permitidas!'), false);
+    }
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB
+  }
+});
 
 // Middlewares
 app.use(cors(corsOptions));
@@ -528,7 +560,7 @@ app.get('/api/categories', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('categories')
-      .select('*')
+      .select('id, name, imagem_category') // Adicionar imagem_category
       .order('name', { ascending: true });
 
     if (error) throw error;
@@ -544,7 +576,7 @@ app.get('/api/services/:categoryId', async (req, res) => {
     const { categoryId } = req.params;
     const { data, error } = await supabase
       .from('services')
-      .select('*')
+      .select('id, name, price, duration, imagem_service') // Adicionar imagem_service
       .eq('category_id', categoryId)
       .order('name', { ascending: true });
 
@@ -645,7 +677,7 @@ app.get('/api/available-times', async (req, res) => {
 
 app.post('/api/appointments', async (req, res) => {
   try {
-    const { client_name, client_email, client_phone, service_id, employee_id, date, start_time, end_time } = req.body;
+    const { client_name, client_email, client_phone, service_id, employee_id, date, start_time, end_time , final_price , coupon_code , original_price } = req.body;
     
     const { data, error } = await supabase
       .from('appointments')
@@ -658,6 +690,9 @@ app.post('/api/appointments', async (req, res) => {
         appointment_date: date,
         start_time,
         end_time,
+        final_price,
+        coupon_code,
+        original_price, 
         status: 'confirmed'
       }])
       .select();
@@ -801,29 +836,61 @@ app.get('/api/admin/categories/:id', async (req, res) => {
   }
 });
 
-app.post('/api/admin/categories', async (req, res) => {
+// Atualize a rota POST de categorias
+app.post('/api/admin/categories', upload.single('image'), async (req, res) => {
   try {
     const { name } = req.body;
+    const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
+
     const { data, error } = await supabase
       .from('categories')
-      .insert([{ name }])
+      .insert([{ 
+        name, 
+        imagem_category: imagePath 
+      }])
       .select();
 
     if (error) throw error;
     res.status(201).json(data[0]);
   } catch (error) {
     console.error('Error creating category:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    // Remove o arquivo se houve erro
+    if (req.file) fs.unlinkSync(path.join(__dirname, 'public', req.file.path));
+    res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
 
-app.put('/api/admin/categories/:id', async (req, res) => {
+
+// Atualize a rota PUT de categorias
+app.put('/api/admin/categories/:id', upload.single('image'), async (req, res) => {
   try {
     const { id } = req.params;
     const { name } = req.body;
+    let imagePath = null;
+
+    // Se enviou nova imagem
+    if (req.file) {
+      imagePath = `/uploads/${req.file.filename}`;
+      
+      // Busca a categoria antiga para remover a imagem anterior
+      const { data: oldCategory } = await supabase
+        .from('categories')
+        .select('imagem_category')
+        .eq('id', id)
+        .single();
+
+      if (oldCategory?.imagem_category) {
+        const oldImagePath = path.join(__dirname, 'public', oldCategory.imagem_category);
+        if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
+      }
+    }
+
     const { data, error } = await supabase
       .from('categories')
-      .update({ name })
+      .update({ 
+        name,
+        ...(imagePath && { imagem_category: imagePath })
+      })
       .eq('id', id)
       .select();
 
@@ -831,7 +898,8 @@ app.put('/api/admin/categories/:id', async (req, res) => {
     res.json(data[0]);
   } catch (error) {
     console.error('Error updating category:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    if (req.file) fs.unlinkSync(path.join(__dirname, 'public', req.file.path));
+    res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
 
@@ -882,19 +950,30 @@ app.get('/api/admin/services', async (req, res) => {
   }
 });
 
-app.post('/api/admin/services', async (req, res) => {
+// Atualize as rotas de serviços similarmente
+app.post('/api/admin/services', upload.single('image'), async (req, res) => {
   try {
     const { category_id, name, description, duration, price } = req.body;
+    const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
+
     const { data, error } = await supabase
       .from('services')
-      .insert([{ category_id, name, description, duration, price }])
+      .insert([{ 
+        category_id, 
+        name, 
+        description, 
+        duration, 
+        price,
+        imagem_service: imagePath
+      }])
       .select();
 
     if (error) throw error;
     res.status(201).json(data[0]);
   } catch (error) {
     console.error('Error creating service:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    if (req.file) fs.unlinkSync(path.join(__dirname, 'public', req.file.path));
+    res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
 
@@ -917,13 +996,37 @@ app.get('/api/admin/services/:id', async (req, res) => {
   }
 });
 
-app.put('/api/admin/services/:id', async (req, res) => {
+app.put('/api/admin/services/:id', upload.single('image'), async (req, res) => {
   try {
     const { id } = req.params;
     const { category_id, name, description, duration, price } = req.body;
+    let imagePath = null;
+
+    if (req.file) {
+      imagePath = `/uploads/${req.file.filename}`;
+      
+      const { data: oldService } = await supabase
+        .from('services')
+        .select('imagem_service')
+        .eq('id', id)
+        .single();
+
+      if (oldService?.imagem_service) {
+        const oldImagePath = path.join(__dirname, 'public', oldService.imagem_service);
+        if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
+      }
+    }
+
     const { data, error } = await supabase
       .from('services')
-      .update({ category_id, name, description, duration, price })
+      .update({ 
+        category_id,
+        name,
+        description,
+        duration,
+        price,
+        ...(imagePath && { imagem_service: imagePath })
+      })
       .eq('id', id)
       .select();
 
@@ -931,7 +1034,8 @@ app.put('/api/admin/services/:id', async (req, res) => {
     res.json(data[0]);
   } catch (error) {
     console.error('Error updating service:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    if (req.file) fs.unlinkSync(path.join(__dirname, 'public', req.file.path));
+    res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
 
@@ -1622,6 +1726,215 @@ app.get('/api/validate-coupon', async (req, res) => {
   } catch (error) {
     console.error('Erro na validação:', error);
     return res.status(500).json({ valid: false, message: 'Erro interno ao validar cupom' });
+  }
+});
+
+// Rota para relatório de receitas (atualizada)
+app.get('/api/admin/revenue', async (req, res) => {
+  try {
+    const { start_date, end_date } = req.query;
+    
+    // 1. Buscar todos os agendamentos concluídos
+    let appointmentsQuery = supabase
+      .from('appointments')
+      .select('id, final_price, appointment_date, employee_id, employees(id, name, comissao)')
+      .eq('status', 'confirmed'); // Considerar apenas agendamentos confirmados
+    
+    // Aplicar filtro de datas se existir (corrigido para usar appointment_date)
+    if (start_date && end_date) {
+      appointmentsQuery = appointmentsQuery
+        .gte('appointment_date', start_date)
+        .lte('appointment_date', end_date);
+    }
+    
+    const { data: appointments, error: appointmentsError } = await appointmentsQuery;
+    if (appointmentsError) throw appointmentsError;
+    
+    // 2. Buscar todos os funcionários para garantir que apareçam mesmo sem agendamentos
+    const { data: employees, error: employeesError } = await supabase
+      .from('employees')
+      .select('id, name, comissao');
+    
+    if (employeesError) throw employeesError;
+    
+    // 3. Processar os dados para calcular métricas
+    const employeesMap = new Map();
+    let totalAppointments = 0;
+    let totalRevenue = 0;
+    let totalCommissions = 0;
+    
+    // Inicializar mapa com todos os funcionários
+    employees.forEach(employee => {
+      employeesMap.set(employee.id, {
+        id: employee.id,
+        name: employee.name,
+        commission_rate: employee.comissao || 0,
+        appointments_count: 0,
+        total_revenue: 0,
+        commission_value: 0,
+        net_profit: 0
+      });
+    });
+    
+    // Processar agendamentos
+    appointments.forEach(appointment => {
+      totalAppointments++;
+      
+      const finalPrice = appointment.final_price || 0;
+      totalRevenue += finalPrice;
+      
+      const employeeId = appointment.employee_id; // Usando employee_id diretamente
+      if (!employeeId) return;
+      
+      const employee = employeesMap.get(employeeId);
+      if (!employee) return;
+      
+      employee.appointments_count++;
+      employee.total_revenue += finalPrice;
+    });
+    
+    // Calcular comissões e lucro líquido para cada funcionário
+    employeesMap.forEach(employee => {
+      employee.commission_value = employee.total_revenue * (employee.commission_rate / 100);
+      employee.net_profit = employee.total_revenue - employee.commission_value;
+      
+      totalCommissions += employee.commission_value;
+    });
+    
+    // Converter o Map para array e ordenar por maior faturamento
+    const details = Array.from(employeesMap.values())
+      .sort((a, b) => b.total_revenue - a.total_revenue);
+    
+    // 4. Retornar os dados
+    res.json({
+      period: start_date && end_date 
+        ? `${start_date} a ${end_date}` 
+        : 'Todos os períodos',
+      total_appointments: totalAppointments,
+      total_revenue: totalRevenue,
+      total_commissions: totalCommissions,
+      details: details
+    });
+    
+  } catch (error) {
+    console.error('Error fetching revenue data:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: error.message 
+    });
+  }
+});
+
+// Rota para exportar relatório de receitas (opcional)
+app.get('/api/admin/revenue/export', async (req, res) => {
+  try {
+    const { start_date, end_date } = req.query;
+    
+    // Reutilizar a mesma lógica da rota principal
+    let appointmentsQuery = supabase
+      .from('appointments')
+      .select('id, final_price, appointment_date, employees(id, name, comissao)')
+      .eq('status', 'completed');
+    
+    if (start_date && end_date) {
+      appointmentsQuery = appointmentsQuery
+        .gte('appointment_date', start_date)
+        .lte('appointment_date', end_date);
+    }
+    
+    const { data: appointments, error: appointmentsError } = await appointmentsQuery;
+    if (appointmentsError) throw appointmentsError;
+    
+    const { data: employees, error: employeesError } = await supabase
+      .from('employees')
+      .select('id, name, comissao');
+    
+    if (employeesError) throw employeesError;
+    
+    // Processar os dados (mesma lógica da rota principal)
+    const employeesMap = new Map();
+    employees.forEach(employee => {
+      employeesMap.set(employee.id, {
+        name: employee.name,
+        commission_rate: employee.comissao || 0,
+        appointments_count: 0,
+        total_revenue: 0,
+        commission_value: 0,
+        net_profit: 0
+      });
+    });
+    
+    appointments.forEach(appointment => {
+      const employeeId = appointment.employees?.id;
+      if (!employeeId) return;
+      
+      const employee = employeesMap.get(employeeId);
+      if (!employee) return;
+      
+      const finalPrice = appointment.final_price || 0;
+      
+      employee.appointments_count++;
+      employee.total_revenue += finalPrice;
+    });
+    
+    employeesMap.forEach(employee => {
+      employee.commission_value = employee.total_revenue * (employee.commission_rate / 100);
+      employee.net_profit = employee.total_revenue - employee.commission_value;
+    });
+    
+    const details = Array.from(employeesMap.values())
+      .sort((a, b) => b.total_revenue - a.total_revenue);
+    
+    // Criar arquivo Excel (usando a biblioteca exceljs)
+    const ExcelJS = require('exceljs');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Relatório de Receitas');
+    
+    // Adicionar cabeçalhos
+    worksheet.columns = [
+      { header: 'Profissional', key: 'name', width: 30 },
+      { header: 'Agendamentos', key: 'appointments_count', width: 15 },
+      { header: 'Faturamento Total', key: 'total_revenue', width: 20, style: { numFmt: '"R$"#,##0.00' } },
+      { header: 'Comissão (%)', key: 'commission_rate', width: 15 },
+      { header: 'Valor Comissão', key: 'commission_value', width: 20, style: { numFmt: '"R$"#,##0.00' } },
+      { header: 'Lucro Líquido', key: 'net_profit', width: 20, style: { numFmt: '"R$"#,##0.00' } }
+    ];
+    
+    // Adicionar dados
+    worksheet.addRows(details);
+    
+    // Adicionar totais
+    const totalAppointments = details.reduce((sum, emp) => sum + emp.appointments_count, 0);
+    const totalRevenue = details.reduce((sum, emp) => sum + emp.total_revenue, 0);
+    const totalCommissions = details.reduce((sum, emp) => sum + emp.commission_value, 0);
+    
+    worksheet.addRow([]);
+    worksheet.addRow({
+      name: 'TOTAIS',
+      appointments_count: totalAppointments,
+      total_revenue: totalRevenue,
+      commission_value: totalCommissions
+    });
+    
+    // Configurar resposta
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename=relatorio-receitas.xlsx'
+    );
+    
+    await workbook.xlsx.write(res);
+    res.end();
+    
+  } catch (error) {
+    console.error('Error exporting revenue data:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: error.message 
+    });
   }
 });
 

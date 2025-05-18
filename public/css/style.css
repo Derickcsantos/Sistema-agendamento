@@ -303,44 +303,6 @@ select option {
   }
 }
 
-/* Estilos para os horários */
-.schedule-item {
-  transition: all 0.3s ease;
-}
-
-.schedule-item:hover {
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-}
-
-/* Responsividade para os horários */
-@media (max-width: 768px) {
-  .schedule-item .row > div {
-    margin-bottom: 1rem;
-  }
-  
-  .schedule-item .row > div:last-child {
-    margin-bottom: 0;
-  }
-}
-
-/* Estilos para os itens de horário */
-.schedule-item {
-  position: relative;
-  border: 1px solid #dee2e6;
-  border-radius: 0.375rem;
-}
-
-.schedule-item .remove-schedule {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-}
 
 /* Responsividade */
 @media (max-width: 768px) {
@@ -353,3 +315,89 @@ select option {
   }
 }
 
+.user-photo{
+  border-radius: 50%;
+}
+
+/* Estilos para a seção de receitas */
+.card-border {
+  border-left: 4px solid;
+}
+
+.card-border-primary {
+  border-left-color: #4e73df;
+}
+
+.card-border-success {
+  border-left-color: #1cc88a;
+}
+
+.card-border-info {
+  border-left-color: #36b9cc;
+}
+
+#revenueDetails tr:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.table th {
+  white-space: nowrap;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .card-body h2 {
+    font-size: 1.5rem;
+  }
+  
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Adicione isso ao seu arquivo CSS ou dentro de uma tag <style> */
+select option {
+  padding: 8px 12px;
+  height: auto;
+}
+
+select option img {
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+select option small {
+  display: block;
+  font-size: 0.8em;
+  color: #666;
+}
+
+.choices__list--dropdown .choices__item--selectable,
+  .choices__list[aria-expanded] .choices__item--selectable {
+    padding-right: 10px;
+  }
+  
+  .choice-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+  }
+  
+  .choice-item-img {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #f5f5f5;
+  }
+  
+  .choice-item-details {
+    flex: 1;
+  }
+  
+  .choice-item-price {
+    font-size: 0.8em;
+    color: #666;
+  }

@@ -180,56 +180,81 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   
   // Carregar categorias do banco de dados
-  async function loadCategories() {
-    try {
-      const response = await fetch('/api/categories');
-      if (!response.ok) throw new Error('Erro ao carregar categorias');
+async function loadCategories() {
+  try {
+    const response = await fetch('/api/categories');
+    if (!response.ok) throw new Error('Erro ao carregar categorias');
+    
+    const categories = await response.json();
+    
+    // Limpar e popular o select de categorias
+    categorySelect.innerHTML = '<option value="" selected disabled>Selecione uma categoria</option>';
+    
+    categories.forEach(category => {
+      const option = document.createElement('option');
+      option.value = category.id;
       
-      const categories = await response.json();
+      // Criar conteúdo HTML com imagem e nome
+      option.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 8px;">
+          ${category.imagem_category ? 
+            `<img src="${category.imagem_category}" style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;">` : 
+            `<div style="width: 30px; height: 30px; border-radius: 50%; background: #eee;"></div>`
+          }
+          <span>${category.name}</span>
+        </div>
+      `;
       
-      // Limpar e popular o select de categorias
-      categorySelect.innerHTML = '<option value="" selected disabled>Selecione uma categoria</option>';
-      categories.forEach(category => {
-        const option = document.createElement('option');
-        option.value = category.id;
-        option.textContent = category.name;
-        categorySelect.appendChild(option);
-      });
-    } catch (error) {
-      console.error('Erro ao carregar categorias:', error);
-      console.log('Erro ao carregar categorias. Por favor, recarregue a página.');
-    }
+      categorySelect.appendChild(option);
+    });
+  } catch (error) {
+    console.error('Erro ao carregar categorias:', error);
+    console.log('Erro ao carregar categorias. Por favor, recarregue a página.');
   }
+}
   
-  // Carregar serviços baseado na categoria selecionada
-  async function loadServices(categoryId) {
-    try {
-      const response = await fetch(`/api/services/${categoryId}`);
-      if (!response.ok) throw new Error('Erro ao carregar serviços');
+// Carregar serviços baseado na categoria selecionada
+async function loadServices(categoryId) {
+  try {
+    const response = await fetch(`/api/services/${categoryId}`);
+    if (!response.ok) throw new Error('Erro ao carregar serviços');
+    
+    const services = await response.json();
+    
+    // Limpar e popular o select de serviços
+    serviceSelect.innerHTML = '<option value="" selected disabled>Selecione um serviço</option>';
+    serviceSelect.disabled = false;
+    
+    services.forEach(service => {
+      const option = document.createElement('option');
+      option.value = service.id;
       
-      const services = await response.json();
+      // Adiciona a imagem, nome e preço formatado
+      option.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 8px;">
+          ${service.imagem_service ? 
+            `<img src="${service.imagem_service}" style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;">` : 
+            `<div style="width: 30px; height: 30px; border-radius: 50%; background: #eee;"></div>`
+          }
+          <div style="flex: 1;">
+            <div>${service.name}</div>
+            <small style="color: #666;">R$ ${service.price.toFixed(2)}</small>
+          </div>
+        </div>
+      `;
       
-      // Limpar e popular o select de serviços
-      serviceSelect.innerHTML = '<option value="" selected disabled>Selecione um serviço</option>';
-      serviceSelect.disabled = false;
+      // Armazena os dados para uso posterior
+      option.dataset.duration = service.duration;
+      option.dataset.price = service.price;
       
-      services.forEach(service => {
-        const option = document.createElement('option');
-        option.value = service.id;
-        // Adiciona o preço formatado ao texto da opção
-        option.textContent = `${service.name} - R$ ${service.price.toFixed(2)}`;
-        option.dataset.duration = service.duration;
-        // Armazena o preço bruto no dataset para uso posterior
-        option.dataset.price = service.price;
-        serviceSelect.appendChild(option);
-      });
-    } catch (error) {
-      console.error('Erro ao carregar serviços:', error);
-      console.log('Erro ao carregar serviços. Por favor, tente novamente.');
-    }
+      serviceSelect.appendChild(option);
+    });
+  } catch (error) {
+    console.error('Erro ao carregar serviços:', error);
+    console.log('Erro ao carregar serviços. Por favor, tente novamente.');
   }
+}
   
-  // Carregar funcionários baseado no serviço selecionado
 // Carregar funcionários baseado no serviço selecionado
 async function loadEmployees(serviceId) {
   try {

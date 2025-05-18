@@ -28,7 +28,7 @@
         <div class="topbar-right">
         <div class="user-welcome">
             <span class="welcome-text">Seja bem vinda, Paula!</span>
-            <img src="https://via.placeholder.com/40" alt="Foto do usuário" class="user-photo">
+            <img src="img/PerfilPaula.png" alt="Foto do usuário" class="user-photo">
         </div>
         <div class="notification-icon">
             <i class="bi bi-bell"></i>
@@ -84,6 +84,12 @@
           <a class="nav-link" id="coupons-tab" data-bs-toggle="tab" href="#coupons" role="tab" aria-controls="coupons" aria-selected="false">
             <i class="bi bi-percent"></i>
             <span class="menu-text">Cupons</span>
+          </a>
+        </li>
+        <li class="nav-item" role="presentation">
+          <a class="nav-link" id="revenue-tab" data-bs-toggle="tab" href="#revenue" role="tab" aria-controls="revenue" aria-selected="false">
+            <i class="bi bi-cash-coin"></i>
+            <span class="menu-text">Receita</span>
           </a>
         </li>
         <li class="nav-item" role="presentation">
@@ -238,16 +244,21 @@
           <h4 class="mb-3">Adicionar/Editar Categoria</h4>
           <form id="categoryForm">
             <input type="hidden" id="categoryId">
-            <div class="row mb-3">
-              <div class="col-md-6">
-                <label for="categoryName" class="form-label">Nome da Categoria</label>
-                <input type="text" class="form-control" id="categoryName" required>
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="categoryName" class="form-label">Nome da Categoria</label>
+                  <input type="text" class="form-control" id="categoryName" required>
+                </div>
+                <div class="col-md-6">
+                  <label for="categoryImage" class="form-label">Imagem da Categoria</label>
+                  <input type="file" class="form-control" id="categoryImage" accept="image/*">
+                  <div id="categoryImagePreview" class="mt-2"></div>
+                </div>
               </div>
-            </div>
-            <div class="d-flex gap-2">
-              <button type="submit" class="btn btn-primary">Salvar</button>
-              <button type="button" class="btn btn-secondary" id="cancelCategoryEdit">Cancelar</button>
-            </div>
+              <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Salvar</button>
+                <button type="button" class="btn btn-secondary" id="cancelCategoryEdit">Cancelar</button>
+              </div>
           </form>
         </div>
         
@@ -281,6 +292,13 @@
           <h4 class="mb-3">Adicionar/Editar Serviço</h4>
           <form id="serviceForm">
             <input type="hidden" id="serviceId">
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="serviceImage" class="form-label">Imagem do Serviço</label>
+                <input type="file" class="form-control" id="serviceImage" accept="image/*">
+                <div id="serviceImagePreview" class="mt-2"></div>
+              </div>
+            </div>
             <div class="row mb-3">
               <div class="col-md-6">
                 <label for="serviceCategory" class="form-label">Categoria</label>
@@ -691,6 +709,110 @@
         </div>
       </div>
 
+      <!-- Receitas -->
+      <div class="tab-pane fade" id="revenue">
+        <div class="page-header mb-4">
+          <div class="page-title">
+            <h1>Relatório de Receitas</h1>
+          </div>
+          <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="#">Dashboard</a></li>
+            <li class="breadcrumb-item active">Receitas</li>
+          </ol>
+        </div>
+        
+        <!-- Filtros -->
+        <div class="card mb-4">
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-3 mb-2">
+                <label for="startDate" class="form-label">Data Inicial</label>
+                <input type="date" class="form-control" id="startDate">
+              </div>
+              <div class="col-md-3 mb-2">
+                <label for="endDate" class="form-label">Data Final</label>
+                <input type="date" class="form-control" id="endDate">
+              </div>
+              <div class="col-md-3 mb-2 d-flex align-items-end">
+                <button class="btn btn-primary" id="applyFilter">
+                  <i class="bi bi-funnel me-2"></i>Aplicar Filtro
+                </button>
+              </div>
+              <div class="col-md-3 mb-2 d-flex align-items-end justify-content-end">
+                <button class="btn btn-outline-secondary" id="resetFilter">
+                  <i class="bi bi-arrow-counterclockwise me-2"></i>Limpar Filtros
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Cards Resumo -->
+        <div class="row mb-4">
+          <div class="col-md-4">
+            <div class="card border-primary">
+              <div class="card-body">
+                <h5 class="card-title text-primary">Total de Agendamentos</h5>
+                <h2 class="card-text" id="totalAppointments">0</h2>
+                <p class="text-muted">No período selecionado</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card border-success">
+              <div class="card-body">
+                <h5 class="card-title text-success">Faturamento Total</h5>
+                <h2 class="card-text" id="totalRevenue">R$ 0,00</h2>
+                <p class="text-muted">No período selecionado</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card border-info">
+              <div class="card-body">
+                <h5 class="card-title text-info">Comissões a Pagar</h5>
+                <h2 class="card-text" id="totalCommissions">R$ 0,00</h2>
+                <p class="text-muted">No período selecionado</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Tabela de Detalhes -->
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Detalhes das Receitas</h5>
+            <button class="btn btn-sm btn-outline-primary" id="exportReport">
+              <i class="bi bi-download me-1"></i>Excel
+            </button>
+            <button id="exportPdf" class="btn btn-sm btn-outline-danger">
+              <i class="fas fa-file-pdf"></i>PDF
+            </button>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-striped table-hover">
+                <thead>
+                  <tr>
+                    <th>Profissional</th>
+                    <th>Agendamentos</th>
+                    <th>Faturamento</th>
+                    <th>Comissão (%)</th>
+                    <th>Valor Comissão</th>
+                    <th>Lucro Líquido</th>
+                  </tr>
+                </thead>
+                <tbody id="revenueDetails">
+                  <tr>
+                    <td colspan="6" class="text-center">Selecione um período para visualizar os dados</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Configurações -->
       <div class="tab-pane fade" id="settings">
         <div class="page-header mb-4">
@@ -806,12 +928,15 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="js/responsividade.js"></script>
   <script src="js/admin.js"></script>
   <script src="js/charts.js"></script>
   <script src="js/users.js"></script>
   <script src="js/cupom.js"></script>
+  <script src="js/receitas.js"></script>
   <script src="js/horarioFuncionario.js"></script>
 </body>
 </html>

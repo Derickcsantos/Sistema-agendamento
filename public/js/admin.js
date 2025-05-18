@@ -621,13 +621,17 @@ async function handleCategorySubmit(e) {
     const method = categoryId ? 'PUT' : 'POST';
     const endpoint = categoryId ? `/api/admin/categories/${categoryId}` : '/api/admin/categories';
     
+    const formData = new FormData();
+    formData.append('name', name);
+    
+    const imageInput = document.getElementById('categoryImage');
+    if (imageInput.files[0]) {
+      formData.append('image', imageInput.files[0]);
+    }
+    
     const response = await fetch(endpoint, {
       method: method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({ name })
+      body: formData
     });
     
     if (!response.ok) {
@@ -639,12 +643,13 @@ async function handleCategorySubmit(e) {
     
     document.getElementById('categoryForm').reset();
     document.getElementById('categoryId').value = '';
+    document.getElementById('categoryImagePreview').innerHTML = '';
     
     await loadCategories();
     showToast(result.message || 'Categoria salva com sucesso!', 'success');
   } catch (error) {
     console.error('Erro no submit da categoria:', error);
-    throw error;
+    showToast(error.message, 'error');
   }
 }
 
@@ -659,10 +664,16 @@ async function editCategory(id) {
     
     const idField = document.getElementById('categoryId');
     const nameField = document.getElementById('categoryName');
+    const previewDiv = document.getElementById('categoryImagePreview');
+    
     if (!idField || !nameField) throw new Error('Elementos do formulário não encontrados');
     
     idField.value = category.id;
     nameField.value = category.name;
+    
+    if (category.imagem_category) {
+      previewDiv.innerHTML = `<img src="${category.imagem_category}" class="img-thumbnail" style="max-height: 150px;">`;
+    }
     
     const form = document.getElementById('categoryForm');
     if (form) form.scrollIntoView({ behavior: 'smooth' });
@@ -675,6 +686,7 @@ async function editCategory(id) {
 function cancelCategoryEdit() {
   document.getElementById('categoryForm').reset();
   document.getElementById('categoryId').value = '';
+  document.getElementById('categoryImagePreview').innerHTML = '';
 }
 
 // Funções para manipulação de serviços
@@ -696,19 +708,21 @@ async function handleServiceSubmit(e) {
     const method = serviceId ? 'PUT' : 'POST';
     const endpoint = serviceId ? `/api/admin/services/${serviceId}` : '/api/admin/services';
     
+    const formData = new FormData();
+    formData.append('category_id', categoryId);
+    formData.append('name', name);
+    formData.append('description', description);
+    formData.append('duration', duration);
+    if (price) formData.append('price', price);
+    
+    const imageInput = document.getElementById('serviceImage');
+    if (imageInput.files[0]) {
+      formData.append('image', imageInput.files[0]);
+    }
+    
     const response = await fetch(endpoint, {
       method: method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({
-        category_id: categoryId,
-        name,
-        description,
-        duration,
-        price
-      })
+      body: formData
     });
     
     if (!response.ok) {
@@ -720,12 +734,13 @@ async function handleServiceSubmit(e) {
     
     document.getElementById('serviceForm').reset();
     document.getElementById('serviceId').value = '';
+    document.getElementById('serviceImagePreview').innerHTML = '';
     
     await loadServices();
     showToast(result.message || 'Serviço salvo com sucesso!', 'success');
   } catch (error) {
     console.error('Erro no submit do serviço:', error);
-    throw error;
+    showToast(error.message, 'error');
   }
 }
 
@@ -733,18 +748,8 @@ async function editService(id) {
   try {
     if (!id) throw new Error('ID do serviço não fornecido');
     
-    const response = await fetch(`/api/admin/services/${id}`, {
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
-    
-    if (!response.ok) {
-      if (response.status === 404) {
-        throw new Error('Serviço não encontrado no servidor');
-      }
-      throw new Error(`Erro HTTP! status: ${response.status}`);
-    }
+    const response = await fetch(`/api/admin/services/${id}`);
+    if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status}`);
     
     const service = await response.json();
     
@@ -754,6 +759,7 @@ async function editService(id) {
     const descField = document.getElementById('serviceDescription');
     const durationField = document.getElementById('serviceDuration');
     const priceField = document.getElementById('servicePrice');
+    const previewDiv = document.getElementById('serviceImagePreview');
     
     if (!idField || !categoryField || !nameField || !descField || !durationField || !priceField) {
       throw new Error('Elementos do formulário não encontrados');
@@ -766,11 +772,14 @@ async function editService(id) {
     durationField.value = service.duration;
     priceField.value = service.price || '';
     
+    if (service.imagem_service) {
+      previewDiv.innerHTML = `<img src="${service.imagem_service}" class="img-thumbnail" style="max-height: 150px;">`;
+    }
+    
     const form = document.getElementById('serviceForm');
     if (form) form.scrollIntoView({ behavior: 'smooth' });
   } catch (error) {
     console.error('Erro ao editar serviço:', error);
-    showToast(`Falha ao carregar serviço: ${error.message}`, 'error');
     throw error;
   }
 }
@@ -778,7 +787,32 @@ async function editService(id) {
 function cancelServiceEdit() {
   document.getElementById('serviceForm').reset();
   document.getElementById('serviceId').value = '';
+  document.getElementById('serviceImagePreview').innerHTML = '';
 }
+
+// Função para visualizar imagem antes de upload
+function setupImagePreview(inputId, previewId) {
+  const input = document.getElementById(inputId);
+  const preview = document.getElementById(previewId);
+
+  input.addEventListener('change', function() {
+    if (this.files && this.files[0]) {
+      const reader = new FileReader();
+      
+      reader.onload = function(e) {
+        preview.innerHTML = `<img src="${e.target.result}" class="img-thumbnail" style="max-height: 150px;">`;
+      }
+      
+      reader.readAsDataURL(this.files[0]);
+    } else {
+      preview.innerHTML = '';
+    }
+  });
+}
+
+// Chamar para ambos os formulários
+setupImagePreview('categoryImage', 'categoryImagePreview');
+setupImagePreview('serviceImage', 'serviceImagePreview');
 
 // Atualize a função handleEmployeeSubmit para salvar os horários
 async function handleEmployeeSubmit(e) {
