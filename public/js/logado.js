@@ -58,7 +58,6 @@ document.addEventListener('DOMContentLoaded', function () {
       tbody.innerHTML = agendamentos.map(agendamento => `
         <tr>
           <td>${formatarData(agendamento.date)}</td>
-          <td>${formatarData(agendamento.created_at)}</td>
           <td>${agendamento.professional_name || 'Não informado'}</td>
           <td>${agendamento.start_time} - ${agendamento.end_time}</td>
           <td>${agendamento.service_name}</td>

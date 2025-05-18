@@ -445,10 +445,38 @@ async function loadEmployees(serviceId) {
       const startHHMM = `${appointment.start_time.substring(0,2)}:${appointment.start_time.substring(2,4)}`;
       const endHHMM = `${appointment.end_time.substring(0,2)}:${appointment.end_time.substring(2,4)}`;
       // Calcular duração
-      const startMinutes = parseInt(appointment.start_time.substring(0,2)) * 60 + parseInt(appointment.start_time.substring(2,4));
-      const endMinutes = parseInt(appointment.end_time.substring(0,2)) * 60 + parseInt(appointment.end_time.substring(2,4));
-      const durationMinutes = endMinutes - startMinutes;
-      const duration = `${String(Math.floor(durationMinutes / 60)).padStart(2, '0')}:${String(durationMinutes % 60).padStart(2, '0')}`;
+      // Por esta versão mais robusta:
+      function calculateDuration(startTime, endTime) {
+        try {
+          // Garante que os horários estão no formato HHmm
+          const start = startTime.includes(':') ? startTime.replace(':', '') : startTime;
+          const end = endTime.includes(':') ? endTime.replace(':', '') : endTime;
+          
+          const startHours = parseInt(start.substring(0, 2));
+          const startMins = parseInt(start.substring(2, 4));
+          const endHours = parseInt(end.substring(0, 2));
+          const endMins = parseInt(end.substring(2, 4));
+          
+          const totalStart = startHours * 60 + startMins;
+          const totalEnd = endHours * 60 + endMins;
+          
+          if (totalEnd <= totalStart) {
+            console.error('Horário final deve ser após horário inicial');
+            return '00:00';
+          }
+          
+          const durationMins = totalEnd - totalStart;
+          const hours = Math.floor(durationMins / 60);
+          const mins = durationMins % 60;
+          
+          return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+        } catch (error) {
+          console.error('Erro ao calcular duração:', error);
+          return '00:00';
+        }
+      }
+
+      const duration = calculateDuration(appointment.start_time, appointment.end_time);
         
       detailsList.innerHTML = `
         <li><strong>Nome:</strong> ${appointment.client_name}</li>
