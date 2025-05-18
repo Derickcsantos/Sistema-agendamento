@@ -800,6 +800,14 @@ async function handleEmployeeSubmit(e) {
     if (schedules.length === 0) {
       throw new Error('Adicione pelo menos um horário de trabalho');
     }
+
+    const hasInvalidSchedules = schedules.some(s => 
+      isNaN(s.day_of_week) || s.day_of_week < 0 || s.day_of_week > 6
+    );
+
+    if (hasInvalidSchedules) {
+      throw new Error('Selecione um dia da semana válido para todos os horários');
+    }
     
     // Verificar se todos os horários têm dia selecionado
     if (schedules.some(s => isNaN(s.day_of_week))) {
@@ -1043,7 +1051,6 @@ function renderSchedulesList() {
 }
 
 // Função para adicionar novo horário
-// Função para adicionar novo horário ao formulário
 function addNewSchedule(schedule = {}) {
   const container = document.getElementById('workSchedulesContainer');
   const template = document.getElementById('scheduleItemTemplate').cloneNode(true);
@@ -1056,7 +1063,11 @@ function addNewSchedule(schedule = {}) {
   // Preencher dados se for edição
   if (schedule.day_of_week !== undefined) {
     scheduleItem.querySelector('.day-select').value = schedule.day_of_week;
+  } else {
+    // Deixar sem valor selecionado por padrão
+    scheduleItem.querySelector('.day-select').value = '';
   }
+  
   if (schedule.start_time) {
     scheduleItem.querySelector('.start-time').value = formatTimeForInput(schedule.start_time);
   }
@@ -1148,7 +1159,6 @@ async function saveWorkSchedules() {
   }
 }
 
-// Função para coletar horários do formulário
 function collectSchedulesFromForm() {
   const schedules = [];
   const scheduleElements = document.querySelectorAll('.schedule-item');
@@ -1158,7 +1168,8 @@ function collectSchedulesFromForm() {
     const startTimeInput = element.querySelector('.start-time');
     const endTimeInput = element.querySelector('.end-time');
     
-    if (daySelect && startTimeInput && endTimeInput) {
+    // Verificar se todos os campos existem e se um dia foi selecionado
+    if (daySelect && startTimeInput && endTimeInput && daySelect.value !== '') {
       schedules.push({
         id: element.dataset.id.startsWith('new-') ? undefined : element.dataset.id,
         day_of_week: parseInt(daySelect.value),
@@ -1170,7 +1181,6 @@ function collectSchedulesFromForm() {
   
   return schedules;
 }
-
 
 // Atualize a função editEmployee para mostrar o botão de gerenciar serviços
 async function editEmployee(id) {

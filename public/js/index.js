@@ -36,12 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
     locale: 'pt',
     minDate: 'today',
     dateFormat: 'd/m/Y',
-    disable: [
-      function(date) {
-        // Desabilitar fins de semana (sábado = 6, domingo = 0)
-        return (date.getDay() === 0 || date.getDay() === 6);
-      }
-    ]
+    
   });
   
   // Navegação entre passos
