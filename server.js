@@ -293,12 +293,16 @@ async function startWhatsappBot() {
     const client = await create({
       session: 'salon-bot',
       puppeteerOptions: {
+        executablePath: '/usr/bin/chromium-browser', // Caminho específico na Render
         headless: true,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
-          '--disable-gpu'
-        ]
+          '--disable-gpu',
+          '--disable-dev-shm-usage',
+          '--single-process'
+        ],
+        ignoreDefaultArgs: ['--disable-extensions']
       },
       catchQR: (base64Qr) => {
         if (!sessionExists) {
