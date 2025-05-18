@@ -401,3 +401,33 @@ select option small {
     font-size: 0.8em;
     color: #666;
   }
+
+  /* No seu arquivo CSS principal */
+.btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+.add-to-calendar {
+  padding: 0.25rem;
+}
+
+.bi-calendar-plus {
+  font-size: 1rem;
+}
+
+/* Estilos para os botões de ação */
+.complete-appointment {
+  color: white;
+  padding: 0.25rem 0.5rem;
+}
+
+.complete-appointment:hover {
+  background-color: #198754;
+  border-color: #198754;
+}
+
+/* Espaçamento entre botões */
+td .btn {
+  margin-right: 0.3rem;
+}

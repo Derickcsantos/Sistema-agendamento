@@ -369,46 +369,267 @@ function getDayName(dayNumber) {
   const days = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
   return days[dayNumber] || 'Dia';
 }
-async function loadAppointments() {
+
+// Função para carregar todos os agendamentos com filtros
+// Função para formatar a data para YYYY-MM-DD
+function formatDateForAPI(dateString) {
+  if (!dateString) return null;
+  
+  // Converte de DD-MM-YYYY para YYYY-MM-DD
+  const parts = dateString.split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+  return dateString; // Retorna no formato original se não puder converter
+}
+
+async function loadAppointments(filters = {}) {
   try {
-    const response = await fetch('/api/admin/appointments');
+    const queryParams = new URLSearchParams();
+    
+    if (filters.search) queryParams.append('search', filters.search);
+    if (filters.date) {
+      // Converte de YYYY-MM-DD (input) para DD-MM-YYYY (banco)
+      const [year, month, day] = filters.date.split('-');
+      queryParams.append('date', `${day}-${month}-${year}`);
+    }
+    if (filters.employee) queryParams.append('employee', filters.employee);
+
+    const response = await fetch(`/api/admin/appointments?${queryParams.toString()}`);
     if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status}`);
     
     const data = await response.json();
-    const tableBody = document.getElementById('appointmentsTable');
-    if (!tableBody) return;
-    
-    tableBody.innerHTML = '';
-    
-    data.forEach(appointment => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${appointment.id}</td>
-        <td>${appointment.client_name}</td>
-        <td>${appointment.services?.name || 'N/A'}</td>
-        <td>${appointment.employees?.name || 'N/A'}</td>
-        <td>${formatDate(appointment.appointment_date)}</td>
-        <td>${appointment.start_time} - ${appointment.end_time}</td>
-        <td>
-          <span class="badge ${getStatusBadgeClass(appointment.status)}">
-            ${getStatusText(appointment.status)}
-          </span>
-        </td>
-        <td>
-          <button class="btn btn-sm btn-danger cancel-appointment" 
-                  data-id="${appointment.id}"
-                  ${appointment.status !== 'confirmed' ? 'disabled' : ''}>
-            Cancelar
-          </button>
-        </td>
-      `;
-      tableBody.appendChild(row);
-    });
+    renderAppointmentsTable(data);
   } catch (error) {
     console.error('Erro ao carregar agendamentos:', error);
-    showToast(`Erro ao carregar agendamentos: ${error.message}`, 'error');
+    showToast('Erro ao carregar agendamentos. Tente novamente.', 'error');
   }
 }
+
+// Função para renderizar a tabela
+function renderAppointmentsTable(appointments) {
+  const tableBody = document.getElementById('appointmentsTable');
+  if (!tableBody) throw new Error('Tabela de agendamentos não encontrada');
+  
+  tableBody.innerHTML = '';
+  
+  appointments.forEach(appointment => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${appointment.id}</td>
+      <td>${appointment.client_name}</td>
+      <td>${appointment.services?.name || 'N/A'}</td>
+      <td>${appointment.employees?.name || 'N/A'}</td>
+      <td>${formatDate(appointment.appointment_date)}</td>
+      <td>${appointment.start_time} - ${appointment.end_time}</td>
+      <td>
+        <span class="badge ${getStatusBadgeClass(appointment.status)}">
+          ${getStatusText(appointment.status)}
+        </span>
+      </td>
+      <td>
+        <button class="btn btn-sm btn-danger cancel-appointment" 
+                data-id="${appointment.id}"
+                ${appointment.status !== 'confirmed' ? 'disabled' : ''}>
+          Cancelar
+        </button>
+      </td>
+    `;
+    tableBody.appendChild(row);
+  });
+}
+
+// Função para formatar a URL do Google Calendar
+function createGoogleCalendarUrl(appointment) {
+  // Converter data de YYYY-MM-DD para YYYYMMDD
+  const formattedDate = appointment.date.replace(/-/g, '');
+  
+  // Converter horários (HH:MM:SS para HHMM) e ajustar fuso horário (+3 horas)
+  const adjustTime = (timeStr) => {
+    const [hours, minutes] = timeStr.split(':');
+    let adjustedHours = parseInt(hours) + 3;
+    if (adjustedHours >= 24) adjustedHours -= 24;
+    return `${String(adjustedHours).padStart(2, '0')}${minutes}`;
+  };
+
+  const startTime = adjustTime(appointment.start_time);
+  const endTime = adjustTime(appointment.end_time);
+
+  // Criar parâmetros para a URL
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: `Agendamento: ${appointment.service}`,
+    details: `Cliente: ${appointment.client_name}\nServiço: ${appointment.service}\nProfissional: ${appointment.professional}\nValor: R$ ${appointment.price.toFixed(2)}`,
+    location: 'Salão de Beleza', // Altere conforme necessário
+    dates: `${formattedDate}T${startTime}00Z/${formattedDate}T${endTime}00Z`
+  });
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+// Adicione esta função para marcar como concluído
+async function completeAppointment(appointmentId) {
+  try {
+    const response = await fetch(`/api/admin/appointments/${appointmentId}/complete`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) throw new Error('Erro ao marcar como concluído');
+
+    const data = await response.json();
+    showToast('Agendamento marcado como concluído!', 'success');
+    
+    // Recarregar a lista de agendamentos
+    loadAppointments();
+    
+    return data;
+  } catch (error) {
+    console.error('Erro ao concluir agendamento:', error);
+    showToast('Erro ao concluir agendamento', 'error');
+    throw error;
+  }
+}
+
+// Atualize a função renderAppointmentsTable para incluir o botão de conclusão
+function renderAppointmentsTable(appointments) {
+  const tableBody = document.getElementById('appointmentsTable');
+  if (!tableBody) throw new Error('Tabela de agendamentos não encontrada');
+  
+  tableBody.innerHTML = '';
+  
+  appointments.forEach(appointment => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${appointment.id}</td>
+      <td>${appointment.client_name}</td>
+      <td>${appointment.services?.name || 'N/A'}</td>
+      <td>${appointment.employees?.name || 'N/A'}</td>
+      <td>${formatDate(appointment.appointment_date)}</td>
+      <td>${appointment.start_time} - ${appointment.end_time}</td>
+      <td>
+        <span class="badge ${getStatusBadgeClass(appointment.status)}">
+          ${getStatusText(appointment.status)}
+        </span>
+      </td>
+      <td class="d-flex gap-1">
+        <button class="btn btn-sm btn-success complete-appointment ${appointment.status === 'completed' ? 'd-none' : ''}" 
+                data-id="${appointment.id}"
+                title="Marcar como concluído">
+          <i class="bi bi-check-lg"></i>
+        </button>
+        <button class="btn btn-sm btn-primary add-to-calendar" 
+                data-id="${appointment.id}"
+                title="Adicionar ao calendário">
+          <i class="bi bi-calendar-plus"></i>
+        </button>
+        <button class="btn btn-sm btn-danger cancel-appointment ${appointment.status !== 'confirmed' ? 'd-none' : ''}" 
+                data-id="${appointment.id}"
+                title="Cancelar agendamento">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </td>
+    `;
+    tableBody.appendChild(row);
+  });
+
+  // Event listeners para os botões de conclusão
+  document.querySelectorAll('.complete-appointment').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const appointmentId = btn.getAttribute('data-id');
+      
+      // Confirmação antes de marcar como concluído
+      if (confirm('Deseja realmente marcar este agendamento como concluído?')) {
+        await completeAppointment(appointmentId);
+      }
+    });
+  });
+
+  // ... (mantenha os outros event listeners existentes)
+}
+
+  // Adicionar event listeners para os botões de calendário
+  document.querySelectorAll('.add-to-calendar').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const appointmentId = btn.getAttribute('data-id');
+      try {
+        const response = await fetch(`/api/admin/appointments/${appointmentId}`);
+        if (!response.ok) throw new Error('Erro ao buscar agendamento');
+        
+        const appointment = await response.json();
+        const calendarUrl = createGoogleCalendarUrl(appointment);
+        
+        // Abrir o Google Calendar em nova aba
+        window.open(calendarUrl, '_blank');
+      } catch (error) {
+        console.error('Erro ao adicionar ao calendário:', error);
+        showToast('Erro ao abrir calendário', 'error');
+      }
+    });
+  });
+
+
+// Função para limpar filtros
+function clearFilters() {
+  document.getElementById('appointmentSearch').value = '';
+  document.getElementById('appointmentDateFilter').value = '';
+  document.getElementById('employeeSearch').value = '';
+  loadAppointments();
+}
+
+// Event listeners quando o DOM carregar
+document.addEventListener('DOMContentLoaded', function() {
+  // Carregar todos os agendamentos inicialmente
+  loadAppointments();
+
+  // Pesquisa geral
+  document.getElementById('searchAppointments')?.addEventListener('click', () => {
+    const searchTerm = document.getElementById('appointmentSearch').value.trim();
+    loadAppointments({ search: searchTerm });
+  });
+
+  // Filtro por data
+// No seu arquivo JavaScript (index.js ou similar)
+document.getElementById('filterByDateBtn')?.addEventListener('click', () => {
+    const dateInput = document.getElementById('appointmentDateFilter').value;
+    
+    if (!dateInput) {
+      showToast('Selecione uma data válida', 'warning');
+      return;
+    }
+    
+    loadAppointments({ date: dateInput });
+  });
+
+  // Filtro por funcionário
+document.getElementById('filterByEmployee')?.addEventListener('click', () => {
+  const employeeName = document.getElementById('employeeSearch').value.trim();
+  if (!employeeName) {
+    showToast('Por favor, digite um nome de funcionário', 'warning');
+    return;
+  }
+  
+  loadAppointments({ employee: employeeName });
+});
+
+  // Limpar filtros
+  document.getElementById('clearFilters')?.addEventListener('click', clearFilters);
+
+  // Permitir pressionar Enter nos campos de pesquisa
+  [document.getElementById('appointmentSearch'), 
+   document.getElementById('employeeSearch')].forEach(input => {
+    input?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        const searchTerm = e.target.value.trim();
+        const filterType = e.target.id === 'appointmentSearch' ? 'search' : 'employee';
+        loadAppointments({ [filterType]: searchTerm });
+      }
+    });
+  });
+});
 
 // Configurar listeners de eventos
 function setupEventListeners() {
@@ -520,94 +741,6 @@ function setupEventListeners() {
   });
 }
 
-
-
-// Funções de pesquisa
-async function searchAppointments() {
-  try {
-    const searchTerm = document.getElementById('appointmentSearch')?.value.trim() || '';
-    const response = await fetch(`/api/admin/appointments?search=${encodeURIComponent(searchTerm)}`);
-    if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status}`);
-    
-    const data = await response.json();
-    const tableBody = document.getElementById('appointmentsTable');
-    if (!tableBody) throw new Error('Tabela de agendamentos não encontrada');
-    
-    tableBody.innerHTML = '';
-    
-    data.forEach(appointment => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${appointment.id}</td>
-        <td>${appointment.client_name}</td>
-        <td>${appointment.services?.name || 'N/A'}</td>
-        <td>${appointment.employees?.name || 'N/A'}</td>
-        <td>${formatDate(appointment.appointment_date)}</td>
-        <td>${appointment.start_time} - ${appointment.end_time}</td>
-        <td>
-          <span class="badge ${getStatusBadgeClass(appointment.status)}">
-            ${getStatusText(appointment.status)}
-          </span>
-        </td>
-        <td>
-          <button class="btn btn-sm btn-danger cancel-appointment" 
-                  data-id="${appointment.id}"
-                  ${appointment.status !== 'confirmed' ? 'disabled' : ''}>
-            Cancelar
-          </button>
-        </td>
-      `;
-      tableBody.appendChild(row);
-    });
-  } catch (error) {
-    console.error('Erro na pesquisa de agendamentos:', error);
-    throw error;
-  }
-}
-
-async function filterAppointmentsByDate() {
-  try {
-    const date = document.getElementById('appointmentDateFilter')?.value;
-    if (!date) return;
-    
-    const response = await fetch(`/api/admin/appointments?date=${date}`);
-    if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status}`);
-    
-    const data = await response.json();
-    const tableBody = document.getElementById('appointmentsTable');
-    if (!tableBody) throw new Error('Tabela de agendamentos não encontrada');
-    
-    tableBody.innerHTML = '';
-    
-    data.forEach(appointment => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${appointment.id}</td>
-        <td>${appointment.client_name}</td>
-        <td>${appointment.services?.name || 'N/A'}</td>
-        <td>${appointment.employees?.name || 'N/A'}</td>
-        <td>${formatDate(appointment.appointment_date)}</td>
-        <td>${appointment.start_time} - ${appointment.end_time}</td>
-        <td>
-          <span class="badge ${getStatusBadgeClass(appointment.status)}">
-            ${getStatusText(appointment.status)}
-          </span>
-        </td>
-        <td>
-          <button class="btn btn-sm btn-danger cancel-appointment" 
-                  data-id="${appointment.id}"
-                  ${appointment.status !== 'confirmed' ? 'disabled' : ''}>
-            Cancelar
-          </button>
-        </td>
-      `;
-      tableBody.appendChild(row);
-    });
-  } catch (error) {
-    console.error('Erro ao filtrar agendamentos:', error);
-    throw error;
-  }
-}
 
 // Funções para manipulação de categorias
 async function handleCategorySubmit(e) {

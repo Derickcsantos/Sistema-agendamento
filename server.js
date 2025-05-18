@@ -758,10 +758,14 @@ app.get('/api/logado/appointments', async (req, res) => {
 // Rotas para agendamentos (admin)
 app.get('/api/admin/appointments', async (req, res) => {
   try {
-    const { search, date } = req.query;
+    const { search, date, employee } = req.query;
     let query = supabase
       .from('appointments')
-      .select('*, services(name, price), employees(name)')
+      .select(`
+        *,
+        services:service_id (name, price),
+        employees:employee_id (name)
+      `)
       .order('appointment_date', { ascending: true })
       .order('start_time', { ascending: true });
 
@@ -770,16 +774,99 @@ app.get('/api/admin/appointments', async (req, res) => {
     }
 
     if (date) {
-      query = query.eq('appointment_date', date);
+      // Converte DD-MM-YYYY para YYYY-MM-DD (formato do Supabase)
+      const [day, month, year] = date.split('-');
+      const dbDate = `${year}-${month}-${day}`;
+      query = query.eq('appointment_date', dbDate);
+    }
+
+    if (employee) {
+      // Filtrar usando a relação com employees
+      query = query.ilike('employees.name', `%${employee}%`);
     }
 
     const { data, error } = await query;
 
     if (error) throw error;
-    res.json(data);
+    
+    // Filtro adicional para funcionários (caso o filtro do Supabase não funcione)
+    let filteredData = data;
+    if (employee) {
+      filteredData = data.filter(appt => 
+        appt.employees?.name?.toLowerCase().includes(employee.toLowerCase())
+      );
+    }
+
+    res.json(filteredData);
   } catch (error) {
     console.error('Error fetching appointments:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Rota para obter detalhes de um agendamento específico
+app.get('/api/admin/appointments/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { data, error } = await supabase
+      .from('appointments')
+      .select(`
+        *,
+        services(name, price),
+        employees(name)
+      `)
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'Agendamento não encontrado' });
+
+    res.json({
+      id: data.id,
+      client_name: data.client_name,
+      service: data.services?.name || 'N/A',
+      professional: data.employees?.name || 'N/A',
+      date: data.appointment_date, // Formato YYYY-MM-DD
+      start_time: data.start_time, // Formato HH:MM:SS
+      end_time: data.end_time,     // Formato HH:MM:SS
+      status: data.status,
+      price: data.services?.price || 0
+    });
+  } catch (error) {
+    console.error('Error fetching appointment:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Rota para marcar agendamento como concluído
+app.put('/api/admin/appointments/:id/complete', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { data, error } = await supabase
+      .from('appointments')
+      .update({ 
+        status: 'completed',
+        completed_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select();
+
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
+
+    if (!data || data.length === 0) {
+      return res.status(404).json({ error: 'Agendamento não encontrado' });
+    }
+
+    res.json(data[0]);
+  } catch (error) {
+    console.error('Error in API:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: error.message 
+    });
   }
 });
 
@@ -800,7 +887,7 @@ app.put('/api/admin/appointments/:id/cancel', async (req, res) => {
   }
 });
 
-// API para a área administrativa
+
 // Rotas para categorias
 app.get('/api/admin/categories', async (req, res) => {
   try {
