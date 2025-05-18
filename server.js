@@ -1,15 +1,17 @@
-require('dotenv').config();
-const express = require('express');
-const path = require('path');
-const { createClient } = require('@supabase/supabase-js');
-const cors = require('cors');
-const nodemailer = require('nodemailer');
-const bodyParser = require('body-parser');
-const { create } = require('@wppconnect-team/wppconnect');
-const cookieParser = require('cookie-parser');
-const ExcelJS = require('exceljs');
-const multer = require('multer');
-const fs = require('fs');
+// Adicione no início do arquivo (server.js ou app.js)
+import 'dotenv/config';
+import express from 'express';
+import path from 'path';
+import { createClient } from '@supabase/supabase-js';
+import cors from 'cors';
+import nodemailer from 'nodemailer';
+import bodyParser from 'body-parser';
+import { create } from '@wppconnect-team/wppconnect';
+import cookieParser from 'cookie-parser';
+import ExcelJS from 'exceljs';
+import multer from 'multer';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 
 
 const app = express();
@@ -73,7 +75,9 @@ const upload = multer({
 app.use(cors(corsOptions));
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+// Substitua __dirname para ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 
 const checkAuth = (req, res, next) => {

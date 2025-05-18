@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Sistema de agendamento para salão de beleza",
   "main": "server.js",
-  "type": "module",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
