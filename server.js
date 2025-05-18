@@ -80,8 +80,6 @@ if (!fs.existsSync(SESSION_DIR)) {
   fs.mkdirSync(SESSION_DIR, { recursive: true });
 }
 
-const SESSION_DIR = path.join(__dirname, 'tokens');
-
 const checkAuth = (req, res, next) => {
   const userData = req.cookies.userData;  // Obtendo os dados do usuário do cookie
 
