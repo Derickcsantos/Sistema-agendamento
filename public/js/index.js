@@ -230,27 +230,38 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Carregar funcionários baseado no serviço selecionado
-  async function loadEmployees(serviceId) {
-    try {
-      const response = await fetch(`/api/employees/${serviceId}`);
-      if (!response.ok) throw new Error('Erro ao carregar profissionais');
-      
-      const employees = await response.json();
-      
-      // Limpar e popular o select de funcionários
-      employeeSelect.innerHTML = '<option value="" selected disabled>Selecione um profissional</option>';
-      
-      employees.forEach(employee => {
-        const option = document.createElement('option');
-        option.value = employee.id;
-        option.textContent = employee.name;
-        employeeSelect.appendChild(option);
-      });
-    } catch (error) {
-      console.error('Erro ao carregar profissionais:', error);
-      console.log('Erro ao carregar profissionais. Por favor, tente novamente.');
+// Carregar funcionários baseado no serviço selecionado
+async function loadEmployees(serviceId) {
+  try {
+    const response = await fetch(`/api/employees/${serviceId}`);
+    if (!response.ok) throw new Error('Erro ao carregar profissionais');
+    
+    const allEmployees = await response.json();
+    
+    // Filtrar apenas funcionários ativos
+    const activeEmployees = allEmployees.filter(employee => employee.is_active === true);
+    
+    // Limpar e popular o select de funcionários
+    employeeSelect.innerHTML = '<option value="" selected disabled>Selecione um profissional</option>';
+    
+    if (activeEmployees.length === 0) {
+      employeeSelect.innerHTML = '<option value="" selected disabled>Nenhum profissional disponível</option>';
+      return;
     }
+    
+    activeEmployees.forEach(employee => {
+      const option = document.createElement('option');
+      option.value = employee.id;
+      option.textContent = employee.name;
+      employeeSelect.appendChild(option);
+    });
+    
+  } catch (error) {
+    console.error('Erro ao carregar profissionais:', error);
+    employeeSelect.innerHTML = '<option value="" selected disabled>Erro ao carregar profissionais</option>';
+    console.log('Erro ao carregar profissionais. Por favor, tente novamente.');
   }
+}
   
   // Carregar horários disponíveis
   async function loadAvailableTimes(employeeId, date, duration) {
