@@ -284,61 +284,57 @@ app.get('/health', (req, res) => {
     timestamp: new Date()
   });
 });
-
 async function startWhatsappBot() {
   try {
-    // Verifica se já existe sessão salva
     const sessionExists = fs.existsSync(SESSION_FILE);
     
     const client = await create({
       session: 'salon-bot',
       puppeteerOptions: {
-        executablePath: '/usr/bin/chromium-browser', // Caminho específico na Render
-        headless: true,
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
+        headless: "new",
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-gpu',
           '--disable-dev-shm-usage',
-          '--single-process'
+          '--single-process',
+          '--no-zygote'
         ],
         ignoreDefaultArgs: ['--disable-extensions']
       },
       catchQR: (base64Qr) => {
         if (!sessionExists) {
           console.log('=== SCANEAE ESTE QR CODE UMA VEZ ===');
-          console.log('Base64 QR (para frontend):', base64Qr);
+          console.log('Base64 QR:', base64Qr);
         }
       },
       statusFind: (status) => {
         console.log('Status:', status);
         if (status === 'authenticated') {
-          console.log('✅ Login realizado! Próximas execuções serão automáticas.');
+          console.log('✅ Login realizado!');
         }
       }
     });
 
-    // Salva a sessão quando autenticado
     client.on('authenticated', (session) => {
       fs.writeFileSync(SESSION_FILE, JSON.stringify(session));
     });
 
-    // Lógica do bot
     client.onMessage(async (message) => {
       if (message.body === '!ping') {
         await client.sendText(message.from, '🏓 Pong!');
       }
-      // Adicione outras respostas aqui
     });
 
-    console.log('🤖 Bot iniciado - Pronto para receber mensagens');
+    console.log('🤖 Bot iniciado com sucesso');
 
   } catch (error) {
-    console.error('Erro no bot:', error);
-    process.exit(1);
+    console.error('Erro crítico no bot:', error);
+    // Não encerre o processo, permita reinicialização
+    setTimeout(startWhatsappBot, 30000); // Tenta reiniciar em 30 segundos
   }
 }
-
 
 // Rota para obter todos os usuários
 app.get('/api/users', async (req, res) => {
