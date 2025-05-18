@@ -2062,10 +2062,9 @@ app.get('/api/admin/revenue/export', async (req, res) => {
   }
 });
 
-startWhatsAppBot().catch(console.error);
 
 // Iniciar o servidor
 app.listen(port, () => {
   console.log(`Servidor rodando em http://localhost:${port}`);
-  startWhatsAppBot();
+  startWhatsappBot();
 });
