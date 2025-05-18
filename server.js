@@ -1,18 +1,18 @@
-// Adicione no início do arquivo (server.js ou app.js)
-import 'dotenv/config';
-import express from 'express';
-import path from 'path';
-import { createClient } from '@supabase/supabase-js';
-import cors from 'cors';
-import nodemailer from 'nodemailer';
-import bodyParser from 'body-parser';
-import { create } from '@wppconnect-team/wppconnect';
-import cookieParser from 'cookie-parser';
-import ExcelJS from 'exceljs';
-import multer from 'multer';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
+require('dotenv').config();
+const express = require('express');
+const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
+const cors = require('cors');
+const nodemailer = require('nodemailer');
+const bodyParser = require('body-parser');
+const { create } = require('@wppconnect-team/wppconnect');
+const cookieParser = require('cookie-parser');
+const ExcelJS = require('exceljs');
+const multer = require('multer');
+const fs = require('fs');
 
+const SESSION_DIR = path.join(__dirname, 'tokens');
+const SESSION_FILE = path.join(SESSION_DIR, 'salon-bot.json');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -23,6 +23,13 @@ const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 app.use(cookieParser());
 
+let whatsappClient;
+
+
+// Criar diretório se não existir
+if (!fs.existsSync(SESSION_DIR)) {
+  fs.mkdirSync(SESSION_DIR, { recursive: true });
+}
 
 
 const corsOptions = {
@@ -65,20 +72,8 @@ const upload = multer({
 app.use(cors(corsOptions));
 
 app.use(express.json());
-// Substitua __dirname para ES Modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+app.use(express.static(path.join(__dirname, 'public')));
 
-let whatsappClient;
-
-// Configurações da sessão
-const SESSION_DIR = path.join(__dirname, 'tokens');
-const SESSION_FILE = path.join(SESSION_DIR, 'salon-bot.json');
-
-// Criar diretório se não existir
-if (!fs.existsSync(SESSION_DIR)) {
-  fs.mkdirSync(SESSION_DIR, { recursive: true });
-}
 
 const checkAuth = (req, res, next) => {
   const userData = req.cookies.userData;  // Obtendo os dados do usuário do cookie
@@ -290,7 +285,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-async function startBot() {
+async function startWhatsappBot() {
   try {
     // Verifica se já existe sessão salva
     const sessionExists = fs.existsSync(SESSION_FILE);
@@ -2067,6 +2062,7 @@ app.get('/api/admin/revenue/export', async (req, res) => {
   }
 });
 
+startWhatsAppBot().catch(console.error);
 
 // Iniciar o servidor
 app.listen(port, () => {

@@ -2,6 +2,7 @@
   "name": "salao-beleza",
   "version": "1.0.0",
   "description": "Sistema de agendamento para salão de beleza",
+  "type": "commonjs",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
