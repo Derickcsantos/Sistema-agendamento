@@ -30,7 +30,7 @@ background-color: var(--sidebar-bg) !important;
 color: var(--text-color); 
 }
 .nav-link.active { 
-color: #0d6efd; 
+color: #c530b3; 
 font-weight: bold; 
 }
 
@@ -143,7 +143,7 @@ white-space: nowrap;
 }
 
 .badge-admin {
-background-color: #6f42c1;
+background-color: #c04edf;
 }
 
 .badge-comum {
@@ -161,7 +161,7 @@ background-color: #6c757d;
   text-align: center;
 }
 .time-slot:hover { background-color: #f8f9fa; }
-.time-slot.selected { background-color: #0d6efd; color: white; }
+.time-slot.selected { background-color: #c04edf; color: white; }
 .time-slot.unavailable { background-color: #f8d7da; color: #842029; cursor: not-allowed; }
 
 .btn-group {
@@ -215,7 +215,7 @@ select option {
 /* Adicione ao seu arquivo style.css */
 #confirmService, #confirmPrice {
   font-weight: bold;
-  color: #2a6496;
+  color: #c04edf;
 }
 
 #appointmentDetails li strong {
@@ -325,7 +325,7 @@ select option {
 }
 
 .card-border-primary {
-  border-left-color: #4e73df;
+  border-left-color: #c04edf;
 }
 
 .card-border-success {
@@ -333,7 +333,7 @@ select option {
 }
 
 .card-border-info {
-  border-left-color: #36b9cc;
+  border-left-color: #c04edf;
 }
 
 #revenueDetails tr:hover {

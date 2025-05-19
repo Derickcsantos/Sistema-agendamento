@@ -32,12 +32,17 @@ document.addEventListener('DOMContentLoaded', function() {
   let selectedTime = null;
   
   // Inicializar Flatpickr para seleção de data
-  flatpickr(appointmentDate, {
+flatpickr(appointmentDate, {
     locale: 'pt',
     minDate: 'today',
     dateFormat: 'd/m/Y',
-    
-  });
+    disable: [
+        function(date) {
+            // Desabilita todas as datas antes de 01/06/2025
+            return date < new Date(2025, 5, 1); // Mês é 0-based (5 = junho)
+        }
+    ]
+});
   
   // Navegação entre passos
   function navigateToStep(stepNumber) {

@@ -406,39 +406,6 @@ async function loadAppointments(filters = {}) {
   }
 }
 
-// Função para renderizar a tabela
-function renderAppointmentsTable(appointments) {
-  const tableBody = document.getElementById('appointmentsTable');
-  if (!tableBody) throw new Error('Tabela de agendamentos não encontrada');
-  
-  tableBody.innerHTML = '';
-  
-  appointments.forEach(appointment => {
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>${appointment.id}</td>
-      <td>${appointment.client_name}</td>
-      <td>${appointment.services?.name || 'N/A'}</td>
-      <td>${appointment.employees?.name || 'N/A'}</td>
-      <td>${formatDate(appointment.appointment_date)}</td>
-      <td>${appointment.start_time} - ${appointment.end_time}</td>
-      <td>
-        <span class="badge ${getStatusBadgeClass(appointment.status)}">
-          ${getStatusText(appointment.status)}
-        </span>
-      </td>
-      <td>
-        <button class="btn btn-sm btn-danger cancel-appointment" 
-                data-id="${appointment.id}"
-                ${appointment.status !== 'confirmed' ? 'disabled' : ''}>
-          Cancelar
-        </button>
-      </td>
-    `;
-    tableBody.appendChild(row);
-  });
-}
-
 // Função para formatar a URL do Google Calendar
 function createGoogleCalendarUrl(appointment) {
   // Converter data de YYYY-MM-DD para YYYYMMDD
@@ -548,10 +515,7 @@ function renderAppointmentsTable(appointments) {
     });
   });
 
-  // ... (mantenha os outros event listeners existentes)
-}
-
-  // Adicionar event listeners para os botões de calendário
+  // Event listeners para os botões de calendário
   document.querySelectorAll('.add-to-calendar').forEach(btn => {
     btn.addEventListener('click', async () => {
       const appointmentId = btn.getAttribute('data-id');
@@ -571,6 +535,8 @@ function renderAppointmentsTable(appointments) {
     });
   });
 
+  // ... (outros event listeners se necessário)
+}
 
 // Função para limpar filtros
 function clearFilters() {
