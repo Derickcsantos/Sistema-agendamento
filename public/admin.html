@@ -835,7 +835,7 @@
           </div>
         </div>
       </div>
-      <!-- Galeria -->
+            <!-- Galeria -->
       <div class="tab-pane fade" id="galeria">
         <div class="page-header mb-4">
           <div class="page-title">
@@ -848,36 +848,64 @@
         </div>
 
         <!-- Formulário de Upload -->
-        <form id="formUpload" enctype="multipart/form-data">
-          <div class="form-group">
-            <label for="titulo">Título da Imagem</label>
-            <input type="text" class="form-control" name="titulo" required>
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="card-title">Adicionar Nova Imagem</h5>
           </div>
-          <div class="form-group">
-            <label for="imagem">Imagem</label>
-            <input type="file" class="form-control" name="imagem" accept="image/*" required>
+          <div class="card-body">
+            <form id="formUpload" enctype="multipart/form-data">
+              <div class="mb-3">
+                <label for="titulo" class="form-label">Título da Imagem</label>
+                <input type="text" class="form-control" id="titulo" name="titulo" required>
+              </div>
+              <div class="mb-3">
+                <label for="imagem" class="form-label">Selecione a Imagem</label>
+                <input class="form-control" type="file" id="imagem" name="imagem" accept="image/*" required>
+              </div>
+              <button type="submit" class="btn btn-primary">Enviar</button>
+            </form>
           </div>
-          <button type="submit" class="btn btn-primary">Enviar</button>
-        </form>
-
-        <hr>
-
-        <!-- Contador e Busca -->
-        <div class="d-flex justify-content-between align-items-center my-3">
-          <div><strong>Total de Imagens:</strong> <span id="totalImagens">0</span></div>
-          <input type="text" id="buscaTitulo" class="form-control w-25" placeholder="Buscar por título...">
         </div>
 
-        <!-- Lista de Títulos -->
-        <ul class="list-group" id="listaGaleria"></ul>
+        <!-- Contador e Busca -->
+        <div class="card mb-4">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <strong>Total de Imagens:</strong> 
+                <span id="totalImagens" class="badge bg-primary">0</span>
+              </div>
+              <div class="w-50">
+                <input type="text" id="buscaTitulo" class="form-control" placeholder="Buscar por título...">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lista de Imagens -->
+        <div class="card">
+          <div class="card-body">
+            <div class="row" id="listaGaleria">
+              <!-- As imagens serão carregadas aqui via JavaScript -->
+            </div>
+          </div>
+        </div>
 
         <!-- Modal para exibir imagem -->
         <div class="modal fade" id="modalImagem" tabindex="-1" aria-hidden="true">
-          <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content p-3">
-              <h5 id="tituloModal" class="mb-3"></h5>
-              <img id="imagemModal" class="img-fluid mb-3" alt="Imagem">
-              <button type="button" class="btn btn-danger" id="btnExcluir">Excluir</button>
+          <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="tituloModal"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body text-center">
+                <img id="imagemModal" class="img-fluid" alt="Imagem">
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-danger" id="btnExcluir">Excluir Imagem</button>
+              </div>
             </div>
           </div>
         </div>

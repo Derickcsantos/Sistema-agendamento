@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galeria - Paula Tranças</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/galeria.css">
+    <link rel="icon" style="border-radius: 50%;" href="img/LogoPaulaTrancas.png" type="image/png">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="logo-container">
+            <div class="logo">
+                <img src="img/LogoPaulaTrancas.png" alt="Paula Tranças">
+            </div>
+            <span class="brand-name">Paula Tranças</span>
+        </div>
+        
+        <ul class="nav-links">
+            <li><a href="index.html#home">Home</a></li>
+            <li><a href="index.html#services">Serviços</a></li>
+            <li><a href="index.html#about">Sobre</a></li>
+            <li><a href="index.html#faq">Dúvidas</a></li>
+            <li><a href="index.html#contact">Contato</a></li>
+            <li><a href="galeria.html" class="active">Galeria</a></li>
+            <li><a onclick="window.location.href='/'">Agendar</a></li>
+        </ul>
+        
+        <div class="menu-toggle" id="menuToggle">
+            <i class="fas fa-bars"></i>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="close-btn" id="closeBtn">
+            <i class="fas fa-times"></i>
+        </div>
+        <ul class="sidebar-links">
+            <li><a href="index.html#home">Home</a></li>
+            <li><a href="index.html#services">Serviços</a></li>
+            <li><a href="index.html#about">Sobre</a></li>
+            <li><a href="index.html#faq">Dúvidas</a></li>
+            <li><a href="index.html#contact">Contato</a></li>
+            <li><a href="galeria.html" class="active">Galeria</a></li>
+            <li><a onclick="window.location.href='/'">Agendar</a></li>
+        </ul>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+
+    <!-- Main Content -->
+    <main class="gallery-container">
+        <h1 class="gallery-title">Nossa Galeria</h1>
+        
+        <!-- Search Bar -->
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Buscar por título...">
+            <i class="fas fa-search"></i>
+        </div>
+        
+        <!-- Gallery Grid -->
+        <div class="gallery-grid" id="galleryGrid">
+            <!-- Images will be loaded here via JavaScript -->
+        </div>
+        
+        <!-- Loading Indicator -->
+        <div class="loading" id="loading">
+            <i class="fas fa-spinner fa-spin"></i> Carregando...
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="logo-container">
+            <div class="logo">
+                <img src="img/LogoPaulaTrancas.png" alt="">
+            </div>
+            <span class="brand-name">Paula Tranças</span>
+        </div>
+        <div class="social-links">
+            <a href="https://instagram.com/paulatrancasealongamentos"><i class="fab fa-instagram"></i></a>
+            <a href="galeria.html"><i class="far fa-images"></i></a>
+            <a href="https://wa.me/5511952801212"><i class="fab fa-whatsapp"></i></a>
+        </div>
+        <p>© 2023 Paula Tranças e Alongamentos. Todos os direitos reservados.</p>
+        <p>Rua mucugê, 127 - Jardim maracanã, São Paulo/SP</p>
+        <p>paulaserapiao1@gmail.com.br | (11) 95280-1212</p>
+    </footer>
+
+    <script src="js/galeria.js"></script>
+</body>
+</html>

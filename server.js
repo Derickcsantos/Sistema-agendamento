@@ -110,6 +110,7 @@ const checkAuth = (req, res, next) => {
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/home', (req, res) => res.sendFile(path.join(__dirname, 'public', 'home.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
+app.get('/galeria', (req, res) => res.sendFile(path.join(__dirname, 'public', 'galeria.html')));
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 // app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.get('/admin', checkAuth, async (req, res) => {
@@ -2134,13 +2135,24 @@ app.get('/api/admin/revenue/export', async (req, res) => {
 // Rota: upload de imagem
 app.post('/api/galeria/upload', upload.single('imagem'), async (req, res) => {
   try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Nenhuma imagem foi enviada' });
+    }
+
     const { titulo } = req.body;
+    if (!titulo) {
+      return res.status(400).json({ error: 'Título é obrigatório' });
+    }
+
     const imagem = `/uploads/${req.file.filename}`;
 
-    const novaImagem = new Imagem({ titulo, imagem });
+    const novaImagem = new Galeria({ titulo, imagem });
     await novaImagem.save();
 
-    res.status(201).json({ mensagem: 'Imagem salva com sucesso' });
+    res.status(201).json({ 
+      mensagem: 'Imagem salva com sucesso',
+      imagem: novaImagem
+    });
   } catch (err) {
     console.error('Erro ao salvar imagem:', err);
     res.status(500).json({ error: 'Erro ao salvar imagem' });
@@ -2148,11 +2160,10 @@ app.post('/api/galeria/upload', upload.single('imagem'), async (req, res) => {
 });
 
 // Listar todas as imagens da galeria
-// Rota: listar imagens
 app.get('/api/galeria', async (req, res) => {
   try {
-    const imagens = await Imagem.find({}, 'titulo imagem');
-    res.json(imagens); // <- deve ser um array!
+    const imagens = await Galeria.find({}).sort({ criadoEm: -1 });
+    res.json(imagens);
   } catch (err) {
     console.error('Erro ao buscar imagens:', err);
     res.status(500).json({ error: 'Erro ao buscar imagens' });
@@ -2176,6 +2187,7 @@ app.delete('/api/galeria/:id', async (req, res) => {
 
     res.json({ message: 'Imagem excluída com sucesso.' });
   } catch (error) {
+    console.error('Erro ao excluir imagem:', error);
     res.status(500).json({ error: 'Erro ao excluir imagem.' });
   }
 });
