@@ -27,10 +27,11 @@ background-color: var(--sidebar-bg) !important;
 }
 
 .nav-link { 
-color: var(--text-color); 
+color: #ffff; 
+background-color: rgb(134, 125, 219);
 }
-.nav-link.active { 
-color: #c530b3; 
+.nav-link .active { 
+color: #ffff; 
 font-weight: bold; 
 }
 
@@ -209,7 +210,7 @@ select option {
 
 #confirmService, #confirmPrice {
   font-weight: bold;
-  color: #2a6496;
+  color: #c04edf;
 }
 
 /* Adicione ao seu arquivo style.css */
@@ -430,4 +431,28 @@ select option small {
 /* Espaçamento entre botões */
 td .btn {
   margin-right: 0.3rem;
+}
+
+.btn-login{
+  background-color: #7c3aed;
+  color: white;
+  border: none;
+  font-size: 1rem;
+  border-radius: 5px;
+  position: absolute;
+  top: 5px;
+  right: 5px;
+}
+
+.btn-login:hover{
+  background-color: #7c3aed;
+  color: white;
+}
+
+.backToHome{
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  color: #ccc;
+  font-size: 1.2rem;
 }
