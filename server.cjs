@@ -1,18 +1,20 @@
-// Adicione no início do arquivo (server.js ou app.js)
-import 'dotenv/config';
-import express from 'express';
-import path from 'path';
-import { createClient } from '@supabase/supabase-js';
-import cors from 'cors';
-import nodemailer from 'nodemailer';
-import bodyParser from 'body-parser';
-import { create } from '@wppconnect-team/wppconnect';
-import cookieParser from 'cookie-parser';
-import ExcelJS from 'exceljs';
-import multer from 'multer';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
+require('dotenv').config();
+const express = require('express');
+const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
+const cors = require('cors');
+const nodemailer = require('nodemailer');
+const bodyParser = require('body-parser');
+const { create } = require('@wppconnect-team/wppconnect');
+const cookieParser = require('cookie-parser');
+const ExcelJS = require('exceljs');
+const multer = require('multer');
+const fs = require('fs');
+const mongoose = require('mongoose');
 
+let whatsappClient = null;
+const SESSION_DIR = path.join(__dirname, 'tokens');
+const SESSION_FILE = path.join(SESSION_DIR, 'salon-bot.json');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -23,7 +25,10 @@ const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 app.use(cookieParser());
 
-
+// Criar diretório se não existir
+if (!fs.existsSync(SESSION_DIR)) {
+  fs.mkdirSync(SESSION_DIR, { recursive: true });
+}
 
 const corsOptions = {
   origin: '*',              // Permite qualquer origem
@@ -32,7 +37,23 @@ const corsOptions = {
   credentials: true,        // Permite cookies (importante se for necessário)
 };
 
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => console.log('MongoDB conectado com sucesso'))
+.catch(err => console.error('Erro ao conectar ao MongoDB:', err));
+
+// Modelo para galeria
+const galeriaSchema = new mongoose.Schema({
+  titulo: { type: String, required: true },
+  imagem: { type: String, required: true }, // Caminho da imagem no servidor
+  criadoEm: { type: Date, default: Date.now }
+});
+
+const Galeria = mongoose.model('Galeria', galeriaSchema);
 // Configuração do Multer para upload de imagens
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadPath = path.join(__dirname, 'public/uploads');
@@ -65,20 +86,7 @@ const upload = multer({
 app.use(cors(corsOptions));
 
 app.use(express.json());
-// Substitua __dirname para ES Modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-let whatsappClient;
-
-// Configurações da sessão
-const SESSION_DIR = path.join(__dirname, 'tokens');
-const SESSION_FILE = path.join(SESSION_DIR, 'salon-bot.json');
-
-// Criar diretório se não existir
-if (!fs.existsSync(SESSION_DIR)) {
-  fs.mkdirSync(SESSION_DIR, { recursive: true });
-}
+app.use(express.static(path.join(__dirname, 'public')));
 
 
 const checkAuth = (req, res, next) => {
@@ -100,7 +108,10 @@ const checkAuth = (req, res, next) => {
 
 // Rotas para servir os arquivos HTML
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/home', (req, res) => res.sendFile(path.join(__dirname, 'public', 'home.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
+app.get('/galeria', (req, res) => res.sendFile(path.join(__dirname, 'public', 'galeria.html')));
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 // app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.get('/admin', checkAuth, async (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
@@ -133,6 +144,58 @@ const transporter = nodemailer.createTransport({
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
   }
+});
+
+// Rota para enviar email de contato
+app.post('/api/contact', async (req, res) => {
+    const { name, email, phone, message } = req.body;
+
+    // Validação básica
+    if (!name || !email || !message) {
+        return res.status(400).json({ error: 'Nome, email e mensagem são obrigatórios' });
+    }
+
+    // Configuração do transporter (substitua com suas credenciais SMTP)
+    const transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false, // true para 465, false para outras portas
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
+        }
+    });
+
+    // Configuração do email
+    const mailOptions = {
+        from: `"Formulário de Contato" <${email}>`,
+        to: 'salaopaulatrancas@gmail.com',
+        subject: `Nova mensagem de ${name} - Site Paula Tranças`,
+        text: `
+            Nome: ${name}
+            Email: ${email}
+            Telefone: ${phone || 'Não informado'}
+            
+            Mensagem:
+            ${message}
+        `,
+        html: `
+            <h2>Nova mensagem do site Paula Tranças</h2>
+            <p><strong>Nome:</strong> ${name}</p>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Telefone:</strong> ${phone || 'Não informado'}</p>
+            <p><strong>Mensagem:</strong></p>
+            <p>${message.replace(/\n/g, '<br>')}</p>
+        `
+    };
+
+    try {
+        await transporter.sendMail(mailOptions);
+        res.status(200).json({ message: 'Mensagem enviada com sucesso!' });
+    } catch (error) {
+        console.error('Erro ao enviar email:', error);
+        res.status(500).json({ error: 'Ocorreu um erro ao enviar a mensagem. Por favor, tente novamente mais tarde.' });
+    }
 });
 
 // Função para gerar senha
@@ -290,57 +353,57 @@ app.get('/health', (req, res) => {
     timestamp: new Date()
   });
 });
-
-async function startBot() {
+async function startWhatsappBot() {
   try {
-    // Verifica se já existe sessão salva
     const sessionExists = fs.existsSync(SESSION_FILE);
     
     const client = await create({
       session: 'salon-bot',
       puppeteerOptions: {
-        headless: true,
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
+        headless: "new",
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
-          '--disable-gpu'
-        ]
+          '--disable-gpu',
+          '--disable-dev-shm-usage',
+          '--single-process',
+          '--no-zygote'
+        ],
+        ignoreDefaultArgs: ['--disable-extensions']
       },
       catchQR: (base64Qr) => {
         if (!sessionExists) {
           console.log('=== SCANEAE ESTE QR CODE UMA VEZ ===');
-          console.log('Base64 QR (para frontend):', base64Qr);
+          console.log('Base64 QR:', base64Qr);
         }
       },
       statusFind: (status) => {
         console.log('Status:', status);
         if (status === 'authenticated') {
-          console.log('✅ Login realizado! Próximas execuções serão automáticas.');
+          console.log('✅ Login realizado!');
         }
       }
     });
 
-    // Salva a sessão quando autenticado
     client.on('authenticated', (session) => {
       fs.writeFileSync(SESSION_FILE, JSON.stringify(session));
     });
 
-    // Lógica do bot
     client.onMessage(async (message) => {
       if (message.body === '!ping') {
         await client.sendText(message.from, '🏓 Pong!');
       }
-      // Adicione outras respostas aqui
     });
 
-    console.log('🤖 Bot iniciado - Pronto para receber mensagens');
+    console.log('🤖 Bot iniciado com sucesso');
 
   } catch (error) {
-    console.error('Erro no bot:', error);
-    process.exit(1);
+    console.error('Erro crítico no bot:', error);
+    // Não encerre o processo, permita reinicialização
+    setTimeout(startWhatsappBot, 30000); // Tenta reiniciar em 30 segundos
   }
 }
-
 
 // Rota para obter todos os usuários
 app.get('/api/users', async (req, res) => {
@@ -2068,9 +2131,70 @@ app.get('/api/admin/revenue/export', async (req, res) => {
   }
 });
 
+// Upload de imagem com título
+// Rota: upload de imagem
+app.post('/api/galeria/upload', upload.single('imagem'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Nenhuma imagem foi enviada' });
+    }
+
+    const { titulo } = req.body;
+    if (!titulo) {
+      return res.status(400).json({ error: 'Título é obrigatório' });
+    }
+
+    const imagem = `/uploads/${req.file.filename}`;
+
+    const novaImagem = new Galeria({ titulo, imagem });
+    await novaImagem.save();
+
+    res.status(201).json({ 
+      mensagem: 'Imagem salva com sucesso',
+      imagem: novaImagem
+    });
+  } catch (err) {
+    console.error('Erro ao salvar imagem:', err);
+    res.status(500).json({ error: 'Erro ao salvar imagem' });
+  }
+});
+
+// Listar todas as imagens da galeria
+app.get('/api/galeria', async (req, res) => {
+  try {
+    const imagens = await Galeria.find({}).sort({ criadoEm: -1 });
+    res.json(imagens);
+  } catch (err) {
+    console.error('Erro ao buscar imagens:', err);
+    res.status(500).json({ error: 'Erro ao buscar imagens' });
+  }
+});
+
+// Excluir uma imagem da galeria
+app.delete('/api/galeria/:id', async (req, res) => {
+  try {
+    const imagem = await Galeria.findByIdAndDelete(req.params.id);
+
+    if (!imagem) {
+      return res.status(404).json({ error: 'Imagem não encontrada.' });
+    }
+
+    // Apaga o arquivo fisicamente
+    const caminhoImagem = path.join(__dirname, 'public', imagem.imagem);
+    if (fs.existsSync(caminhoImagem)) {
+      fs.unlinkSync(caminhoImagem);
+    }
+
+    res.json({ message: 'Imagem excluída com sucesso.' });
+  } catch (error) {
+    console.error('Erro ao excluir imagem:', error);
+    res.status(500).json({ error: 'Erro ao excluir imagem.' });
+  }
+});
+
 
 // Iniciar o servidor
 app.listen(port, () => {
   console.log(`Servidor rodando em http://localhost:${port}`);
-  startWhatsAppBot();
+  startWhatsappBot();
 });
