@@ -44,6 +44,30 @@ body {
     z-index: 1000;
 }
 
+.botao-whatsapp {
+    position: fixed;
+    bottom: 40px;
+    right: 20px;
+    background-color: #25d366;
+    color: #fff;
+    border-radius: 50%;
+    padding: 15px;
+    font-size:12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease, transform 0.3s ease;
+    z-index: 3;
+}
+
+.botao-whatsapp:hover {
+    background-color: #25d366;
+    transform: scale(1.1);
+}
+
+.botao-whatsapp i {
+    margin-right: 0;
+    font-size: 40px;
+}
+
 .logo-container {
     display: flex;
     align-items: center;
@@ -274,6 +298,15 @@ body {
     width: 100%;
     height: auto;
     display: block;
+}
+
+.about-text {
+    max-width: 600px;
+    font-size: 1.4rem;
+}
+
+.btn-sobre{
+    margin: 10px 0 0 0;
 }
 
 /* Testimonials */
