@@ -10,6 +10,7 @@ const cookieParser = require('cookie-parser');
 const ExcelJS = require('exceljs');
 const multer = require('multer');
 const fs = require('fs');
+const mongoose = require('mongoose');
 
 let whatsappClient = null;
 const SESSION_DIR = path.join(__dirname, 'tokens');
@@ -29,7 +30,6 @@ if (!fs.existsSync(SESSION_DIR)) {
   fs.mkdirSync(SESSION_DIR, { recursive: true });
 }
 
-
 const corsOptions = {
   origin: '*',              // Permite qualquer origem
   methods: ['GET', 'POST', 'PUT', 'DELETE'],  // Permite os métodos HTTP que você precisa
@@ -37,7 +37,23 @@ const corsOptions = {
   credentials: true,        // Permite cookies (importante se for necessário)
 };
 
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => console.log('MongoDB conectado com sucesso'))
+.catch(err => console.error('Erro ao conectar ao MongoDB:', err));
+
+// Modelo para galeria
+const galeriaSchema = new mongoose.Schema({
+  titulo: { type: String, required: true },
+  imagem: { type: String, required: true }, // Caminho da imagem no servidor
+  criadoEm: { type: Date, default: Date.now }
+});
+
+const Galeria = mongoose.model('Galeria', galeriaSchema);
 // Configuração do Multer para upload de imagens
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadPath = path.join(__dirname, 'public/uploads');
@@ -94,6 +110,7 @@ const checkAuth = (req, res, next) => {
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/home', (req, res) => res.sendFile(path.join(__dirname, 'public', 'home.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 // app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.get('/admin', checkAuth, async (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
@@ -2058,6 +2075,56 @@ app.get('/api/admin/revenue/export', async (req, res) => {
       error: 'Internal server error',
       details: error.message 
     });
+  }
+});
+
+// Upload de imagem com título
+// Rota: upload de imagem
+app.post('/api/galeria/upload', upload.single('imagem'), async (req, res) => {
+  try {
+    const { titulo } = req.body;
+    const imagem = `/uploads/${req.file.filename}`;
+
+    const novaImagem = new Imagem({ titulo, imagem });
+    await novaImagem.save();
+
+    res.status(201).json({ mensagem: 'Imagem salva com sucesso' });
+  } catch (err) {
+    console.error('Erro ao salvar imagem:', err);
+    res.status(500).json({ error: 'Erro ao salvar imagem' });
+  }
+});
+
+// Listar todas as imagens da galeria
+// Rota: listar imagens
+app.get('/api/galeria', async (req, res) => {
+  try {
+    const imagens = await Imagem.find({}, 'titulo imagem');
+    res.json(imagens); // <- deve ser um array!
+  } catch (err) {
+    console.error('Erro ao buscar imagens:', err);
+    res.status(500).json({ error: 'Erro ao buscar imagens' });
+  }
+});
+
+// Excluir uma imagem da galeria
+app.delete('/api/galeria/:id', async (req, res) => {
+  try {
+    const imagem = await Galeria.findByIdAndDelete(req.params.id);
+
+    if (!imagem) {
+      return res.status(404).json({ error: 'Imagem não encontrada.' });
+    }
+
+    // Apaga o arquivo fisicamente
+    const caminhoImagem = path.join(__dirname, 'public', imagem.imagem);
+    if (fs.existsSync(caminhoImagem)) {
+      fs.unlinkSync(caminhoImagem);
+    }
+
+    res.json({ message: 'Imagem excluída com sucesso.' });
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao excluir imagem.' });
   }
 });
 

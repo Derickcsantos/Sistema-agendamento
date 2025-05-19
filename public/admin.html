@@ -91,6 +91,12 @@
           </a>
         </li>
         <li class="nav-item" role="presentation">
+          <a class="nav-link" id="galeria-tab" data-bs-toggle="tab" href="#galeria" role="tab" aria-controls="galeria" aria-selected="false">
+            <i class="bi bi-images"></i>
+            <span class="menu-text">Galeria</span>
+          </a>
+        </li>
+        <li class="nav-item" role="presentation">
           <a class="nav-link" id="settings-tab" data-bs-toggle="tab" href="#settings" role="tab" aria-controls="settings" aria-selected="false">
             <i class="bi bi-gear"></i>
             <span class="menu-text">Configurações</span>
@@ -829,6 +835,54 @@
           </div>
         </div>
       </div>
+      <!-- Galeria -->
+      <div class="tab-pane fade" id="galeria">
+        <div class="page-header mb-4">
+          <div class="page-title">
+            <h1>Galeria de Imagens</h1>
+          </div>
+          <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="#">Dashboard</a></li>
+            <li class="breadcrumb-item active">Galeria</li>
+          </ol>
+        </div>
+
+        <!-- Formulário de Upload -->
+        <form id="formUpload" enctype="multipart/form-data">
+          <div class="form-group">
+            <label for="titulo">Título da Imagem</label>
+            <input type="text" class="form-control" name="titulo" required>
+          </div>
+          <div class="form-group">
+            <label for="imagem">Imagem</label>
+            <input type="file" class="form-control" name="imagem" accept="image/*" required>
+          </div>
+          <button type="submit" class="btn btn-primary">Enviar</button>
+        </form>
+
+        <hr>
+
+        <!-- Contador e Busca -->
+        <div class="d-flex justify-content-between align-items-center my-3">
+          <div><strong>Total de Imagens:</strong> <span id="totalImagens">0</span></div>
+          <input type="text" id="buscaTitulo" class="form-control w-25" placeholder="Buscar por título...">
+        </div>
+
+        <!-- Lista de Títulos -->
+        <ul class="list-group" id="listaGaleria"></ul>
+
+        <!-- Modal para exibir imagem -->
+        <div class="modal fade" id="modalImagem" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content p-3">
+              <h5 id="tituloModal" class="mb-3"></h5>
+              <img id="imagemModal" class="img-fluid mb-3" alt="Imagem">
+              <button type="button" class="btn btn-danger" id="btnExcluir">Excluir</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
 
       <!-- Configurações -->
       <div class="tab-pane fade" id="suporte">
@@ -970,6 +1024,7 @@
   <script src="js/users.js"></script>
   <script src="js/cupom.js"></script>
   <script src="js/receitas.js"></script>
+  <script src="/js/galeria.js"></script>
   <script src="js/horarioFuncionario.js"></script>
 </body>
 </html>
