@@ -37,12 +37,17 @@ const corsOptions = {
   credentials: true,        // Permite cookies (importante se for necessário)
 };
 
+
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
-  useUnifiedTopology: true,
+  useUnifiedTopology: true, // Aumenta o timeout do socket
 })
-.then(() => console.log('MongoDB conectado com sucesso'))
-.catch(err => console.error('Erro ao conectar ao MongoDB:', err));
+.then(() => console.log('✅ MongoDB conectado com sucesso'))
+.catch(err => {
+  console.error('❌ Erro ao conectar ao MongoDB:');
+  console.error('Mensagem:', err.message);
+  console.error('Stack:', err.stack);
+});
 
 // Modelo para galeria
 const galeriaSchema = new mongoose.Schema({

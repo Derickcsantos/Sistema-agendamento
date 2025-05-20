@@ -13,17 +13,20 @@ document.addEventListener('DOMContentLoaded', () => {
   let imagemSelecionada = null;
 
   // Função para carregar a galeria
-  async function carregarGaleria() {
-    try {
-      const res = await fetch('/api/galeria');
-      if (!res.ok) throw new Error('Erro ao carregar galeria');
-      imagens = await res.json();
-      renderGaleria(imagens);
-    } catch (error) {
-      console.error('Erro:', error);
-      alert('Erro ao carregar galeria. Verifique o console para mais detalhes.');
+ async function carregarGaleria() {
+  try {
+    const res = await fetch('/api/galeria');
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Erro ao carregar galeria');
     }
+    imagens = await res.json();
+    renderGaleria(imagens);
+  } catch (error) {
+    console.error('Erro detalhado:', error);
+    alert(`Erro ao carregar galeria: ${error.message}`);
   }
+}
 
   function renderGaleria(lista) {
     listaGaleria.innerHTML = '';
