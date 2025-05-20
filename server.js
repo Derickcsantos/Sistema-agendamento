@@ -704,7 +704,14 @@ app.get('/api/employees/:serviceId', async (req, res) => {
     const { serviceId } = req.params;
     const { data, error } = await supabase
       .from('employee_services')
-      .select('employees(*)')
+      .select(`
+        employees(
+          id,
+          name,
+          imagem_funcionario,
+          is_active
+        )
+      `)
       .eq('service_id', serviceId);
 
     if (error) throw error;
@@ -1319,7 +1326,7 @@ app.get('/api/admin/employees/:id', async (req, res) => {
 
 app.post('/api/admin/employees', async (req, res) => {
   try {
-    const { name, email, phone, comissao , is_active } = req.body;
+    const { name, email, phone, comissao , imagem_funcionario , is_active } = req.body;
     const { data, error } = await supabase
       .from('employees')
       .insert([{ 
@@ -1327,6 +1334,7 @@ app.post('/api/admin/employees', async (req, res) => {
         email, 
         phone,
         comissao, 
+        imagem_funcionario,
         is_active: is_active !== false 
       }])
       .select();
@@ -1342,7 +1350,7 @@ app.post('/api/admin/employees', async (req, res) => {
 app.put('/api/admin/employees/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, phone, comissao , is_active } = req.body;
+    const { name, email, phone, comissao , imagem_funcionario , is_active } = req.body;
     const { data, error } = await supabase
       .from('employees')
       .update({ 
@@ -1350,6 +1358,7 @@ app.put('/api/admin/employees/:id', async (req, res) => {
         email, 
         phone, 
         comissao,
+        imagem_funcionario,
         is_active 
       })
       .eq('id', id)

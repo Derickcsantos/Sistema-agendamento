@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderGaleria(imagens);
   } catch (error) {
     console.error('Erro detalhado:', error);
-    alert(`Erro ao carregar galeria: ${error.message}`);
+    console.log(`Erro ao carregar galeria: ${error.message}`);
   }
 }
 

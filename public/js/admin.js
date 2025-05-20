@@ -337,6 +337,11 @@ async function loadEmployees() {
       
       const row = document.createElement('tr');
       row.innerHTML = `
+        <td>
+          ${employee.imagem_funcionario ? 
+            `<img src="${employee.imagem_funcionario}" alt="${employee.name}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">` : 
+            `<div style="width: 40px; height: 40px; border-radius: 50%; background: #eee;"></div>`
+          }
         <td>${employee.name}</td>
         <td>${employee.email}</td>
         <td>${employee.phone || ''}</td>
@@ -924,6 +929,7 @@ async function handleEmployeeSubmit(e) {
       email: document.getElementById('employeeEmail').value.trim(),
       phone: document.getElementById('employeePhone').value.trim() || null,
       comissao: document.getElementById('employeeComissao').value.trim() || null,
+      imagem_funcionario: document.getElementById('employeeImage').value.trim() || null,
       is_active: document.getElementById('employeeStatus').checked
     };
     
@@ -1332,6 +1338,7 @@ async function editEmployee(id) {
     document.getElementById('employeeEmail').value = employee.email;
     document.getElementById('employeePhone').value = employee.phone || '';
     document.getElementById('employeeComissao').value = employee.comissao || '';
+    document.getElementById('employeeImage').value = employee.imagem_funcionario || '';
     document.getElementById('employeeStatus').checked = employee.is_active !== false;
     
     // Mostrar ambos os botões de gerenciamento
