@@ -347,7 +347,7 @@ async function loadEmployees(serviceId) {
       card.dataset.id = employee.id;
       
       card.innerHTML = `
-        ${employee.photo ? 
+        ${employee.imagem_funcionario ? 
           `<img src="${employee.imagem_funcionario}" alt="${employee.name}" onerror="this.onerror=null; this.src='https://via.placeholder.com/40'">` : 
           `<div style="width: 40px; height: 40px; border-radius: 50%; background: #eee;"></div>`
         }

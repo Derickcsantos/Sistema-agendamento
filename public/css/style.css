@@ -21,6 +21,10 @@ background-color: var(--bg-color);
 color: var(--text-color);
 }
 
+.nav-pills li{
+  margin: 2px;
+}
+
 .sidebar {
 min-height: 100vh;
 background-color: var(--sidebar-bg) !important;
@@ -29,10 +33,35 @@ background-color: var(--sidebar-bg) !important;
 .nav-link { 
 color: #ffff; 
 background-color: rgb(134, 125, 219);
+font-size: 0.9rem;
 }
+
+#iconCategoria,
+#iconServico,
+#iconFuncionario,
+#iconData, 
+#iconHorario,
+#iconCupom,
+#iconConfirmacao{
+  color: #ffff; 
+  background-color: rgb(134, 125, 219);
+}
+
+
+.nav-link:hover { 
+color: #ffff; 
+background-color: rgb(146, 139, 210);
+font-size: 0.9rem;
+}
+
+
 .nav-link .active { 
 color: #ffff; 
 font-weight: bold; 
+}
+
+.nav-item{
+  background-color: #fff;
 }
 
 .tab-content { 
@@ -162,8 +191,8 @@ background-color: #6c757d;
   text-align: center;
 }
 .time-slot:hover { background-color: #f8f9fa; }
-.time-slot.selected { background-color: #c04edf; color: white; }
-.time-slot.unavailable { background-color: #f8d7da; color: #842029; cursor: not-allowed; }
+.time-slot.selected { background-color: #7c3aed; color: white; }
+.time-slot.unavailable { background-color: #842029; color: #ffffff; cursor: not-allowed; }
 
 .btn-group {
   gap: 5px;
@@ -210,13 +239,13 @@ select option {
 
 #confirmService, #confirmPrice {
   font-weight: bold;
-  color: #c04edf;
+  color: #7c3aed;
 }
 
 /* Adicione ao seu arquivo style.css */
 #confirmService, #confirmPrice {
   font-weight: bold;
-  color: #c04edf;
+  color: #7c3aed;
 }
 
 #appointmentDetails li strong {
@@ -334,7 +363,7 @@ select option {
 }
 
 .card-border-info {
-  border-left-color: #c04edf;
+  border-left-color: #7c3aed;
 }
 
 #revenueDetails tr:hover {
@@ -354,6 +383,18 @@ select option {
   .table-responsive {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+  }
+
+  #iconCategoria,
+  #iconServico,
+  #iconFuncionario,
+  #iconData, 
+  #iconHorario,
+  #iconCupom,
+  #iconConfirmacao{
+    color: #ffff; 
+    background-color: rgb(134, 125, 219);
+    font-size: 0.6rem;
   }
 }
 
@@ -449,10 +490,9 @@ td .btn {
   color: white;
 }
 
-.backToHome{
-  position: absolute;
-  top: 5px;
-  left: 5px;
-  color: #ccc;
-  font-size: 1.2rem;
+.icon-home{
+    font-size: 1.8rem;
+    position: absolute;
+    top: 1px;
+    left: 5px;
 }
