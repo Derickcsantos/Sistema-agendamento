@@ -44,7 +44,7 @@ font-size: 0.9rem;
 #iconCupom,
 #iconConfirmacao{
   color: #ffff; 
-  background-color: rgb(134, 125, 219);
+  background-color: #7c3aed;
 }
 
 
@@ -393,7 +393,6 @@ select option {
   #iconCupom,
   #iconConfirmacao{
     color: #ffff; 
-    background-color: rgb(134, 125, 219);
     font-size: 0.6rem;
   }
 }
