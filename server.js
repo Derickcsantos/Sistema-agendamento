@@ -11,6 +11,12 @@ const ExcelJS = require('exceljs');
 const multer = require('multer');
 const fs = require('fs');
 const mongoose = require('mongoose');
+const { GridFSBucket, ObjectId } = require('mongodb');
+const { GridFsStorage } = require('multer-gridfs-storage');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const upload = multer();
+
 
 let whatsappClient = null;
 const SESSION_DIR = path.join(__dirname, 'tokens');
@@ -18,6 +24,13 @@ const SESSION_FILE = path.join(SESSION_DIR, 'salon-bot.json');
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+// Configuração do Cloudinary
+cloudinary.config({
+  cloud_name: 'Sistema-agendamento', // Substitua pelo seu cloud name
+  api_key: '891873553769637',
+  api_secret: 'mCqdprhSTNnhZ85ma49sY7A8Jkg'
+});
 
 // Configuração do Supabase
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -37,55 +50,76 @@ const corsOptions = {
   credentials: true,        // Permite cookies (importante se for necessário)
 };
 
+const mongoURI = process.env.MONGO_URI || 'mongodb+srv://derickcampos:Dede%4002%40@cluster0.zw6awrd.mongodb.net/galeria?retryWrites=true&w=majority'
 
+
+// Conexão com MongoDB
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
-  useUnifiedTopology: true, // Aumenta o timeout do socket
+  useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 10000,
+  socketTimeoutMS: 45000
 })
 .then(() => console.log('✅ MongoDB conectado com sucesso'))
 .catch(err => {
-  console.error('❌ Erro ao conectar ao MongoDB:');
-  console.error('Mensagem:', err.message);
-  console.error('Stack:', err.stack);
+  console.error('❌ Falha na conexão com MongoDB:', err);
+  process.exit(1);
 });
 
-// Modelo para galeria
-const galeriaSchema = new mongoose.Schema({
-  titulo: { type: String, required: true },
-  imagem: { type: String, required: true }, // Caminho da imagem no servidor
-  criadoEm: { type: Date, default: Date.now }
-});
-
-const Galeria = mongoose.model('Galeria', galeriaSchema);
-// Configuração do Multer para upload de imagens
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadPath = path.join(__dirname, 'public/uploads');
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true });
-    }
-    cb(null, uploadPath);
+// Modelo da Galeria
+const ImagemSchema = new mongoose.Schema({
+  dados: {
+    type: Buffer,
+    required: true
   },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
+  tipo: {
+    type: String,
+    required: true
+  }
+}, { _id: false });
+
+const GaleriaSchema = new mongoose.Schema({
+  titulo: {
+    type: String,
+    default: 'Sem título'
+  },
+  imagem: {
+    type: ImagemSchema,
+    required: true
+  },
+  criadoEm: {
+    type: Date,
+    default: Date.now
+  }
+}, { versionKey: false });
+
+const Galeria = mongoose.model('Galeria', GaleriaSchema);
+
+// Configuração do Multer com Cloudinary
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'galeria',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+    transformation: [{ width: 1000, height: 1000, crop: 'limit' }]
   }
 });
 
-const upload = multer({ 
-  storage: storage,
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Apenas imagens são permitidas!'), false);
-    }
-  },
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB
-  }
-});
+// Add this to see upload progress
+// const upload = multer({
+//   storage: storage,
+//   limits: { fileSize: 10 * 1024 * 1024 },
+//   fileFilter: (req, file, cb) => {
+//     console.log('Uploading file:', file.originalname); // Debug log
+//     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+//     if (allowedTypes.includes(file.mimetype)) {
+//       cb(null, true);
+//     } else {
+//       cb(new Error('Invalid file type'), false);
+//     }
+//   }
+// });
+
 
 // Middlewares
 app.use(cors(corsOptions));
@@ -2145,66 +2179,108 @@ app.get('/api/admin/revenue/export', async (req, res) => {
   }
 });
 
-// Upload de imagem com título
-// Rota: upload de imagem
-app.post('/api/galeria/upload', upload.single('imagem'), async (req, res) => {
+// Rota para listar todas as imagens (metadados)
+app.get('/api/galeria', async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'Nenhuma imagem foi enviada' });
-    }
-
-    const { titulo } = req.body;
-    if (!titulo) {
-      return res.status(400).json({ error: 'Título é obrigatório' });
-    }
-
-    const imagem = `/uploads/${req.file.filename}`;
-
-    const novaImagem = new Galeria({ titulo, imagem });
-    await novaImagem.save();
-
-    res.status(201).json({ 
-      mensagem: 'Imagem salva com sucesso',
-      imagem: novaImagem
-    });
-  } catch (err) {
-    console.error('Erro ao salvar imagem:', err);
-    res.status(500).json({ error: 'Erro ao salvar imagem' });
+    const imagens = await Galeria.find({}, { 'imagem.dados': 0 }) // Exclui os dados binários da lista
+      .sort({ criadoEm: -1 });
+    res.json(imagens);
+  } catch (error) {
+    console.error('Erro ao listar imagens:', error);
+    res.status(500).json({ error: 'Erro ao carregar galeria' });
   }
 });
 
-// Listar todas as imagens da galeria
-app.get('/api/galeria', async (req, res) => {
+// Rota para upload de imagem
+app.post('/api/galeria/upload', upload.single('imagem'), async (req, res) => {
   try {
-    const imagens = await Galeria.find({}).sort({ criadoEm: -1 });
+    if (!req.file) {
+      return res.status(400).json({ error: 'Nenhuma imagem enviada' });
+    }
+
+    const novaImagem = new Galeria({
+      titulo: req.body.titulo || 'Sem título',
+      imagem: {
+        dados: req.file.buffer,
+        tipo: req.file.mimetype
+      }
+    });
+
+    await novaImagem.save();
+
+    res.json({ 
+      success: true,
+      id: novaImagem._id,
+      titulo: novaImagem.titulo,
+      criadoEm: novaImagem.criadoEm
+    });
+
+  } catch (error) {
+    console.error('Erro no upload:', error);
+    res.status(500).json({ error: 'Falha ao salvar imagem' });
+  }
+});
+
+// Rota para recuperar a imagem binária
+app.get('/api/galeria/imagem/:id', async (req, res) => {
+  try {
+    const imagem = await Galeria.findById(req.params.id).select('imagem');
+    
+    if (!imagem) {
+      return res.status(404).send('Imagem não encontrada');
+    }
+
+    res.set('Content-Type', imagem.imagem.tipo);
+    res.send(imagem.imagem.dados);
+
+  } catch (error) {
+    console.error('Erro ao recuperar imagem:', error);
+    res.status(500).send('Erro no servidor');
+  }
+});
+
+// Rota para busca
+// Rota para buscar imagens
+app.get('/api/galeria/busca', async (req, res) => {
+  try {
+    const { termo } = req.query;
+    
+    if (!termo || termo.trim() === '') {
+      return res.status(400).json({ error: 'Termo de busca é obrigatório' });
+    }
+
+    const imagens = await Galeria.find(
+      { titulo: { $regex: termo, $options: 'i' } },
+      { 'imagem.dados': 0 } // Exclui os dados binários
+    ).sort({ criadoEm: -1 });
+
     res.json(imagens);
-  } catch (err) {
-    console.error('Erro ao buscar imagens:', err);
+  } catch (error) {
+    console.error('Erro na busca:', error);
     res.status(500).json({ error: 'Erro ao buscar imagens' });
   }
 });
 
-// Excluir uma imagem da galeria
+// Rota para exclusão
 app.delete('/api/galeria/:id', async (req, res) => {
   try {
-    const imagem = await Galeria.findByIdAndDelete(req.params.id);
-
-    if (!imagem) {
-      return res.status(404).json({ error: 'Imagem não encontrada.' });
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: 'ID inválido' });
     }
 
-    // Apaga o arquivo fisicamente
-    const caminhoImagem = path.join(__dirname, 'public', imagem.imagem);
-    if (fs.existsSync(caminhoImagem)) {
-      fs.unlinkSync(caminhoImagem);
+    const resultado = await Galeria.findByIdAndDelete(req.params.id);
+    
+    if (!resultado) {
+      return res.status(404).json({ error: 'Imagem não encontrada' });
     }
 
-    res.json({ message: 'Imagem excluída com sucesso.' });
+    res.json({ success: true, message: 'Imagem excluída com sucesso' });
   } catch (error) {
     console.error('Erro ao excluir imagem:', error);
-    res.status(500).json({ error: 'Erro ao excluir imagem.' });
+    res.status(500).json({ error: 'Erro ao excluir imagem' });
   }
 });
+
 
 
 // Iniciar o servidor

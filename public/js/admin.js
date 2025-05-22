@@ -988,6 +988,11 @@ async function handleEmployeeSubmit(e) {
     showToast('Funcionário e horários salvos com sucesso!', 'success');
     loadEmployees();
     cancelEmployeeEdit();
+
+    document.getElementById('employeeForm').reset();
+    document.getElementById('employeeId').value = '';
+    document.getElementById('workSchedulesContainer').innerHTML = '';
+    
     
   } catch (error) {
     console.error('Erro ao salvar funcionário:', error);
