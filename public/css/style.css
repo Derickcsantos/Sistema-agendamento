@@ -495,3 +495,26 @@ td .btn {
     top: 1px;
     left: 5px;
 }
+
+@media (max-width: 380px){
+  .share-btn{
+    display: none;
+  }
+  #whatsappBtn,
+  #emailBtn,
+  #calendarBtn{
+    justify-content: center;
+  }
+
+  #iconCategoria,
+  #iconServico,
+  #iconFuncionario,
+  #iconData, 
+  #iconHorario,
+  #iconCupom,
+  #iconConfirmacao{
+    color: #ffff; 
+    font-size: 0.7rem;
+    padding: 7px;
+  }
+}
