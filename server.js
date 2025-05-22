@@ -8,7 +8,6 @@ const bodyParser = require('body-parser');
 const { create } = require('@wppconnect-team/wppconnect');
 const cookieParser = require('cookie-parser');
 const ExcelJS = require('exceljs');
-const multer = require('multer');
 const fs = require('fs');
 const mongoose = require('mongoose');
 const upload = multer();
