@@ -11,10 +11,6 @@ const ExcelJS = require('exceljs');
 const multer = require('multer');
 const fs = require('fs');
 const mongoose = require('mongoose');
-const { GridFSBucket, ObjectId } = require('mongodb');
-const { GridFsStorage } = require('multer-gridfs-storage');
-const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const upload = multer();
 
 
@@ -24,13 +20,6 @@ const SESSION_FILE = path.join(SESSION_DIR, 'salon-bot.json');
 
 const app = express();
 const port = process.env.PORT || 3000;
-
-// Configuração do Cloudinary
-cloudinary.config({
-  cloud_name: 'Sistema-agendamento', // Substitua pelo seu cloud name
-  api_key: '891873553769637',
-  api_secret: 'mCqdprhSTNnhZ85ma49sY7A8Jkg'
-});
 
 // Configuração do Supabase
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -94,31 +83,6 @@ const GaleriaSchema = new mongoose.Schema({
 }, { versionKey: false });
 
 const Galeria = mongoose.model('Galeria', GaleriaSchema);
-
-// Configuração do Multer com Cloudinary
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'galeria',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-    transformation: [{ width: 1000, height: 1000, crop: 'limit' }]
-  }
-});
-
-// Add this to see upload progress
-// const upload = multer({
-//   storage: storage,
-//   limits: { fileSize: 10 * 1024 * 1024 },
-//   fileFilter: (req, file, cb) => {
-//     console.log('Uploading file:', file.originalname); // Debug log
-//     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-//     if (allowedTypes.includes(file.mimetype)) {
-//       cb(null, true);
-//     } else {
-//       cb(new Error('Invalid file type'), false);
-//     }
-//   }
-// });
 
 
 // Middlewares
