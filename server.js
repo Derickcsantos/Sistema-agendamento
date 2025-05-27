@@ -669,11 +669,22 @@ app.get('/api/categories', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('categories')
-      .select('id, name, imagem_category') // Adicionar imagem_category
+      .select('id, name, imagem_category')
       .order('name', { ascending: true });
 
     if (error) throw error;
-    res.json(data);
+    
+    // Converter imagens base64 para URLs de dados
+    const categoriesWithImages = data.map(category => {
+      return {
+        ...category,
+        imagem_category: category.imagem_category 
+          ? `data:image/jpeg;base64,${category.imagem_category}`
+          : null
+      };
+    });
+    
+    res.json(categoriesWithImages);
   } catch (error) {
     console.error('Error fetching categories:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -685,18 +696,30 @@ app.get('/api/services/:categoryId', async (req, res) => {
     const { categoryId } = req.params;
     const { data, error } = await supabase
       .from('services')
-      .select('id, name, price, duration, imagem_service') // Adicionar imagem_service
+      .select('id, name, price, duration, imagem_service')
       .eq('category_id', categoryId)
       .order('name', { ascending: true });
 
     if (error) throw error;
-    res.json(data);
+    
+    // Converter imagens base64 para URLs de dados
+    const servicesWithImages = data.map(service => {
+      return {
+        ...service,
+        imagem_service: service.imagem_service 
+          ? `data:image/jpeg;base64,${service.imagem_service}`
+          : null
+      };
+    });
+    
+    res.json(servicesWithImages);
   } catch (error) {
     console.error('Error fetching services:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
+// Rota GET para funcionários (converte bytea para URL de dados)
 app.get('/api/employees/:serviceId', async (req, res) => {
   try {
     const { serviceId } = req.params;
@@ -713,7 +736,15 @@ app.get('/api/employees/:serviceId', async (req, res) => {
       .eq('service_id', serviceId);
 
     if (error) throw error;
-    const employees = data.map(item => item.employees);
+    
+    // Converter imagens base64 para URLs de dados
+    const employees = data.map(item => ({
+      ...item.employees,
+      imagem_funcionario: item.employees.imagem_funcionario 
+        ? `data:image/jpeg;base64,${item.employees.imagem_funcionario}`
+        : null
+    }));
+    
     res.json(employees);
   } catch (error) {
     console.error('Error fetching employees:', error);
@@ -1043,13 +1074,18 @@ app.get('/api/admin/categories/:id', async (req, res) => {
 app.post('/api/admin/categories', upload.single('image'), async (req, res) => {
   try {
     const { name } = req.body;
-    const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
+    let imageData = null;
+
+    // Se houver arquivo, converte para buffer
+    if (req.file) {
+      imageData = req.file.buffer.toString('base64');
+    }
 
     const { data, error } = await supabase
       .from('categories')
       .insert([{ 
         name, 
-        imagem_category: imagePath 
+        imagem_category: imageData 
       }])
       .select();
 
@@ -1057,43 +1093,30 @@ app.post('/api/admin/categories', upload.single('image'), async (req, res) => {
     res.status(201).json(data[0]);
   } catch (error) {
     console.error('Error creating category:', error);
-    // Remove o arquivo se houve erro
-    if (req.file) fs.unlinkSync(path.join(__dirname, 'public', req.file.path));
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
-
 
 // Atualize a rota PUT de categorias
 app.put('/api/admin/categories/:id', upload.single('image'), async (req, res) => {
   try {
     const { id } = req.params;
     const { name } = req.body;
-    let imagePath = null;
+    let imageData = null;
 
-    // Se enviou nova imagem
+    // Se enviou nova imagem, converte para base64
     if (req.file) {
-      imagePath = `/uploads/${req.file.filename}`;
-      
-      // Busca a categoria antiga para remover a imagem anterior
-      const { data: oldCategory } = await supabase
-        .from('categories')
-        .select('imagem_category')
-        .eq('id', id)
-        .single();
-
-      if (oldCategory?.imagem_category) {
-        const oldImagePath = path.join(__dirname, 'public', oldCategory.imagem_category);
-        if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
-      }
+      imageData = req.file.buffer.toString('base64');
     }
+
+    const updateData = { 
+      name,
+      ...(imageData && { imagem_category: imageData })
+    };
 
     const { data, error } = await supabase
       .from('categories')
-      .update({ 
-        name,
-        ...(imagePath && { imagem_category: imagePath })
-      })
+      .update(updateData)
       .eq('id', id)
       .select();
 
@@ -1101,7 +1124,6 @@ app.put('/api/admin/categories/:id', upload.single('image'), async (req, res) =>
     res.json(data[0]);
   } catch (error) {
     console.error('Error updating category:', error);
-    if (req.file) fs.unlinkSync(path.join(__dirname, 'public', req.file.path));
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
@@ -1153,11 +1175,16 @@ app.get('/api/admin/services', async (req, res) => {
   }
 });
 
-// Atualize as rotas de serviços similarmente
+// Rota POST de serviços
 app.post('/api/admin/services', upload.single('image'), async (req, res) => {
   try {
     const { category_id, name, description, duration, price } = req.body;
-    const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
+    let imageData = null;
+
+    // Se houver arquivo, converte para base64
+    if (req.file) {
+      imageData = req.file.buffer.toString('base64');
+    }
 
     const { data, error } = await supabase
       .from('services')
@@ -1167,7 +1194,7 @@ app.post('/api/admin/services', upload.single('image'), async (req, res) => {
         description, 
         duration, 
         price,
-        imagem_service: imagePath
+        imagem_service: imageData
       }])
       .select();
 
@@ -1175,7 +1202,6 @@ app.post('/api/admin/services', upload.single('image'), async (req, res) => {
     res.status(201).json(data[0]);
   } catch (error) {
     console.error('Error creating service:', error);
-    if (req.file) fs.unlinkSync(path.join(__dirname, 'public', req.file.path));
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
@@ -1199,37 +1225,30 @@ app.get('/api/admin/services/:id', async (req, res) => {
   }
 });
 
+// Rota PUT de serviços
 app.put('/api/admin/services/:id', upload.single('image'), async (req, res) => {
   try {
     const { id } = req.params;
     const { category_id, name, description, duration, price } = req.body;
-    let imagePath = null;
+    let imageData = null;
 
+    // Se enviou nova imagem, converte para base64
     if (req.file) {
-      imagePath = `/uploads/${req.file.filename}`;
-      
-      const { data: oldService } = await supabase
-        .from('services')
-        .select('imagem_service')
-        .eq('id', id)
-        .single();
-
-      if (oldService?.imagem_service) {
-        const oldImagePath = path.join(__dirname, 'public', oldService.imagem_service);
-        if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
-      }
+      imageData = req.file.buffer.toString('base64');
     }
+
+    const updateData = { 
+      category_id,
+      name,
+      description,
+      duration,
+      price,
+      ...(imageData && { imagem_service: imageData })
+    };
 
     const { data, error } = await supabase
       .from('services')
-      .update({ 
-        category_id,
-        name,
-        description,
-        duration,
-        price,
-        ...(imagePath && { imagem_service: imagePath })
-      })
+      .update(updateData)
       .eq('id', id)
       .select();
 
@@ -1237,7 +1256,6 @@ app.put('/api/admin/services/:id', upload.single('image'), async (req, res) => {
     res.json(data[0]);
   } catch (error) {
     console.error('Error updating service:', error);
-    if (req.file) fs.unlinkSync(path.join(__dirname, 'public', req.file.path));
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
@@ -1322,9 +1340,18 @@ app.get('/api/admin/employees/:id', async (req, res) => {
   }
 });
 
-app.post('/api/admin/employees', async (req, res) => {
+// Rota POST para funcionários
+app.post('/api/admin/employees', upload.single('image'), async (req, res) => {
   try {
-    const { name, email, phone, comissao , imagem_funcionario , is_active } = req.body;
+    // Extrair dados do corpo da requisição
+    const { name, email, phone, comissao, is_active } = req.body;
+    let imageData = null;
+
+    // Se houver arquivo, converte para base64
+    if (req.file) {
+      imageData = req.file.buffer.toString('base64');
+    }
+
     const { data, error } = await supabase
       .from('employees')
       .insert([{ 
@@ -1332,8 +1359,8 @@ app.post('/api/admin/employees', async (req, res) => {
         email, 
         phone,
         comissao, 
-        imagem_funcionario,
-        is_active: is_active !== false 
+        imagem_funcionario: imageData,
+        is_active: is_active === 'true' || is_active === true
       }])
       .select();
 
@@ -1345,20 +1372,30 @@ app.post('/api/admin/employees', async (req, res) => {
   }
 });
 
-app.put('/api/admin/employees/:id', async (req, res) => {
+// Rota PUT para funcionários
+app.put('/api/admin/employees/:id', upload.single('image'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, phone, comissao , imagem_funcionario , is_active } = req.body;
+    const { name, email, phone, comissao, is_active } = req.body;
+    let imageData = null;
+
+    // Se enviou nova imagem, converte para base64
+    if (req.file) {
+      imageData = req.file.buffer.toString('base64');
+    }
+
+    const updateData = { 
+      name, 
+      email, 
+      phone, 
+      comissao,
+      is_active: is_active === 'true' || is_active === true,
+      ...(imageData && { imagem_funcionario: imageData })
+    };
+
     const { data, error } = await supabase
       .from('employees')
-      .update({ 
-        name, 
-        email, 
-        phone, 
-        comissao,
-        imagem_funcionario,
-        is_active 
-      })
+      .update(updateData)
       .eq('id', id)
       .select();
 

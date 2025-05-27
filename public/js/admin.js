@@ -712,7 +712,6 @@ function setupEventListeners() {
   });
 }
 
-
 // Funções para manipulação de categorias
 async function handleCategorySubmit(e) {
   try {
@@ -776,7 +775,9 @@ async function editCategory(id) {
     nameField.value = category.name;
     
     if (category.imagem_category) {
-      previewDiv.innerHTML = `<img src="${category.imagem_category}" class="img-thumbnail" style="max-height: 150px;">`;
+      // Cria uma URL de dados para exibir a imagem
+      const imageUrl = `data:image/jpeg;base64,${category.imagem_category}`;
+      previewDiv.innerHTML = `<img src="${imageUrl}" class="img-thumbnail" style="max-height: 150px;">`;
     }
     
     const form = document.getElementById('categoryForm');
@@ -793,6 +794,7 @@ function cancelCategoryEdit() {
   document.getElementById('categoryImagePreview').innerHTML = '';
 }
 
+// Funções para manipulação de serviços
 // Funções para manipulação de serviços
 async function handleServiceSubmit(e) {
   try {
@@ -877,7 +879,9 @@ async function editService(id) {
     priceField.value = service.price || '';
     
     if (service.imagem_service) {
-      previewDiv.innerHTML = `<img src="${service.imagem_service}" class="img-thumbnail" style="max-height: 150px;">`;
+      // Cria uma URL de dados para exibir a imagem
+      const imageUrl = `data:image/jpeg;base64,${service.imagem_service}`;
+      previewDiv.innerHTML = `<img src="${imageUrl}" class="img-thumbnail" style="max-height: 150px;">`;
     }
     
     const form = document.getElementById('serviceForm');
@@ -923,17 +927,23 @@ async function handleEmployeeSubmit(e) {
   e.preventDefault();
   
   try {
-    // Coletar dados básicos do funcionário
-    const employeeData = {
-      name: document.getElementById('employeeName').value.trim(),
-      email: document.getElementById('employeeEmail').value.trim(),
-      phone: document.getElementById('employeePhone').value.trim() || null,
-      comissao: document.getElementById('employeeComissao').value.trim() || null,
-      imagem_funcionario: document.getElementById('employeeImage').value.trim() || null,
-      is_active: document.getElementById('employeeStatus').checked
-    };
+    // Criar FormData para enviar a imagem e outros dados
+    const formData = new FormData();
     
-    // Coletar horários
+    // Adicionar dados básicos ao FormData
+    formData.append('name', document.getElementById('employeeName').value.trim());
+    formData.append('email', document.getElementById('employeeEmail').value.trim());
+    formData.append('phone', document.getElementById('employeePhone').value.trim() || '');
+    formData.append('comissao', document.getElementById('employeeComissao').value.trim() || '');
+    formData.append('is_active', document.getElementById('employeeStatus').checked);
+
+    // Adicionar imagem se existir
+    const imageInput = document.getElementById('employeeImage');
+    if (imageInput.files[0]) {
+      formData.append('image', imageInput.files[0]);
+    }
+    
+    // Coletar horários (será enviado separadamente como JSON)
     const schedules = collectSchedulesFromForm();
     
     if (schedules.length === 0) {
@@ -948,26 +958,19 @@ async function handleEmployeeSubmit(e) {
       throw new Error('Selecione um dia da semana válido para todos os horários');
     }
     
-    // Verificar se todos os horários têm dia selecionado
-    if (schedules.some(s => isNaN(s.day_of_week))) {
-      throw new Error('Selecione o dia da semana para todos os horários');
-    }
-    
-    // 1. Salvar/Atualizar funcionário
+    // 1. Salvar/Atualizar funcionário (usando FormData)
     const employeeId = document.getElementById('employeeId').value;
     let response;
     
     if (employeeId) {
       response = await fetch(`/api/admin/employees/${employeeId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(employeeData)
+        body: formData  // Não definir Content-Type, o browser fará isso automaticamente
       });
     } else {
       response = await fetch('/api/admin/employees', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(employeeData)
+        body: formData  // Não definir Content-Type, o browser fará isso automaticamente
       });
     }
     
@@ -976,7 +979,7 @@ async function handleEmployeeSubmit(e) {
     const employee = await response.json();
     const savedEmployeeId = employeeId || employee.id;
     
-    // 2. Salvar horários
+    // 2. Salvar horários (como JSON)
     const schedulesResponse = await fetch(`/schedules/${savedEmployeeId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -992,7 +995,6 @@ async function handleEmployeeSubmit(e) {
     document.getElementById('employeeForm').reset();
     document.getElementById('employeeId').value = '';
     document.getElementById('workSchedulesContainer').innerHTML = '';
-    
     
   } catch (error) {
     console.error('Erro ao salvar funcionário:', error);
@@ -1343,8 +1345,15 @@ async function editEmployee(id) {
     document.getElementById('employeeEmail').value = employee.email;
     document.getElementById('employeePhone').value = employee.phone || '';
     document.getElementById('employeeComissao').value = employee.comissao || '';
-    document.getElementById('employeeImage').value = employee.imagem_funcionario || '';
     document.getElementById('employeeStatus').checked = employee.is_active !== false;
+
+    // Atualizar preview da imagem
+    const imagePreview = document.getElementById('employeeImagePreview');
+    if (employee.imagem_funcionario) {
+      imagePreview.innerHTML = `<img src="${employee.imagem_funcionario}" class="img-thumbnail" style="max-height: 150px;">`;
+    } else {
+      imagePreview.innerHTML = '';
+    }
     
     // Mostrar ambos os botões de gerenciamento
     document.getElementById('manageServicesBtn').style.display = 'block';
