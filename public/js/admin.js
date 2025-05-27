@@ -337,11 +337,6 @@ async function loadEmployees() {
       
       const row = document.createElement('tr');
       row.innerHTML = `
-        <td>
-          ${employee.imagem_funcionario ? 
-            `<img src="${employee.imagem_funcionario}" alt="${employee.name}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">` : 
-            `<div style="width: 40px; height: 40px; border-radius: 50%; background: #eee;"></div>`
-          }
         <td>${employee.name}</td>
         <td>${employee.email}</td>
         <td>${employee.phone || ''}</td>
@@ -1352,7 +1347,7 @@ async function editEmployee(id) {
     if (employee.imagem_funcionario) {
       imagePreview.innerHTML = `<img src="${employee.imagem_funcionario}" class="img-thumbnail" style="max-height: 150px;">`;
     } else {
-      imagePreview.innerHTML = '';
+      imagePreview.innerHTML = '<img src="img/LogoClara.jpg" class="img-thumbnail" style="max-height: 150px;">';
     }
     
     // Mostrar ambos os botões de gerenciamento
@@ -1374,6 +1369,7 @@ async function editEmployee(id) {
     showToast('Erro ao carregar dados do funcionário', 'error');
   }
 }
+
 
 // Atualize a função cancelEmployeeEdit para esconder os botões
 function cancelEmployeeEdit() {

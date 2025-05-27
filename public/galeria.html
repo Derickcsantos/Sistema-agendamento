@@ -84,14 +84,14 @@
             <li><a onclick="window.location.href='/'">Agendar</a></li>
         </ul>
         
-        <div class="menu-toggle" id="menuToggle">
-            <i class="fas fa-bars"></i>
+        <div class="menu-toggle" id="menuToggle" onclick="toggleSidebar()">
+            <i class="fas fa-bars" ></i>
         </div>
     </nav>
 
     <!-- Sidebar -->
     <div class="sidebar" id="sidebar">
-        <div class="close-btn" id="closeBtn">
+        <div class="close-btn" id="closeBtn" onclick="toggleSidebar()">
             <i class="fas fa-times"></i>
         </div>
         <ul class="sidebar-links">

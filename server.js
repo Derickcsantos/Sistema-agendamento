@@ -1333,7 +1333,16 @@ app.get('/api/admin/employees/:id', async (req, res) => {
       .single();
 
     if (error) throw error;
-    res.json(data);
+
+    // Converter imagem base64 para URL de dados se existir
+    const employeeWithImage = data.imagem_funcionario 
+      ? {
+          ...data,
+          imagem_funcionario: `data:image/jpeg;base64,${data.imagem_funcionario}`
+        }
+      : data;
+
+    res.json(employeeWithImage);
   } catch (error) {
     console.error('Error fetching employee:', error);
     res.status(500).json({ error: 'Internal server error' });

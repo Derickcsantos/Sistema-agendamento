@@ -405,3 +405,11 @@ document.addEventListener('DOMContentLoaded', () => {
     return document.getElementById('toastContainer');
   }
 });
+
+ function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    sidebar.classList.toggle('active');
+    
+    // Opcional: Desativar scroll do body quando sidebar está aberto
+    document.body.classList.toggle('no-scroll', sidebar.classList.contains('active'));
+}

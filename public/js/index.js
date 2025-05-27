@@ -282,7 +282,7 @@ document.addEventListener('DOMContentLoaded', function() {
         card.innerHTML = `
           ${service.imagem_service ? 
             `<img src="${service.imagem_service}" alt="${service.name}">` : 
-            `<div style="width: 40px; height: 40px; border-radius: 50%; background: #eee;"></div>`
+            `<div style="width: 40px; height: 40px; border-radius: 50%; background-image: img/LogoClara.jpg;"></div>`
           }
           <div class="item-info">
             <h5>${service.name}</h5>
