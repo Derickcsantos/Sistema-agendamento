@@ -5,7 +5,8 @@ let charts = {
   services: null,
   appointments: null,
   users: null,
-  coupons: null
+  coupons: null,
+  appointmentsByEmployee: null
 };
 
   
@@ -141,8 +142,53 @@ let charts = {
           tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.raw}` } }
         }
       }
+    },
+    appointmentsByEmployee: {
+    type: 'bar',
+    data: {
+      labels: [], // Será preenchido dinamicamente
+      datasets: [{
+        label: 'Agendamentos',
+        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+        borderColor: 'rgba(54, 162, 235, 1)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        title: { 
+          display: true, 
+          text: 'Agendamentos por Funcionário', 
+          padding: 10 
+        },
+        tooltip: { 
+          callbacks: { 
+            label: ctx => `${ctx.label}: ${ctx.raw} agendamentos` 
+          } 
+        }
+      },
+      scales: {
+        y: { 
+          beginAtZero: true, 
+          ticks: { precision: 0 },
+          title: {
+            display: true,
+            text: 'Quantidade de Agendamentos'
+          }
+        },
+        x: {
+          title: {
+            display: true,
+            text: 'Funcionários'
+          }
+        }
+      }
     }
-  };
+  }
+};
   
   // Inicialização quando o DOM estiver pronto
   document.addEventListener('DOMContentLoaded', function() {
@@ -181,6 +227,9 @@ async function loadDashboardData() {
       throw new Error(`Erro HTTP! status: ${response.status}`);
     }
     
+    const appointmentsByEmployeeRes = await fetch('/api/admin/appointments/by-employee');
+    if (!appointmentsByEmployeeRes.ok) throw new Error('Erro ao carregar agendamentos por funcionário');
+    const appointmentsByEmployeeData = await appointmentsByEmployeeRes.json();
     
     // Buscar todos os dados necessários
     const [dashboardRes, employeesRes, usersRes, couponsRes] = await Promise.all([
@@ -205,7 +254,8 @@ async function loadDashboardData() {
       ...dashboardData,
       employeesStatus: processEmployeesData(employeesData),
       usersDistribution: processUsersData(usersData),
-      couponsStatus: processCouponsData(couponsData)
+      couponsStatus: processCouponsData(couponsData),
+      appointmentsByEmployee: appointmentsByEmployeeData
     };
     
     renderCharts(processedData);
@@ -259,10 +309,17 @@ function renderCharts(data) {
   
   // Novo gráfico de cupons
   renderChart('coupons', [data.couponsStatus.active, data.couponsStatus.inactive]);
+  
+  // Novo gráfico de agendamentos por funcionário
+  if (data.appointmentsByEmployee && data.appointmentsByEmployee.length > 0) {
+    const labels = data.appointmentsByEmployee.map(item => item.employee_name);
+    const values = data.appointmentsByEmployee.map(item => item.count);
+    renderChart('appointmentsByEmployee', values, labels);
+  }
 }
 
 // Função auxiliar para renderizar um gráfico específico
-function renderChart(chartKey, data) {
+function renderChart(chartKey, data, customLabels = null) {
   // Obter a altura máxima disponível
   const chartContainers = document.querySelectorAll('.chart-container');
   let maxHeight = 0;
@@ -281,6 +338,10 @@ function renderChart(chartKey, data) {
   if (!ctx) return;
   
   const config = JSON.parse(JSON.stringify(chartConfigs[chartKey]));
+  // Atualiza os labels se customLabels for fornecido
+  if (customLabels) {
+    config.data.labels = customLabels;
+  }
   config.data.datasets[0].data = data;
   
   if (charts[chartKey]) charts[chartKey].destroy();

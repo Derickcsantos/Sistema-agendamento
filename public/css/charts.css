@@ -85,10 +85,18 @@ height: 250px;
     width: 80%;
   }
 
+  /* Ajustes específicos para o novo gráfico */
+#appointmentsByEmployeeChart {
+  min-height: 300px;
+}
+
 /* Ajustes responsivos */
 @media (max-width: 768px) {
     .chart-container {
       min-height: 250px;
       height: 250px;
     }
+    #appointmentsByEmployeeChart {
+    min-height: 250px;
+  }
   }

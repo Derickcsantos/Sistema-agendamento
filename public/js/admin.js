@@ -427,7 +427,7 @@ function createGoogleCalendarUrl(appointment) {
     action: 'TEMPLATE',
     text: `Agendamento: ${appointment.service}`,
     details: `Cliente: ${appointment.client_name}\nServiço: ${appointment.service}\nProfissional: ${appointment.professional}\nValor: R$ ${appointment.price.toFixed(2)}`,
-    location: 'Salão de Beleza', // Altere conforme necessário
+    location: 'Rua mucugê 127 - Jardim maracanã', // Altere conforme necessário
     dates: `${formattedDate}T${startTime}00Z/${formattedDate}T${endTime}00Z`
   });
 
@@ -435,6 +435,7 @@ function createGoogleCalendarUrl(appointment) {
 }
 
 // Adicione esta função para marcar como concluído
+// Função para marcar como concluído
 async function completeAppointment(appointmentId) {
   try {
     const response = await fetch(`/api/admin/appointments/${appointmentId}/complete`, {
@@ -444,7 +445,10 @@ async function completeAppointment(appointmentId) {
       }
     });
 
-    if (!response.ok) throw new Error('Erro ao marcar como concluído');
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Erro ao marcar como concluído');
+    }
 
     const data = await response.json();
     showToast('Agendamento marcado como concluído!', 'success');
@@ -455,10 +459,41 @@ async function completeAppointment(appointmentId) {
     return data;
   } catch (error) {
     console.error('Erro ao concluir agendamento:', error);
-    showToast('Erro ao concluir agendamento', 'error');
+    showToast(error.message || 'Erro ao concluir agendamento', 'error');
     throw error;
   }
 }
+
+// Função para cancelar agendamento
+async function cancelAppointment(appointmentId) {
+  try {
+
+    const response = await fetch(`/api/admin/appointments/${appointmentId}/cancel`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Erro ao cancelar agendamento');
+    }
+
+    const data = await response.json();
+    showToast('Agendamento cancelado com sucesso!', 'success');
+    
+    // Recarregar a lista de agendamentos
+    loadAppointments();
+    
+    return data;
+  } catch (error) {
+    console.error('Erro ao cancelar agendamento:', error);
+    showToast(error.message || 'Erro ao cancelar agendamento', 'error');
+    throw error;
+  }
+}
+
 
 // Atualize a função renderAppointmentsTable para incluir o botão de conclusão
 function renderAppointmentsTable(appointments) {
@@ -503,6 +538,7 @@ function renderAppointmentsTable(appointments) {
   });
 
   // Event listeners para os botões de conclusão
+   // Event listeners para os botões de conclusão
   document.querySelectorAll('.complete-appointment').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       e.preventDefault();
@@ -511,6 +547,19 @@ function renderAppointmentsTable(appointments) {
       // Confirmação antes de marcar como concluído
       if (confirm('Deseja realmente marcar este agendamento como concluído?')) {
         await completeAppointment(appointmentId);
+      }
+    });
+  });
+
+  // Event listeners para os botões de cancelamento
+  document.querySelectorAll('.cancel-appointment').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const appointmentId = btn.getAttribute('data-id');
+      
+      // Confirmação antes de cancelar
+      if (confirm('Deseja realmente cancelar este agendamento?')) {
+        await cancelAppointment(appointmentId);
       }
     });
   });
@@ -536,6 +585,39 @@ function renderAppointmentsTable(appointments) {
   });
 
   // ... (outros event listeners se necessário)
+}
+
+// Funções auxiliares para status
+function getStatusBadgeClass(status) {
+  switch (status) {
+    case 'confirmed': return 'bg-primary';
+    case 'completed': return 'bg-success';
+    case 'canceled': return 'bg-danger';
+    default: return 'bg-secondary';
+  }
+}
+
+function getStatusText(status) {
+  switch (status) {
+    case 'confirmed': return 'Confirmado';
+    case 'completed': return 'Concluído';
+    case 'canceled': return 'Cancelado';
+    default: return status;
+  }
+}
+
+function showToast(message, type = 'success') {
+  // Implemente sua função de toast ou use uma biblioteca como Toastify
+  console.log(`${type.toUpperCase()}: ${message}`);
+  // Exemplo com Toastify:
+  Toastify({
+    text: message,
+    duration: 3000,
+    close: true,
+    gravity: "top",
+    position: "right",
+    backgroundColor: type === 'success' ? "#28a745" : "#dc3545",
+  }).showToast();
 }
 
 // Função para limpar filtros

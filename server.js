@@ -902,6 +902,49 @@ app.get('/api/logado/appointments', async (req, res) => {
   }
 });
 
+// Rota para obter agendamentos por funcionário
+app.get('/api/admin/appointments/by-employee', async (req, res) => {
+  try {
+    // Primeiro, buscamos todos os funcionários
+    const { data: employees, error: employeesError } = await supabase
+      .from('employees')
+      .select('id, name')
+      .order('name', { ascending: true });
+
+    if (employeesError) throw employeesError;
+
+    // Depois, para cada funcionário, contamos os agendamentos confirmados
+    const appointmentsByEmployee = await Promise.all(
+      employees.map(async (employee) => {
+        const { count, error: countError } = await supabase
+          .from('appointments')
+          .select('*', { count: 'exact', head: true })
+          .eq('employee_id', employee.id)
+          .eq('status', 'confirmed');
+
+        if (countError) throw countError;
+
+        return {
+          employee_id: employee.id,
+          employee_name: employee.name,
+          count: count || 0
+        };
+      })
+    );
+
+    // Ordenar por quantidade de agendamentos (decrescente)
+    const sortedData = appointmentsByEmployee.sort((a, b) => b.count - a.count);
+
+    res.json(sortedData);
+  } catch (error) {
+    console.error('Error fetching appointments by employee:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: error.message 
+    });
+  }
+});
+
 // Rotas para agendamentos (admin)
 app.get('/api/admin/appointments', async (req, res) => {
   try {
@@ -952,6 +995,7 @@ app.get('/api/admin/appointments', async (req, res) => {
 });
 
 // Rota para obter detalhes de um agendamento específico
+// Rota para obter detalhes de um agendamento específico
 app.get('/api/admin/appointments/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -989,11 +1033,27 @@ app.get('/api/admin/appointments/:id', async (req, res) => {
 app.put('/api/admin/appointments/:id/complete', async (req, res) => {
   try {
     const { id } = req.params;
+    const { data: appointmentData, error: fetchError } = await supabase
+      .from('appointments')
+      .select('status')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!appointmentData) return res.status(404).json({ error: 'Agendamento não encontrado' });
+
+    // Verificar se o agendamento já está concluído ou cancelado
+    if (appointmentData.status === 'completed') {
+      return res.status(400).json({ error: 'Agendamento já está concluído' });
+    }
+    if (appointmentData.status === 'canceled') {
+      return res.status(400).json({ error: 'Agendamento cancelado não pode ser concluído' });
+    }
+
     const { data, error } = await supabase
       .from('appointments')
       .update({ 
-        status: 'completed',
-        completed_at: new Date().toISOString()
+        status: 'completed'
       })
       .eq('id', id)
       .select();
@@ -1017,23 +1077,52 @@ app.put('/api/admin/appointments/:id/complete', async (req, res) => {
   }
 });
 
+// Rota para cancelar agendamento
 app.put('/api/admin/appointments/:id/cancel', async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Verificar o status atual do agendamento
+    const { data: appointmentData, error: fetchError } = await supabase
+      .from('appointments')
+      .select('status')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!appointmentData) return res.status(404).json({ error: 'Agendamento não encontrado' });
+
+    // Verificar se o agendamento já está concluído ou cancelado
+    if (appointmentData.status === 'completed') {
+      return res.status(400).json({ error: 'Agendamento concluído não pode ser cancelado' });
+    }
+    if (appointmentData.status === 'canceled') {
+      return res.status(400).json({ error: 'Agendamento já está cancelado' });
+    }
+
     const { data, error } = await supabase
       .from('appointments')
-      .update({ status: 'canceled' })
+      .update({ 
+        status: 'canceled'
+      })
       .eq('id', id)
       .select();
 
     if (error) throw error;
+
+    if (!data || data.length === 0) {
+      return res.status(404).json({ error: 'Agendamento não encontrado' });
+    }
+
     res.json(data[0]);
   } catch (error) {
     console.error('Error canceling appointment:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: error.message 
+    });
   }
 });
-
 
 // Rotas para categorias
 app.get('/api/admin/categories', async (req, res) => {
@@ -1745,7 +1834,6 @@ app.delete("/schedules/:id", async (req, res) => {
   }
 });
 
-// Rota para dados do dashboard
 // Rota para dados do dashboard
 app.get('/api/admin/dashboard', async (req, res) => {
   try {
