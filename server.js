@@ -33,10 +33,22 @@ if (!fs.existsSync(SESSION_DIR)) {
 }
 
 const corsOptions = {
-  origin: '*',              // Permite qualquer origem
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],  // Permite os métodos HTTP que você precisa
-  allowedHeaders: ['Content-Type'], // Permite esses cabeçalhos específicos
-  credentials: true,        // Permite cookies (importante se for necessário)
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'https://agendaagora.onrender.com',
+    ];
+
+    // Permite requisições sem origem (ex: server-to-server, Postman)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type'],
+  credentials: true,
 };
 
 const mongoURI = process.env.MONGO_URI || 'mongodb+srv://derickcampos:Dede%4002%40@cluster0.zw6awrd.mongodb.net/galeria?retryWrites=true&w=majority'
