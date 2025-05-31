@@ -69,11 +69,14 @@ loginForm.addEventListener('submit', async function(e) {
     localStorage.setItem('currentUser', JSON.stringify(userData));
 
     // Redireciona para a área apropriada com base no tipo de usuário
-    if (result.user.tipo === 'admin') {
+   // Na parte do login, após verificar o tipo de usuário
+  if (result.user.tipo === 'admin') {
       window.location.href = '/admin';
-    } else {
+  } else if (result.user.tipo === 'funcionario') {
+      window.location.href = '/funcionario';
+  } else {
       window.location.href = '/logado';
-    }
+  }
 
   } catch (error) {
     showMessage(loginMessage, error.message, 'danger');

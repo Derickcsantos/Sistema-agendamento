@@ -33,22 +33,10 @@ if (!fs.existsSync(SESSION_DIR)) {
 }
 
 const corsOptions = {
-  origin: function (origin, callback) {
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'https://agendaagora.onrender.com',
-    ];
-
-    // Permite requisições sem origem (ex: server-to-server, Postman)
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type'],
-  credentials: true,
+  origin: '*',              // Permite qualquer origem
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],  // Permite os métodos HTTP que você precisa
+  allowedHeaders: ['Content-Type'], // Permite esses cabeçalhos específicos
+  credentials: true,        // Permite cookies (importante se for necessário)
 };
 
 const mongoURI = process.env.MONGO_URI || 'mongodb+srv://derickcampos:Dede%4002%40@cluster0.zw6awrd.mongodb.net/galeria?retryWrites=true&w=majority'
@@ -113,9 +101,9 @@ const checkAuth = (req, res, next) => {
 
   const parsedUser = JSON.parse(userData);
 
-  // Verificando se o tipo do usuário é 'admin'
-  if (parsedUser.tipo === 'admin') {
-    next();  // Usuário autorizado, segue para a rota do admin
+  // Verificando se o tipo do usuário é 'admin' ou 'funcionario'
+  if (parsedUser.tipo === 'admin' || parsedUser.tipo === 'funcionario') {
+    next();  // Usuário autorizado, segue para a rota
   } else {
     return res.status(403).send('Acesso negado');
   }
@@ -131,7 +119,9 @@ app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 app.get('/admin', checkAuth, async (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
-
+app.get('/funcionario', checkAuth, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'funcionario.html'));
+});
 // Rota para a página inicial logada
 app.get('/logado', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'logado.html'), {
