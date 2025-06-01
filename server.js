@@ -14,6 +14,9 @@ const mongoose = require('mongoose');
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 const upload = multer();
+const schedule = require('node-schedule');
+const cron = require('node-cron');
+
 
 // Configuração do Swagger personalizada
 const swaggerOptions = {
@@ -1413,8 +1416,8 @@ app.get('/api/available-times', async (req, res) => {
     console.log('Parâmetros recebidos:', { employeeId, date, duration });
     
     const dateObj = new Date(date);
-    const dayOfWeek = dateObj.getDay(); // 0-6 (Domingo-Sábado)
-    console.log('Dia da semana calculado:', dayOfWeek)
+    const dayOfWeek = dateObj.getDay(); // 0=Domingo, 1=Segunda, 2=Terça, ..., 6=Sábado
+    console.log('Dia da semana calculado:', dayOfWeek);
 
     const { data: schedule, error: scheduleError } = await supabase
       .from('work_schedules')
@@ -2008,6 +2011,90 @@ app.put('/api/admin/appointments/:id/complete', async (req, res) => {
       error: 'Internal server error',
       details: error.message 
     });
+  }
+});
+
+async function updateYesterdayAppointmentsToCompleted() {
+  try {
+    // Obter a data de ontem no formato YYYY-MM-DD
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayFormatted = yesterday.toISOString().split('T')[0];
+
+    // Buscar todos os agendamentos de ontem que não estão cancelados
+    const { data: appointments, error: fetchError } = await supabase
+      .from('appointments')
+      .select('id, status')
+      .eq('appointment_date', yesterdayFormatted)
+      .neq('status', 'canceled');
+
+    if (fetchError) throw fetchError;
+
+    // Filtrar apenas os que estão "confirmed" ou outros status que devem ser completados
+    const appointmentsToUpdate = appointments.filter(
+      appt => appt.status === 'confirmed' // Adicione outros status se necessário
+    );
+
+    // Atualizar cada agendamento
+    const updatePromises = appointmentsToUpdate.map(async (appt) => {
+      const { error } = await supabase
+        .from('appointments')
+        .update({ status: 'completed' })
+        .eq('id', appt.id);
+
+      if (error) throw error;
+      return appt.id;
+    });
+
+    const updatedIds = await Promise.all(updatePromises);
+
+    return {
+      success: true,
+      message: `${updatedIds.length} agendamentos atualizados para "completed"`,
+      updatedIds
+    };
+  } catch (error) {
+    console.error('Error updating yesterday appointments:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+// Rota para executar manualmente a atualização
+app.put('/api/admin/appointments/complete-yesterday', async (req, res) => {
+  try {
+    const result = await updateYesterdayAppointmentsToCompleted();
+    
+    if (!result.success) {
+      return res.status(500).json({ 
+        error: 'Failed to update appointments',
+        details: result.error 
+      });
+    }
+
+    res.json({
+      message: result.message,
+      updatedCount: result.updatedIds.length,
+      updatedIds: result.updatedIds
+    });
+  } catch (error) {
+    console.error('Error in complete-yesterday route:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: error.message 
+    });
+  }
+});
+
+cron.schedule('0 3 * * *', async () => {
+  console.log('Executando atualização diária de agendamentos...');
+  const result = await updateYesterdayAppointmentsToCompleted();
+  if (result.success) {
+    console.log(result.message);
+  } else {
+    console.error('Erro na tarefa agendada:', result.error);
   }
 });
 
