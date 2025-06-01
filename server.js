@@ -11,8 +11,48 @@ const ExcelJS = require('exceljs');
 const multer = require('multer');
 const fs = require('fs');
 const mongoose = require('mongoose');
+const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
 const upload = multer();
 
+// Configuração do Swagger personalizada
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'Sistema de Agendamentos Online',
+      version: '1.0.0',
+      description: 'Documentação das rotas da API de agendamentos',
+      contact: {
+        name: 'Dérick Campos',
+        email: 'derickcampossantos1@gmail.com'
+      }
+    },
+    servers: [
+      {
+        url: 'http://localhost:3000',
+        description: 'Servidor local'
+      },
+      {
+        url: 'https://agendaagora.onrender.com',
+        description: 'Servidor de produção'
+      }
+    ]
+  },
+  apis: ['./server.js'] // Todas as rotas estão neste arquivo
+};
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+
+// Configuração do Swagger UI com opções personalizadas
+const swaggerUiOptions = {
+  customSiteTitle: "Sistema de Agendamentos Online - Documentação",
+  customCss: `
+    .topbar { display: none }
+    .swagger-ui .information-container { background-color: #f5f5f5 }
+  `,
+  customfavIcon: '/favicon.ico'
+};
 
 let whatsappClient = null;
 const SESSION_DIR = path.join(__dirname, 'tokens');
@@ -109,6 +149,12 @@ const checkAuth = (req, res, next) => {
   }
 };
 
+// Integração com Express (coloque isto ANTES das outras rotas)
+app.use(
+  '/api-docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, swaggerUiOptions)
+);
 // Rotas para servir os arquivos HTML
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/home', (req, res) => res.sendFile(path.join(__dirname, 'public', 'home.html')));
@@ -410,7 +456,33 @@ async function startWhatsappBot() {
   }
 }
 
-// Rota para obter todos os usuários
+//--------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/**
+ * @swagger
+ * tags:
+ *   name: Users
+ *   description: Gerenciamento de usuários
+ */
+
+/**
+ * @swagger
+ * /api/users:
+ *   get:
+ *     summary: Retorna todos os usuários
+ *     tags: [Users]
+ *     responses:
+ *       200:
+ *         description: Lista de todos os usuários
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/User'
+ *       500:
+ *         description: Erro interno do servidor
+ */
 app.get('/api/users', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -426,7 +498,31 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
-// Rota para obter um usuário específico
+/**
+ * @swagger
+ * /api/users/{id}:
+ *   get:
+ *     summary: Retorna um usuário específico
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID do usuário
+ *     responses:
+ *       200:
+ *         description: Dados do usuário
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       404:
+ *         description: Usuário não encontrado
+ *       500:
+ *         description: Erro interno do servidor
+ */
 app.get('/api/users/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -446,12 +542,34 @@ app.get('/api/users/:id', async (req, res) => {
   }
 });
 
-// Rota para criar um novo usuário
+/**
+ * @swagger
+ * /api/users:
+ *   post:
+ *     summary: Cria um novo usuário
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UserInput'
+ *     responses:
+ *       200:
+ *         description: Usuário criado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Usuário ou email já cadastrado
+ *       500:
+ *         description: Erro interno do servidor
+ */
 app.post('/api/users', async (req, res) => {
   const { username, email, password_plaintext, tipo = 'comum' } = req.body;
 
   try {
-    // Verifica se já existe usuário com mesmo username ou email
     const { data: existingUsers, error: userError } = await supabase
       .from('users')
       .select('id')
@@ -465,7 +583,6 @@ app.post('/api/users', async (req, res) => {
       });
     }
 
-    // Insere novo usuário
     const { data: newUser, error: insertError } = await supabase
       .from('users')
       .insert([{
@@ -487,7 +604,39 @@ app.post('/api/users', async (req, res) => {
   }
 });
 
-// Rota para atualizar um usuário
+/**
+ * @swagger
+ * /api/users/{id}:
+ *   put:
+ *     summary: Atualiza um usuário existente
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID do usuário
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UserUpdate'
+ *     responses:
+ *       200:
+ *         description: Usuário atualizado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Nome de usuário e e-mail são obrigatórios
+ *       404:
+ *         description: Usuário não encontrado
+ *       500:
+ *         description: Erro interno do servidor
+ */
 app.put('/api/users/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -520,12 +669,39 @@ app.put('/api/users/:id', async (req, res) => {
   }
 });
 
-// Rota para excluir um usuário
+/**
+ * @swagger
+ * /api/users/{id}:
+ *   delete:
+ *     summary: Remove um usuário
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID do usuário
+ *     responses:
+ *       200:
+ *         description: Usuário removido com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       404:
+ *         description: Usuário não encontrado
+ *       500:
+ *         description: Erro interno do servidor
+ */
 app.delete('/api/users/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Verifica se o usuário existe
     const { data: existingUser, error: userError } = await supabase
       .from('users')
       .select('id')
@@ -536,7 +712,6 @@ app.delete('/api/users/:id', async (req, res) => {
       return res.status(404).json({ error: 'Usuário não encontrado' });
     }
 
-    // Exclui o usuário
     const { error: deleteError } = await supabase
       .from('users')
       .delete()
@@ -550,6 +725,171 @@ app.delete('/api/users/:id', async (req, res) => {
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     User:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: ID do usuário
+ *         username:
+ *           type: string
+ *           description: Nome de usuário
+ *         email:
+ *           type: string
+ *           format: email
+ *           description: E-mail do usuário
+ *         tipo:
+ *           type: string
+ *           enum: [comum, admin]
+ *           default: comum
+ *           description: Tipo de usuário
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *           description: Data de criação
+ *         updated_at:
+ *           type: string
+ *           format: date-time
+ *           description: Data de atualização
+ *       example:
+ *         id: "1"
+ *         username: "john_doe"
+ *         email: "john@example.com"
+ *         tipo: "comum"
+ *         created_at: "2023-01-01T00:00:00Z"
+ *         updated_at: "2023-01-02T00:00:00Z"
+ * 
+ *     UserInput:
+ *       type: object
+ *       required:
+ *         - username
+ *         - email
+ *         - password_plaintext
+ *       properties:
+ *         username:
+ *           type: string
+ *         email:
+ *           type: string
+ *           format: email
+ *         password_plaintext:
+ *           type: string
+ *         tipo:
+ *           type: string
+ *           enum: [comum, admin]
+ *           default: comum
+ *       example:
+ *         username: "john_doe"
+ *         email: "john@example.com"
+ *         password_plaintext: "senha123"
+ *         tipo: "comum"
+ * 
+ *     UserUpdate:
+ *       type: object
+ *       properties:
+ *         username:
+ *           type: string
+ *         email:
+ *           type: string
+ *           format: email
+ *         password_plaintext:
+ *           type: string
+ *         tipo:
+ *           type: string
+ *           enum: [comum, admin]
+ *       example:
+ *         username: "john_doe_updated"
+ *         email: "john.updated@example.com"
+ *         password_plaintext: "nova_senha123"
+ *         tipo: "admin"
+ */
+
+//-------------------------------------------------------------------------------------------
+
+/**
+ * @swagger
+ * tags:
+ *   name: Autenticação
+ *   description: Endpoints para registro e login de usuários
+ */
+
+/**
+ * @swagger
+ * /api/register:
+ *   post:
+ *     summary: Cadastra um novo usuário no sistema
+ *     tags: [Autenticação]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - email
+ *               - aniversario
+ *               - password_plaintext
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: Nome de usuário único
+ *                 example: "derick_campos"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: E-mail válido do usuário
+ *                 example: "derick@exemplo.com"
+ *               aniversario:
+ *                 type: string
+ *                 format: date
+ *                 description: Data de nascimento no formato YYYY-MM-DD
+ *                 example: "1990-01-15"
+ *               password_plaintext:
+ *                 type: string
+ *                 description: Senha em texto puro (em produção deve ser criptografada)
+ *                 example: "senhaSegura123"
+ *     responses:
+ *       200:
+ *         description: Usuário cadastrado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     username:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     aniversario:
+ *                       type: string
+ *                     created_at:
+ *                       type: string
+ *       400:
+ *         description: Erro na requisição (usuário ou e-mail já cadastrado)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Usuário ou email já cadastrado"
+ *       500:
+ *         description: Erro interno do servidor
+ */
 
 // Rota de cadastro
 app.post('/api/register', async (req, res) => {
@@ -602,8 +942,75 @@ app.post('/api/register', async (req, res) => {
 });
 
 
-// ... (o restante do código permanece o mesmo)
-// Rota de login simplificada (SEM HASH - APENAS PARA DESENVOLVIMENTO)
+
+/**
+ * @swagger
+ * /api/login:
+ *   post:
+ *     summary: Autentica um usuário no sistema (versão desenvolvimento)
+ *     description: |
+ *       Esta rota é uma versão SIMPLIFICADA para desenvolvimento que compara a senha em texto puro.
+ *       EM PRODUÇÃO, substitua por um sistema seguro com hash de senha e JWT.
+ *     tags: [Autenticação]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - password
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: Nome de usuário cadastrado
+ *                 example: "derick_campos"
+ *               password:
+ *                 type: string
+ *                 description: Senha em texto puro (APENAS PARA DESENVOLVIMENTO)
+ *                 example: "senhaSegura123"
+ *     responses:
+ *       200:
+ *         description: Login realizado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     username:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     tipo:
+ *                       type: string
+ *                       enum: [comum, admin]
+ *         headers:
+ *           Set-Cookie:
+ *             schema:
+ *               type: string
+ *             description: Cookie HTTP-only contendo os dados do usuário autenticado
+ *       401:
+ *         description: Credenciais inválidas
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Credenciais inválidas"
+ *       500:
+ *         description: Erro interno do servidor
+ */
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
 
@@ -643,7 +1050,56 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-
+/**
+ * @swagger
+ * /api/verifica-usuario:
+ *   post:
+ *     summary: Verifica se um nome de usuário já está cadastrado
+ *     description: |
+ *       Endpoint utilizado para verificar a disponibilidade de um username durante o cadastro,
+ *       evitando duplicidades no sistema.
+ *     tags: [Autenticação]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: Nome de usuário a ser verificado
+ *                 example: "derick_campos"
+ *     responses:
+ *       200:
+ *         description: Resposta da verificação
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 exists:
+ *                   type: boolean
+ *                   description: Indica se o usuário já está cadastrado
+ *                   example: true
+ *       500:
+ *         description: Erro interno do servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 exists:
+ *                   type: boolean
+ *                   description: Sempre retorna false em caso de erro
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   description: Mensagem de erro (apenas em modo de desenvolvimento)
+ *                   example: "Erro ao acessar o banco de dados"
+ */
 app.post('/api/verifica-usuario', async (req, res) => {
   const { username } = req.body;
 
@@ -665,8 +1121,54 @@ app.post('/api/verifica-usuario', async (req, res) => {
   }
 });
 
+//------------------------------------------------------------------------------------------------------------------------------------------
 
-// API para o frontend (Agendamento)
+/**
+ * @swagger
+ * tags:
+ *   - name: Agendamento
+ *     description: Endpoints para o processo de agendamento online
+ */
+
+/**
+ * @swagger
+ * /api/categories:
+ *   get:
+ *     summary: Lista todas as categorias de serviços disponíveis
+ *     description: Retorna todas as categorias cadastradas no sistema com suas imagens convertidas para formato base64
+ *     tags: [Agendamento]
+ *     responses:
+ *       200:
+ *         description: Lista de categorias retornada com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                     example: 1
+ *                   name:
+ *                     type: string
+ *                     example: "Cabelo"
+ *                   imagem_category:
+ *                     type: string
+ *                     description: Imagem em formato data URL (base64) ou null
+ *                     example: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ..."
+ *       500:
+ *         description: Erro interno do servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Internal server error"
+ */
+
 app.get('/api/categories', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -692,6 +1194,54 @@ app.get('/api/categories', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+
+/**
+ * @swagger
+ * /api/services/{categoryId}:
+ *   get:
+ *     summary: Lista serviços de uma categoria específica
+ *     description: Retorna todos os serviços disponíveis para uma categoria, com imagens convertidas para base64
+ *     tags: [Agendamento]
+ *     parameters:
+ *       - in: path
+ *         name: categoryId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID da categoria
+ *         example: 2
+ *     responses:
+ *       200:
+ *         description: Lista de serviços retornada com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                     example: 5
+ *                   name:
+ *                     type: string
+ *                     example: "Corte masculino"
+ *                   price:
+ *                     type: number
+ *                     format: float
+ *                     example: 45.90
+ *                   duration:
+ *                     type: integer
+ *                     description: Duração em minutos
+ *                     example: 30
+ *                   imagem_service:
+ *                     type: string
+ *                     description: Imagem em formato data URL (base64) ou null
+ *                     example: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ..."
+ *       500:
+ *         description: Erro interno do servidor
+ */
 
 app.get('/api/services/:categoryId', async (req, res) => {
   try {
@@ -721,7 +1271,49 @@ app.get('/api/services/:categoryId', async (req, res) => {
   }
 });
 
-// Rota GET para funcionários (converte bytea para URL de dados)
+
+/**
+ * @swagger
+ * /api/employees/{serviceId}:
+ *   get:
+ *     summary: Lista funcionários disponíveis para um serviço
+ *     description: Retorna os profissionais qualificados para realizar um serviço específico, com imagens de perfil em base64
+ *     tags: [Agendamento]
+ *     parameters:
+ *       - in: path
+ *         name: serviceId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do serviço
+ *         example: 3
+ *     responses:
+ *       200:
+ *         description: Lista de funcionários retornada com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                     example: 3
+ *                   name:
+ *                     type: string
+ *                     example: "João Silva"
+ *                   imagem_funcionario:
+ *                     type: string
+ *                     description: Imagem em formato data URL (base64) ou null
+ *                     example: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ..."
+ *                   is_active:
+ *                     type: boolean
+ *                     description: Indica se o funcionário está ativo
+ *                     example: true
+ *       500:
+ *         description: Erro interno do servidor
+ */
 app.get('/api/employees/:serviceId', async (req, res) => {
   try {
     const { serviceId } = req.params;
@@ -754,6 +1346,66 @@ app.get('/api/employees/:serviceId', async (req, res) => {
   }
 });
 
+
+/**
+ * @swagger
+ * /api/available-times:
+ *   get:
+ *     summary: Consulta horários disponíveis para agendamento
+ *     description: |
+ *       Retorna os horários disponíveis para agendamento considerando:
+ *       - O horário de trabalho do funcionário
+ *       - Os compromissos já marcados
+ *       - A duração do serviço selecionado
+ *     tags: [Agendamento]
+ *     parameters:
+ *       - in: query
+ *         name: employeeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do funcionário
+ *         example: 3
+ *       - in: query
+ *         name: date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Data para consulta (formato YYYY-MM-DD)
+ *         example: "2023-12-25"
+ *       - in: query
+ *         name: duration
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Duração do serviço em minutos
+ *         example: 30
+ *     responses:
+ *       200:
+ *         description: Lista de horários disponíveis
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   start:
+ *                     type: string
+ *                     format: time
+ *                     description: Hora de início (HH:MM)
+ *                     example: "14:30"
+ *                   end:
+ *                     type: string
+ *                     format: time
+ *                     description: Hora de término (HH:MM)
+ *                     example: "15:00"
+ *       400:
+ *         description: Parâmetros inválidos ou faltando
+ *       500:
+ *         description: Erro interno do servidor
+ */
 
 app.get('/api/available-times', async (req, res) => {
   try {
@@ -824,6 +1476,86 @@ app.get('/api/available-times', async (req, res) => {
   }
 });
 
+//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Agendamentos
+ *     description: Endpoints para gestão de agendamentos
+ */
+
+/**
+ * @swagger
+ * /api/appointments:
+ *   post:
+ *     summary: Cria um novo agendamento
+ *     tags: [Agendamentos]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - client_name
+ *               - client_email
+ *               - client_phone
+ *               - service_id
+ *               - employee_id
+ *               - date
+ *               - start_time
+ *               - end_time
+ *             properties:
+ *               client_name:
+ *                 type: string
+ *                 example: "João Silva"
+ *               client_email:
+ *                 type: string
+ *                 format: email
+ *                 example: "joao@exemplo.com"
+ *               client_phone:
+ *                 type: string
+ *                 example: "11999998888"
+ *               service_id:
+ *                 type: integer
+ *                 example: 1
+ *               employee_id:
+ *                 type: integer
+ *                 example: 2
+ *               date:
+ *                 type: string
+ *                 format: date
+ *                 example: "2023-12-25"
+ *               start_time:
+ *                 type: string
+ *                 format: time
+ *                 example: "14:30"
+ *               end_time:
+ *                 type: string
+ *                 format: time
+ *                 example: "15:00"
+ *               final_price:
+ *                 type: number
+ *                 example: 80.50
+ *               coupon_code:
+ *                 type: string
+ *                 example: "DESCONTO10"
+ *               original_price:
+ *                 type: number
+ *                 example: 90.00
+ *     responses:
+ *       201:
+ *         description: Agendamento criado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Appointment'
+ *       500:
+ *         description: Erro interno do servidor
+ */
+
+
 app.post('/api/appointments', async (req, res) => {
   try {
     const { client_name, client_email, client_phone, service_id, employee_id, date, start_time, end_time , final_price , coupon_code , original_price } = req.body;
@@ -854,6 +1586,51 @@ app.post('/api/appointments', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/logado/appointments:
+ *   get:
+ *     summary: Lista agendamentos de um cliente (por e-mail)
+ *     tags: [Agendamentos]
+ *     parameters:
+ *       - in: query
+ *         name: email
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: email
+ *         description: E-mail do cliente
+ *     responses:
+ *       200:
+ *         description: Lista de agendamentos formatada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                   date:
+ *                     type: string
+ *                     format: date
+ *                   start_time:
+ *                     type: string
+ *                   end_time:
+ *                     type: string
+ *                   status:
+ *                     type: string
+ *                     enum: [confirmed, completed, canceled]
+ *                   service_name:
+ *                     type: string
+ *                   service_price:
+ *                     type: number
+ *                   professional_name:
+ *                     type: string
+ *       500:
+ *         description: Erro interno do servidor
+ */
 // Rota para obter agendamentos por email (área do cliente)
 app.get('/api/logado/appointments', async (req, res) => {
   try {
@@ -904,6 +1681,32 @@ app.get('/api/logado/appointments', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/admin/appointments/by-employee:
+ *   get:
+ *     summary: Contagem de agendamentos por funcionário (dashboard admin)
+ *     tags: [Agendamentos]
+ *     responses:
+ *       200:
+ *         description: Lista ordenada por quantidade de agendamentos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   employee_id:
+ *                     type: integer
+ *                   employee_name:
+ *                     type: string
+ *                   count:
+ *                     type: integer
+ *                     description: Número de agendamentos confirmados
+ *       500:
+ *         description: Erro interno do servidor
+ */
 // Rota para obter agendamentos por funcionário
 app.get('/api/admin/appointments/by-employee', async (req, res) => {
   try {
@@ -947,6 +1750,66 @@ app.get('/api/admin/appointments/by-employee', async (req, res) => {
   }
 });
 
+// Rota para obter agendamentos por employee_id
+app.get('/api/appointments/by-employee/:employeeId', async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    
+    const { data, error } = await supabase
+      .from('appointments')
+      .select(`
+        *,
+        services:service_id (name),
+        employees:employee_id (name)
+      `)
+      .eq('employee_id', employeeId)
+      .order('appointment_date', { ascending: true })
+      .order('start_time', { ascending: true });
+
+    if (error) throw error;
+    
+    res.json(data || []);
+  } catch (error) {
+    console.error('Error fetching appointments:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/admin/appointments:
+ *   get:
+ *     summary: Lista completa de agendamentos com filtros (admin)
+ *     tags: [Agendamentos]
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Busca por nome, e-mail ou telefone do cliente
+ *       - in: query
+ *         name: date
+ *         schema:
+ *           type: string
+ *           pattern: '^\d{2}-\d{2}-\d{4}$'
+ *         description: Data no formato DD-MM-YYYY
+ *       - in: query
+ *         name: employee
+ *         schema:
+ *           type: string
+ *         description: Nome do profissional
+ *     responses:
+ *       200:
+ *         description: Lista filtrada de agendamentos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/AppointmentWithDetails'
+ *       500:
+ *         description: Erro interno do servidor
+ */
 // Rotas para agendamentos (admin)
 app.get('/api/admin/appointments', async (req, res) => {
   try {
@@ -996,7 +1859,50 @@ app.get('/api/admin/appointments', async (req, res) => {
   }
 });
 
-// Rota para obter detalhes de um agendamento específico
+/**
+ * @swagger
+ * /api/admin/appointments/{id}:
+ *   get:
+ *     summary: Detalhes de um agendamento específico
+ *     tags: [Agendamentos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Detalhes completos do agendamento
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 client_name:
+ *                   type: string
+ *                 service:
+ *                   type: string
+ *                 professional:
+ *                   type: string
+ *                 date:
+ *                   type: string
+ *                   format: date
+ *                 start_time:
+ *                   type: string
+ *                 end_time:
+ *                   type: string
+ *                 status:
+ *                   type: string
+ *                 price:
+ *                   type: number
+ *       404:
+ *         description: Agendamento não encontrado
+ *       500:
+ *         description: Erro interno do servidor
+ */
 // Rota para obter detalhes de um agendamento específico
 app.get('/api/admin/appointments/:id', async (req, res) => {
   try {
@@ -1031,6 +1937,32 @@ app.get('/api/admin/appointments/:id', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/admin/appointments/{id}/complete:
+ *   put:
+ *     summary: Marca agendamento como concluído
+ *     tags: [Agendamentos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Agendamento atualizado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Appointment'
+ *       400:
+ *         description: Agendamento já concluído ou cancelado
+ *       404:
+ *         description: Agendamento não encontrado
+ *       500:
+ *         description: Erro interno do servidor
+ */
 // Rota para marcar agendamento como concluído
 app.put('/api/admin/appointments/:id/complete', async (req, res) => {
   try {
@@ -1079,6 +2011,32 @@ app.put('/api/admin/appointments/:id/complete', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/admin/appointments/{id}/cancel:
+ *   put:
+ *     summary: Cancela um agendamento
+ *     tags: [Agendamentos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Agendamento cancelado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Appointment'
+ *       400:
+ *         description: Agendamento já concluído ou cancelado
+ *       404:
+ *         description: Agendamento não encontrado
+ *       500:
+ *         description: Erro interno do servidor
+ */
 // Rota para cancelar agendamento
 app.put('/api/admin/appointments/:id/cancel', async (req, res) => {
   try {
@@ -1126,6 +2084,103 @@ app.put('/api/admin/appointments/:id/cancel', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Appointment:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         client_name:
+ *           type: string
+ *         client_email:
+ *           type: string
+ *         client_phone:
+ *           type: string
+ *         service_id:
+ *           type: integer
+ *         employee_id:
+ *           type: integer
+ *         appointment_date:
+ *           type: string
+ *           format: date
+ *         start_time:
+ *           type: string
+ *         end_time:
+ *           type: string
+ *         status:
+ *           type: string
+ *           enum: [confirmed, completed, canceled]
+ *         final_price:
+ *           type: number
+ *         coupon_code:
+ *           type: string
+ *         original_price:
+ *           type: number
+ * 
+ *     AppointmentWithDetails:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         client_name:
+ *           type: string
+ *         client_email:
+ *           type: string
+ *         client_phone:
+ *           type: string
+ *         appointment_date:
+ *           type: string
+ *           format: date
+ *         start_time:
+ *           type: string
+ *         end_time:
+ *           type: string
+ *         status:
+ *           type: string
+ *         services:
+ *           type: object
+ *           properties:
+ *             name:
+ *               type: string
+ *             price:
+ *               type: number
+ *         employees:
+ *           type: object
+ *           properties:
+ *             name:
+ *               type: string
+ */
+
+//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Categorias
+ *     description: Endpoints para gestão de categorias de serviços (admin)
+ */
+
+/**
+ * @swagger
+ * /api/admin/categories:
+ *   get:
+ *     summary: Lista todas as categorias
+ *     tags: [Categorias]
+ *     responses:
+ *       200:
+ *         description: Lista de categorias ordenadas por nome
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Category'
+ *       500:
+ *         description: Erro interno do servidor
+ */
 // Rotas para categorias
 app.get('/api/admin/categories', async (req, res) => {
   try {
@@ -1142,6 +2197,32 @@ app.get('/api/admin/categories', async (req, res) => {
   }
 });
 
+
+/**
+ * @swagger
+ * /api/admin/categories/{id}:
+ *   get:
+ *     summary: Obtém detalhes de uma categoria específica
+ *     tags: [Categorias]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID da categoria
+ *     responses:
+ *       200:
+ *         description: Dados completos da categoria
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Category'
+ *       404:
+ *         description: Categoria não encontrada
+ *       500:
+ *         description: Erro interno do servidor
+ */
 app.get('/api/admin/categories/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -1160,6 +2241,45 @@ app.get('/api/admin/categories/:id', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+
+/**
+ * @swagger
+ * /api/admin/categories:
+ *   post:
+ *     summary: Cria uma nova categoria
+ *     tags: [Categorias]
+ *     consumes:
+ *       - multipart/form-data
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Nome da categoria
+ *                 example: "Cabelo"
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Imagem da categoria (opcional)
+ *     responses:
+ *       201:
+ *         description: Categoria criada com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Category'
+ *       400:
+ *         description: Dados inválidos
+ *       500:
+ *         description: Erro interno do servidor
+ */
 
 // Atualize a rota POST de categorias
 app.post('/api/admin/categories', upload.single('image'), async (req, res) => {
@@ -1188,6 +2308,49 @@ app.post('/api/admin/categories', upload.single('image'), async (req, res) => {
   }
 });
 
+
+/**
+ * @swagger
+ * /api/admin/categories/{id}:
+ *   put:
+ *     summary: Atualiza uma categoria existente
+ *     tags: [Categorias]
+ *     consumes:
+ *       - multipart/form-data
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID da categoria
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Novo nome da categoria
+ *                 example: "Cabelo e Barba"
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Nova imagem da categoria (opcional)
+ *     responses:
+ *       200:
+ *         description: Categoria atualizada com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Category'
+ *       404:
+ *         description: Categoria não encontrada
+ *       500:
+ *         description: Erro interno do servidor
+ */
 // Atualize a rota PUT de categorias
 app.put('/api/admin/categories/:id', upload.single('image'), async (req, res) => {
   try {
@@ -1219,6 +2382,29 @@ app.put('/api/admin/categories/:id', upload.single('image'), async (req, res) =>
   }
 });
 
+
+/**
+ * @swagger
+ * /api/admin/categories/{id}:
+ *   delete:
+ *     summary: Remove uma categoria
+ *     tags: [Categorias]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID da categoria
+ *     responses:
+ *       204:
+ *         description: Categoria removida com sucesso
+ *       404:
+ *         description: Categoria não encontrada
+ *       500:
+ *         description: Erro interno do servidor
+ */
+
 app.delete('/api/admin/categories/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -1235,6 +2421,62 @@ app.delete('/api/admin/categories/:id', async (req, res) => {
   }
 });
 
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Category:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *           example: 1
+ *         name:
+ *           type: string
+ *           example: "Cabelo"
+ *         imagem_category:
+ *           type: string
+ *           description: Imagem em formato base64 (pode ser null)
+ *           example: "iVBORw0KGgoAAAANSUhEUgAA..."
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *           example: "2023-01-01T00:00:00Z"
+ *         updated_at:
+ *           type: string
+ *           format: date-time
+ *           example: "2023-01-02T00:00:00Z"
+ */
+
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Serviços
+ *     description: Endpoints para gestão de serviços
+ */
+
+/**
+ * @swagger
+ * /api/services:
+ *   get:
+ *     summary: Lista todos os serviços disponíveis
+ *     description: Retorna todos os serviços cadastrados no sistema, ordenados por nome
+ *     tags: [Serviços]
+ *     responses:
+ *       200:
+ *         description: Lista de serviços retornada com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Service'
+ *       500:
+ *         description: Erro interno do servidor
+ */
 app.get('/api/services', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -1249,6 +2491,26 @@ app.get('/api/services', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+/**
+ * @swagger
+ * /api/admin/services:
+ *   get:
+ *     summary: Lista completa de serviços (admin)
+ *     description: Retorna todos os serviços com informações da categoria associada
+ *     tags: [Serviços]
+ *     responses:
+ *       200:
+ *         description: Lista de serviços com detalhes da categoria
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/ServiceWithCategory'
+ *       500:
+ *         description: Erro interno do servidor
+ */
 
 // Rotas para serviços
 app.get('/api/admin/services', async (req, res) => {
@@ -1266,6 +2528,63 @@ app.get('/api/admin/services', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/admin/services:
+ *   post:
+ *     summary: Cria um novo serviço
+ *     tags: [Serviços]
+ *     consumes:
+ *       - multipart/form-data
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - category_id
+ *               - name
+ *               - duration
+ *               - price
+ *             properties:
+ *               category_id:
+ *                 type: integer
+ *                 description: ID da categoria associada
+ *                 example: 1
+ *               name:
+ *                 type: string
+ *                 description: Nome do serviço
+ *                 example: "Corte de Cabelo"
+ *               description:
+ *                 type: string
+ *                 description: Descrição detalhada do serviço
+ *                 example: "Corte profissional com técnicas modernas"
+ *               duration:
+ *                 type: integer
+ *                 description: Duração em minutos
+ *                 example: 30
+ *               price:
+ *                 type: number
+ *                 format: float
+ *                 description: Preço do serviço
+ *                 example: 50.00
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Imagem ilustrativa do serviço (opcional)
+ *     responses:
+ *       201:
+ *         description: Serviço criado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Service'
+ *       400:
+ *         description: Dados inválidos ou faltando
+ *       500:
+ *         description: Erro interno do servidor
+ */
 // Rota POST de serviços
 app.post('/api/admin/services', upload.single('image'), async (req, res) => {
   try {
@@ -1297,6 +2616,31 @@ app.post('/api/admin/services', upload.single('image'), async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/admin/services/{id}:
+ *   get:
+ *     summary: Obtém detalhes de um serviço específico
+ *     tags: [Serviços]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do serviço
+ *     responses:
+ *       200:
+ *         description: Detalhes completos do serviço
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ServiceWithCategory'
+ *       404:
+ *         description: Serviço não encontrado
+ *       500:
+ *         description: Erro interno do servidor
+ */
 app.get('/api/admin/services/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -1316,6 +2660,59 @@ app.get('/api/admin/services/:id', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/admin/services/{id}:
+ *   put:
+ *     summary: Atualiza um serviço existente
+ *     tags: [Serviços]
+ *     consumes:
+ *       - multipart/form-data
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do serviço
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               category_id:
+ *                 type: integer
+ *                 example: 2
+ *               name:
+ *                 type: string
+ *                 example: "Corte Premium"
+ *               description:
+ *                 type: string
+ *                 example: "Corte com técnicas avançadas"
+ *               duration:
+ *                 type: integer
+ *                 example: 45
+ *               price:
+ *                 type: number
+ *                 example: 75.00
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Nova imagem do serviço (opcional)
+ *     responses:
+ *       200:
+ *         description: Serviço atualizado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Service'
+ *       404:
+ *         description: Serviço não encontrado
+ *       500:
+ *         description: Erro interno do servidor
+ */
 // Rota PUT de serviços
 app.put('/api/admin/services/:id', upload.single('image'), async (req, res) => {
   try {
@@ -1351,6 +2748,28 @@ app.put('/api/admin/services/:id', upload.single('image'), async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/admin/services/{id}:
+ *   delete:
+ *     summary: Remove um serviço
+ *     tags: [Serviços]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do serviço
+ *     responses:
+ *       204:
+ *         description: Serviço removido com sucesso
+ *       404:
+ *         description: Serviço não encontrado
+ *       500:
+ *         description: Erro interno do servidor
+ */
+
 app.delete('/api/admin/services/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -1367,6 +2786,93 @@ app.delete('/api/admin/services/:id', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Service:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *           example: 1
+ *         category_id:
+ *           type: integer
+ *           example: 2
+ *         name:
+ *           type: string
+ *           example: "Corte de Cabelo"
+ *         description:
+ *           type: string
+ *           example: "Corte profissional"
+ *         duration:
+ *           type: integer
+ *           description: Duração em minutos
+ *           example: 30
+ *         price:
+ *           type: number
+ *           format: float
+ *           example: 50.00
+ *         imagem_service:
+ *           type: string
+ *           description: Imagem em base64 ou null
+ *           example: "iVBORw0KGgoAAAANSUhEUgAA..."
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *         updated_at:
+ *           type: string
+ *           format: date-time
+ * 
+ *     ServiceWithCategory:
+ *       allOf:
+ *         - $ref: '#/components/schemas/Service'
+ *         - type: object
+ *           properties:
+ *             categories:
+ *               type: object
+ *               properties:
+ *                 name:
+ *                   type: string
+ *                   example: "Cabelo"
+ */
+//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Funcionários
+ *     description: Endpoints para gestão de funcionários/profissionais
+ */
+
+/**
+ * @swagger
+ * /api/admin/employees:
+ *   get:
+ *     summary: Lista todos os funcionários com detalhes
+ *     description: Retorna todos os funcionários cadastrados com seus serviços associados e horários de trabalho
+ *     tags: [Funcionários]
+ *     responses:
+ *       200:
+ *         description: Lista completa de funcionários com detalhes
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/EmployeeWithDetails'
+ *       500:
+ *         description: Erro interno do servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                 details:
+ *                   type: string
+ */
 app.get('/api/admin/employees', async (req, res) => {
   try {
     // Buscar funcionários
@@ -1414,6 +2920,33 @@ app.get('/api/admin/employees', async (req, res) => {
   }
 });
 
+
+/**
+ * @swagger
+ * /api/admin/employees/{id}:
+ *   get:
+ *     summary: Obtém detalhes de um funcionário específico
+ *     description: Retorna os dados completos de um funcionário, convertendo a imagem para data URL se existir
+ *     tags: [Funcionários]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do funcionário
+ *     responses:
+ *       200:
+ *         description: Dados do funcionário
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Employee'
+ *       404:
+ *         description: Funcionário não encontrado
+ *       500:
+ *         description: Erro interno do servidor
+ */
 app.get('/api/admin/employees/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -1440,6 +2973,61 @@ app.get('/api/admin/employees/:id', async (req, res) => {
   }
 });
 
+
+/**
+ * @swagger
+ * /api/admin/employees:
+ *   post:
+ *     summary: Cadastra um novo funcionário
+ *     tags: [Funcionários]
+ *     consumes:
+ *       - multipart/form-data
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - phone
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "João Silva"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: "joao@exemplo.com"
+ *               phone:
+ *                 type: string
+ *                 example: "11999998888"
+ *               comissao:
+ *                 type: number
+ *                 format: float
+ *                 description: Percentual de comissão
+ *                 example: 10.5
+ *               is_active:
+ *                 type: boolean
+ *                 description: Status do funcionário
+ *                 example: true
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Foto do funcionário (opcional)
+ *     responses:
+ *       201:
+ *         description: Funcionário criado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Employee'
+ *       400:
+ *         description: Dados inválidos ou faltando
+ *       500:
+ *         description: Erro interno do servidor
+ */
 // Rota POST para funcionários
 app.post('/api/admin/employees', upload.single('image'), async (req, res) => {
   try {
@@ -1472,6 +3060,56 @@ app.post('/api/admin/employees', upload.single('image'), async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/admin/employees/{id}:
+ *   put:
+ *     summary: Atualiza um funcionário existente
+ *     tags: [Funcionários]
+ *     consumes:
+ *       - multipart/form-data
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do funcionário
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               phone:
+ *                 type: string
+ *               comissao:
+ *                 type: number
+ *                 format: float
+ *               is_active:
+ *                 type: boolean
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Nova foto do funcionário (opcional)
+ *     responses:
+ *       200:
+ *         description: Funcionário atualizado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Employee'
+ *       404:
+ *         description: Funcionário não encontrado
+ *       500:
+ *         description: Erro interno do servidor
+ */
 // Rota PUT para funcionários
 app.put('/api/admin/employees/:id', upload.single('image'), async (req, res) => {
   try {
@@ -1507,6 +3145,27 @@ app.put('/api/admin/employees/:id', upload.single('image'), async (req, res) => 
   }
 });
 
+/**
+ * @swagger
+ * /api/admin/employees/{id}:
+ *   delete:
+ *     summary: Remove um funcionário e seus horários associados
+ *     tags: [Funcionários]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do funcionário
+ *     responses:
+ *       204:
+ *         description: Funcionário e horários removidos com sucesso
+ *       404:
+ *         description: Funcionário não encontrado
+ *       500:
+ *         description: Erro interno do servidor
+ */
 app.delete('/api/admin/employees/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -1534,6 +3193,131 @@ app.delete('/api/admin/employees/:id', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Employee:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *           example: 1
+ *         name:
+ *           type: string
+ *           example: "João Silva"
+ *         email:
+ *           type: string
+ *           format: email
+ *           example: "joao@exemplo.com"
+ *         phone:
+ *           type: string
+ *           example: "11999998888"
+ *         comissao:
+ *           type: number
+ *           format: float
+ *           example: 10.5
+ *         imagem_funcionario:
+ *           type: string
+ *           description: Imagem em base64 ou data URL
+ *           example: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ..."
+ *         is_active:
+ *           type: boolean
+ *           example: true
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *         updated_at:
+ *           type: string
+ *           format: date-time
+ * 
+ *     EmployeeWithDetails:
+ *       allOf:
+ *         - $ref: '#/components/schemas/Employee'
+ *         - type: object
+ *           properties:
+ *             services:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   name:
+ *                     type: string
+ *                     example: "Corte de Cabelo"
+ *             work_schedules:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/WorkSchedule'
+ * 
+ *     WorkSchedule:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         employee_id:
+ *           type: integer
+ *         day_of_week:
+ *           type: integer
+ *           description: 0-6 (Domingo-Sábado)
+ *         start_time:
+ *           type: string
+ *           format: time
+ *           example: "09:00:00"
+ *         end_time:
+ *           type: string
+ *           format: time
+ *           example: "18:00:00"
+ *         is_available:
+ *           type: boolean
+ */
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Serviços de Funcionários
+ *     description: Endpoints para gestão da relação entre funcionários e serviços
+ */
+
+/**
+ * @swagger
+ * /api/employee-services/{employeeId}:
+ *   get:
+ *     summary: Lista serviços associados a um funcionário
+ *     description: Retorna todos os IDs de serviços que um funcionário pode realizar
+ *     tags: [Serviços de Funcionários]
+ *     parameters:
+ *       - in: path
+ *         name: employeeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do funcionário
+ *         example: 1
+ *     responses:
+ *       200:
+ *         description: Lista de IDs de serviços associados
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   service_id:
+ *                     type: integer
+ *                     description: ID do serviço que o funcionário pode realizar
+ *                     example: 5
+ *       500:
+ *         description: Erro interno do servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ */
 // Rota para obter serviços de um funcionário
 app.get('/api/employee-services/:employeeId', async (req, res) => {
   try {
@@ -1551,6 +3335,71 @@ app.get('/api/employee-services/:employeeId', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/employee-services/{employeeId}:
+ *   put:
+ *     summary: Atualiza serviços associados a um funcionário
+ *     description: |
+ *       Substitui completamente a lista de serviços que um funcionário pode realizar.
+ *       Primeiro remove todas as associações existentes e depois cria as novas.
+ *     tags: [Serviços de Funcionários]
+ *     parameters:
+ *       - in: path
+ *         name: employeeId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do funcionário
+ *         example: 1
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: array
+ *             items:
+ *               type: object
+ *               required:
+ *                 - service_id
+ *                 - employee_id
+ *               properties:
+ *                 service_id:
+ *                   type: integer
+ *                   description: ID do serviço a ser associado
+ *                   example: 3
+ *                 employee_id:
+ *                   type: integer
+ *                   description: ID do funcionário (deve corresponder ao parâmetro da URL)
+ *                   example: 1
+ *             example:
+ *               - service_id: 3
+ *                 employee_id: 1
+ *               - service_id: 5
+ *                 employee_id: 1
+ *     responses:
+ *       200:
+ *         description: Serviços atualizados com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       400:
+ *         description: Dados inválidos (IDs inconsistentes ou formato incorreto)
+ *       500:
+ *         description: Erro interno do servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ */
 // Rota para atualizar serviços de um funcionário
 app.put('/api/employee-services/:employeeId', async (req, res) => {
   try {
@@ -1581,6 +3430,53 @@ app.put('/api/employee-services/:employeeId', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     EmployeeService:
+ *       type: object
+ *       required:
+ *         - employee_id
+ *         - service_id
+ *       properties:
+ *         employee_id:
+ *           type: integer
+ *           description: ID do funcionário
+ *           example: 1
+ *         service_id:
+ *           type: integer
+ *           description: ID do serviço
+ *           example: 3
+ */
+//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Escalas de Trabalho
+ *     description: Endpoints para gestão de horários e escalas de funcionários
+ */
+
+/**
+ * @swagger
+ * /schedules:
+ *   get:
+ *     summary: Lista todas as escalas de trabalho
+ *     description: Retorna todos os horários cadastrados com informações dos funcionários
+ *     tags: [Escalas de Trabalho]
+ *     responses:
+ *       200:
+ *         description: Lista de escalas com detalhes dos funcionários
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/WorkScheduleWithEmployee'
+ *       500:
+ *         description: Erro interno do servidor
+ */
 // ROTAS DE HORÁRIOS
 app.get("/schedules", async (req, res) => {
   try {
@@ -1596,6 +3492,56 @@ app.get("/schedules", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /schedules:
+ *   post:
+ *     summary: Cria um novo horário na escala
+ *     tags: [Escalas de Trabalho]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - employee_id
+ *               - day_of_week
+ *               - start_time
+ *               - end_time
+ *             properties:
+ *               employee_id:
+ *                 type: integer
+ *                 description: ID do funcionário
+ *                 example: 1
+ *               day_of_week:
+ *                 type: string
+ *                 description: Dia da semana (0-6 ou nome)
+ *                 example: "Segunda-feira"
+ *               start_time:
+ *                 type: string
+ *                 description: Hora de início (HH:MM ou HH:MM:SS)
+ *                 example: "09:00"
+ *               end_time:
+ *                 type: string
+ *                 description: Hora de término (HH:MM ou HH:MM:SS)
+ *                 example: "18:00"
+ *               is_available:
+ *                 type: boolean
+ *                 description: Se o horário está disponível
+ *                 default: true
+ *     responses:
+ *       201:
+ *         description: Horário criado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/WorkSchedule'
+ *       400:
+ *         description: Dados inválidos ou incompletos
+ *       500:
+ *         description: Erro interno do servidor
+ */
 // Rota para criar/atualizar horários
 app.post("/schedules", async (req, res) => {
   try {
@@ -1692,6 +3638,32 @@ function isValidTime(time) {
   return /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time);
 }
 
+/**
+ * @swagger
+ * /schedules/{employee_id}:
+ *   get:
+ *     summary: Obtém a escala de um funcionário específico
+ *     description: Retorna todos os horários de um funcionário com os dias formatados
+ *     tags: [Escalas de Trabalho]
+ *     parameters:
+ *       - in: path
+ *         name: employee_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do funcionário
+ *     responses:
+ *       200:
+ *         description: Lista de horários formatados
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/FormattedWorkSchedule'
+ *       500:
+ *         description: Erro interno do servidor
+ */
 app.get("/schedules/:employee_id", async (req, res) => {
   try {
     const { employee_id } = req.params;
@@ -1747,6 +3719,62 @@ function formatTimeFromDB(time) {
   return time;
 }
 
+
+/**
+ * @swagger
+ * /schedules/{employee_id}:
+ *   put:
+ *     summary: Atualiza toda a escala de um funcionário
+ *     description: Substitui completamente os horários de um funcionário
+ *     tags: [Escalas de Trabalho]
+ *     parameters:
+ *       - in: path
+ *         name: employee_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do funcionário
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: array
+ *             items:
+ *               type: object
+ *               required:
+ *                 - day_of_week
+ *                 - start_time
+ *                 - end_time
+ *               properties:
+ *                 day_of_week:
+ *                   type: integer
+ *                   description: Dia da semana (0-6)
+ *                   example: 1
+ *                 start_time:
+ *                   type: string
+ *                   description: Hora de início
+ *                   example: "09:00:00"
+ *                 end_time:
+ *                   type: string
+ *                   description: Hora de término
+ *                   example: "17:00:00"
+ *     responses:
+ *       200:
+ *         description: Escala atualizada com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       400:
+ *         description: Dados inválidos ou funcionário não encontrado
+ *       500:
+ *         description: Erro interno do servidor
+ */
 app.put('/schedules/:employee_id', async (req, res) => {
   try {
     const { employee_id } = req.params;
@@ -1804,6 +3832,26 @@ app.put('/schedules/:employee_id', async (req, res) => {
   }
 });
 
+
+/**
+ * @swagger
+ * /schedules/employees/{employee_id}:
+ *   delete:
+ *     summary: Remove todos os horários de um funcionário
+ *     tags: [Escalas de Trabalho]
+ *     parameters:
+ *       - in: path
+ *         name: employee_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do funcionário
+ *     responses:
+ *       204:
+ *         description: Horários removidos com sucesso
+ *       500:
+ *         description: Erro interno do servidor
+ */
 app.delete("/schedules/employees/:employee_id", async (req, res) => {
   try {
     const { employee_id } = req.params;
@@ -1820,6 +3868,26 @@ app.delete("/schedules/employees/:employee_id", async (req, res) => {
   }
 });
 
+
+/**
+ * @swagger
+ * /schedules/{id}:
+ *   delete:
+ *     summary: Remove um horário específico
+ *     tags: [Escalas de Trabalho]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do horário
+ *     responses:
+ *       204:
+ *         description: Horário removido com sucesso
+ *       500:
+ *         description: Erro interno do servidor
+ */
 app.delete("/schedules/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -1836,6 +3904,163 @@ app.delete("/schedules/:id", async (req, res) => {
   }
 });
 
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     WorkSchedule:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         employee_id:
+ *           type: integer
+ *         day_of_week:
+ *           type: integer
+ *           description: 0-6 (Domingo-Sábado)
+ *         start_time:
+ *           type: string
+ *           format: time
+ *         end_time:
+ *           type: string
+ *           format: time
+ *         is_available:
+ *           type: boolean
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ * 
+ *     WorkScheduleWithEmployee:
+ *       allOf:
+ *         - $ref: '#/components/schemas/WorkSchedule'
+ *         - type: object
+ *           properties:
+ *             employees:
+ *               type: object
+ *               properties:
+ *                 name:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                   format: email
+ * 
+ *     FormattedWorkSchedule:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         employee_id:
+ *           type: integer
+ *         day_of_week:
+ *           type: integer
+ *         day:
+ *           type: string
+ *           description: Nome do dia da semana
+ *         start_time:
+ *           type: string
+ *           description: Hora formatada (HH:MM)
+ *         end_time:
+ *           type: string
+ *           description: Hora formatada (HH:MM)
+ *         is_available:
+ *           type: boolean
+ */
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Dashboard
+ *     description: Endpoints para dados do painel administrativo
+ */
+
+/**
+ * @swagger
+ * /api/admin/dashboard:
+ *   get:
+ *     summary: Obtém dados consolidados para o painel administrativo
+ *     description: |
+ *       Retorna métricas e dados estatísticos para exibição no dashboard administrativo,
+ *       incluindo contagens totais, distribuições e dados para gráficos.
+ *     tags: [Dashboard]
+ *     responses:
+ *       200:
+ *         description: Dados do dashboard retornados com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 totalEmployees:
+ *                   type: integer
+ *                   description: Número total de funcionários cadastrados
+ *                   example: 15
+ *                 totalCategories:
+ *                   type: integer
+ *                   description: Número total de categorias cadastradas
+ *                   example: 5
+ *                 totalServices:
+ *                   type: integer
+ *                   description: Número total de serviços cadastrados
+ *                   example: 25
+ *                 totalAppointments:
+ *                   type: integer
+ *                   description: Número total de agendamentos confirmados
+ *                   example: 120
+ *                 monthlyAppointments:
+ *                   type: array
+ *                   description: Contagem de agendamentos por mês (índices 0-11 representando Janeiro-Dezembro)
+ *                   items:
+ *                     type: integer
+ *                   example: [10, 12, 15, 8, 5, 12, 18, 20, 10, 5, 8, 7]
+ *                 employeesStatus:
+ *                   type: object
+ *                   description: Distribuição de funcionários por status
+ *                   properties:
+ *                     active:
+ *                       type: integer
+ *                       example: 12
+ *                     inactive:
+ *                       type: integer
+ *                       example: 3
+ *                 usersDistribution:
+ *                   type: object
+ *                   description: Distribuição de usuários por tipo
+ *                   properties:
+ *                     admin:
+ *                       type: integer
+ *                       example: 3
+ *                     comum:
+ *                       type: integer
+ *                       example: 45
+ *                 couponsStatus:
+ *                   type: object
+ *                   description: Distribuição de cupons por status
+ *                   properties:
+ *                     active:
+ *                       type: integer
+ *                       example: 8
+ *                     inactive:
+ *                       type: integer
+ *                       example: 5
+ *                 lastUpdated:
+ *                   type: string
+ *                   format: date-time
+ *                   description: Timestamp da última atualização dos dados
+ *                   example: "2023-08-15T14:30:00.000Z"
+ *       500:
+ *         description: Erro interno do servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                 details:
+ *                   type: string
+ */
 // Rota para dados do dashboard
 app.get('/api/admin/dashboard', async (req, res) => {
   try {
@@ -1928,6 +4153,34 @@ app.get('/api/admin/dashboard', async (req, res) => {
   }
 });
 
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Cupons
+ *     description: Endpoints para gestão e validação de cupons de desconto
+ */
+
+/**
+ * @swagger
+ * /api/coupons:
+ *   get:
+ *     summary: Lista todos os cupons
+ *     description: Retorna todos os cupons cadastrados, ordenados por data de criação (mais recentes primeiro)
+ *     tags: [Cupons]
+ *     responses:
+ *       200:
+ *         description: Lista de cupons retornada com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Coupon'
+ *       500:
+ *         description: Erro interno do servidor
+ */
 // Rotas de Cupons
 app.get('/api/coupons', async (req, res) => {
   try {
@@ -1943,6 +4196,32 @@ app.get('/api/coupons', async (req, res) => {
   }
 });
 
+
+/**
+ * @swagger
+ * /api/coupons/{id}:
+ *   get:
+ *     summary: Obtém detalhes de um cupom específico
+ *     tags: [Cupons]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do cupom
+ *     responses:
+ *       200:
+ *         description: Dados do cupom
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Coupon'
+ *       404:
+ *         description: Cupom não encontrado
+ *       500:
+ *         description: Erro interno do servidor
+ */
 app.get('/api/coupons/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -1958,6 +4237,30 @@ app.get('/api/coupons/:id', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/coupons:
+ *   post:
+ *     summary: Cria um novo cupom
+ *     tags: [Cupons]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CouponInput'
+ *     responses:
+ *       201:
+ *         description: Cupom criado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Coupon'
+ *       400:
+ *         description: Dados inválidos
+ *       500:
+ *         description: Erro interno do servidor
+ */
 app.post('/api/coupons', async (req, res) => {
   try {
     const couponData = {
@@ -1978,6 +4281,38 @@ app.post('/api/coupons', async (req, res) => {
   }
 });
 
+
+/**
+ * @swagger
+ * /api/coupons/{id}:
+ *   put:
+ *     summary: Atualiza um cupom existente
+ *     tags: [Cupons]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do cupom
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CouponInput'
+ *     responses:
+ *       200:
+ *         description: Cupom atualizado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Coupon'
+ *       404:
+ *         description: Cupom não encontrado
+ *       500:
+ *         description: Erro interno do servidor
+ */
 app.put('/api/coupons/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -1994,6 +4329,28 @@ app.put('/api/coupons/:id', async (req, res) => {
   }
 });
 
+
+/**
+ * @swagger
+ * /api/coupons/{id}:
+ *   delete:
+ *     summary: Remove um cupom
+ *     tags: [Cupons]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do cupom
+ *     responses:
+ *       204:
+ *         description: Cupom removido com sucesso
+ *       404:
+ *         description: Cupom não encontrado
+ *       500:
+ *         description: Erro interno do servidor
+ */
 app.delete('/api/coupons/:id', async (req, res) => {
   try {
     const { error } = await supabase
@@ -2008,6 +4365,51 @@ app.delete('/api/coupons/:id', async (req, res) => {
   }
 });
 
+
+/**
+ * @swagger
+ * /api/validate-coupon:
+ *   get:
+ *     summary: Valida um cupom para um serviço específico
+ *     description: Verifica se um cupom é válido para aplicação em determinado serviço
+ *     tags: [Cupons]
+ *     parameters:
+ *       - in: query
+ *         name: code
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Código do cupom
+ *       - in: query
+ *         name: serviceId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do serviço
+ *     responses:
+ *       200:
+ *         description: Resultado da validação
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 valid:
+ *                   type: boolean
+ *                   description: Indica se o cupom é válido
+ *                 message:
+ *                   type: string
+ *                   description: Mensagem descritiva
+ *                 discount:
+ *                   type: number
+ *                   description: Valor do desconto (apenas se válido)
+ *                 discountType:
+ *                   type: string
+ *                   enum: [percentage, fixed]
+ *                   description: Tipo do desconto (apenas se válido)
+ *       500:
+ *         description: Erro interno do servidor
+ */
 app.get('/api/validate-coupon', async (req, res) => {
   try {
     const { code, serviceId } = req.query;
@@ -2070,6 +4472,208 @@ app.get('/api/validate-coupon', async (req, res) => {
   }
 });
 
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Coupon:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         code:
+ *           type: string
+ *           description: Código do cupom (em maiúsculas)
+ *           example: "PROMO10"
+ *         discount_type:
+ *           type: string
+ *           enum: [percentage, fixed]
+ *           description: Tipo de desconto (percentual ou valor fixo)
+ *           example: "percentage"
+ *         discount_value:
+ *           type: number
+ *           description: Valor do desconto
+ *           example: 10
+ *         min_service_value:
+ *           type: number
+ *           description: Valor mínimo do serviço para aplicar o cupom
+ *           example: 50
+ *         max_uses:
+ *           type: integer
+ *           nullable: true
+ *           description: Número máximo de usos (null para ilimitado)
+ *           example: 100
+ *         current_uses:
+ *           type: integer
+ *           description: Número de vezes que o cupom já foi usado
+ *           example: 25
+ *         valid_until:
+ *           type: string
+ *           format: date
+ *           nullable: true
+ *           description: Data de validade (null para sem expiração)
+ *           example: "2023-12-31"
+ *         is_active:
+ *           type: boolean
+ *           description: Indica se o cupom está ativo
+ *           example: true
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *           description: Data de criação
+ * 
+ *     CouponInput:
+ *       type: object
+ *       required:
+ *         - code
+ *         - discount_type
+ *         - discount_value
+ *         - min_service_value
+ *       properties:
+ *         code:
+ *           type: string
+ *           example: "PROMO10"
+ *         discount_type:
+ *           type: string
+ *           enum: [percentage, fixed]
+ *           example: "percentage"
+ *         discount_value:
+ *           type: number
+ *           example: 10
+ *         min_service_value:
+ *           type: number
+ *           example: 50
+ *         max_uses:
+ *           type: integer
+ *           nullable: true
+ *           example: 100
+ *         valid_until:
+ *           type: string
+ *           format: date
+ *           nullable: true
+ *           example: "2023-12-31"
+ *         is_active:
+ *           type: boolean
+ *           example: true
+ */
+
+/**
+ * @swagger
+ * components:
+ *   responses:
+ *     CouponValidationResponse:
+ *       description: Resposta de validação de cupom
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               valid:
+ *                 type: boolean
+ *                 example: true
+ *               message:
+ *                 type: string
+ *                 example: "Cupom aplicado! Desconto de 10%"
+ *               discount:
+ *                 type: number
+ *                 example: 10
+ *               discountType:
+ *                 type: string
+ *                 example: "percentage"
+ */
+//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Relatórios
+ *     description: Endpoints para geração de relatórios financeiros
+ */
+
+/**
+ * @swagger
+ * /api/admin/revenue:
+ *   get:
+ *     summary: Relatório de receitas detalhado
+ *     description: |
+ *       Retorna um relatório completo de receitas, incluindo:
+ *       - Total de agendamentos
+ *       - Faturamento total
+ *       - Comissões totais
+ *       - Detalhes por funcionário (faturamento, comissões e lucro líquido)
+ *     tags: [Relatórios]
+ *     parameters:
+ *       - in: query
+ *         name: start_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Data inicial do período (YYYY-MM-DD)
+ *         example: "2023-01-01"
+ *       - in: query
+ *         name: end_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Data final do período (YYYY-MM-DD)
+ *         example: "2023-12-31"
+ *     responses:
+ *       200:
+ *         description: Relatório de receitas retornado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 period:
+ *                   type: string
+ *                   description: Período analisado
+ *                   example: "2023-01-01 a 2023-12-31"
+ *                 total_appointments:
+ *                   type: integer
+ *                   description: Número total de agendamentos
+ *                   example: 150
+ *                 total_revenue:
+ *                   type: number
+ *                   format: float
+ *                   description: Faturamento total no período
+ *                   example: 12500.50
+ *                 total_commissions:
+ *                   type: number
+ *                   format: float
+ *                   description: Total de comissões a pagar
+ *                   example: 2500.10
+ *                 details:
+ *                   type: array
+ *                   description: Detalhamento por funcionário
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                         description: ID do funcionário
+ *                       name:
+ *                         type: string
+ *                         description: Nome do funcionário
+ *                       commission_rate:
+ *                         type: number
+ *                         description: Percentual de comissão
+ *                       appointments_count:
+ *                         type: integer
+ *                         description: Número de agendamentos
+ *                       total_revenue:
+ *                         type: number
+ *                         description: Faturamento gerado
+ *                       commission_value:
+ *                         type: number
+ *                         description: Valor da comissão
+ *                       net_profit:
+ *                         type: number
+ *                         description: Lucro líquido (faturamento - comissão)
+ *       500:
+ *         description: Erro interno do servidor
+ */
 // Rota para relatório de receitas (atualizada)
 app.get('/api/admin/revenue', async (req, res) => {
   try {
@@ -2079,7 +4683,7 @@ app.get('/api/admin/revenue', async (req, res) => {
     let appointmentsQuery = supabase
       .from('appointments')
       .select('id, final_price, appointment_date, employee_id, employees(id, name, comissao)')
-      .eq('status', 'confirmed'); // Considerar apenas agendamentos confirmados
+      .eq('status', 'completed'); // Considerar apenas agendamentos confirmados
     
     // Aplicar filtro de datas se existir (corrigido para usar appointment_date)
     if (start_date && end_date) {
@@ -2166,6 +4770,38 @@ app.get('/api/admin/revenue', async (req, res) => {
   }
 });
 
+
+/**
+ * @swagger
+ * /api/admin/revenue/export:
+ *   get:
+ *     summary: Exporta relatório de receitas em Excel
+ *     description: Gera um arquivo Excel com o mesmo relatório da rota principal
+ *     tags: [Relatórios]
+ *     parameters:
+ *       - in: query
+ *         name: start_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Data inicial do período (YYYY-MM-DD)
+ *       - in: query
+ *         name: end_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Data final do período (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: Arquivo Excel gerado com sucesso
+ *         content:
+ *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       500:
+ *         description: Erro interno do servidor
+ */
 // Rota para exportar relatório de receitas (opcional)
 app.get('/api/admin/revenue/export', async (req, res) => {
   try {
@@ -2279,6 +4915,72 @@ app.get('/api/admin/revenue/export', async (req, res) => {
   }
 });
 
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     RevenueReport:
+ *       type: object
+ *       properties:
+ *         period:
+ *           type: string
+ *         total_appointments:
+ *           type: integer
+ *         total_revenue:
+ *           type: number
+ *         total_commissions:
+ *           type: number
+ *         details:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/EmployeeRevenueDetail'
+ * 
+ *     EmployeeRevenueDetail:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         name:
+ *           type: string
+ *         commission_rate:
+ *           type: number
+ *         appointments_count:
+ *           type: integer
+ *         total_revenue:
+ *           type: number
+ *         commission_value:
+ *           type: number
+ *         net_profit:
+ *           type: number
+ */
+//-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Galeria
+ *     description: Endpoints para gerenciamento de imagens na galeria
+ */
+/**
+ * @swagger
+ * /api/galeria:
+ *   get:
+ *     summary: Lista todas as imagens (apenas metadados)
+ *     description: Retorna a lista de todas as imagens da galeria sem os dados binários, ordenadas por data de criação (mais recentes primeiro)
+ *     tags: [Galeria]
+ *     responses:
+ *       200:
+ *         description: Lista de imagens retornada com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/ImagemMetadata'
+ *       500:
+ *         description: Erro ao carregar galeria
+ */
 // Rota para listar todas as imagens (metadados)
 app.get('/api/galeria', async (req, res) => {
   try {
@@ -2291,6 +4993,56 @@ app.get('/api/galeria', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/galeria/upload:
+ *   post:
+ *     summary: Faz upload de uma nova imagem
+ *     description: Envia uma imagem para a galeria com título opcional
+ *     tags: [Galeria]
+ *     consumes:
+ *       - multipart/form-data
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               imagem:
+ *                 type: string
+ *                 format: binary
+ *                 description: Arquivo de imagem a ser enviado
+ *               titulo:
+ *                 type: string
+ *                 description: Título opcional para a imagem
+ *                 example: "Minha Foto"
+ *     responses:
+ *       200:
+ *         description: Upload realizado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 id:
+ *                   type: string
+ *                   description: ID da imagem no banco de dados
+ *                 titulo:
+ *                   type: string
+ *                   description: Título da imagem
+ *                 criadoEm:
+ *                   type: string
+ *                   format: date-time
+ *                   description: Data de criação
+ *       400:
+ *         description: Nenhuma imagem foi enviada
+ *       500:
+ *         description: Falha ao salvar imagem
+ */
 // Rota para upload de imagem
 app.post('/api/galeria/upload', upload.single('imagem'), async (req, res) => {
   try {
@@ -2321,6 +5073,33 @@ app.post('/api/galeria/upload', upload.single('imagem'), async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/galeria/imagem/{id}:
+ *   get:
+ *     summary: Recupera a imagem binária
+ *     description: Retorna os dados binários da imagem com o Content-Type apropriado
+ *     tags: [Galeria]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID da imagem
+ *     responses:
+ *       200:
+ *         description: Imagem retornada com sucesso
+ *         content:
+ *           image/*:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       404:
+ *         description: Imagem não encontrada
+ *       500:
+ *         description: Erro no servidor
+ */
 // Rota para recuperar a imagem binária
 app.get('/api/galeria/imagem/:id', async (req, res) => {
   try {
@@ -2339,7 +5118,35 @@ app.get('/api/galeria/imagem/:id', async (req, res) => {
   }
 });
 
-// Rota para busca
+/**
+ * @swagger
+ * /api/galeria/busca:
+ *   get:
+ *     summary: Busca imagens por título
+ *     description: Busca imagens cujo título corresponda ao termo (case insensitive)
+ *     tags: [Galeria]
+ *     parameters:
+ *       - in: query
+ *         name: termo
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Termo para busca
+ *         example: "paisagem"
+ *     responses:
+ *       200:
+ *         description: Resultados da busca
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/ImagemMetadata'
+ *       400:
+ *         description: Termo de busca é obrigatório
+ *       500:
+ *         description: Erro ao buscar imagens
+ */
 // Rota para buscar imagens
 app.get('/api/galeria/busca', async (req, res) => {
   try {
@@ -2361,6 +5168,42 @@ app.get('/api/galeria/busca', async (req, res) => {
   }
 });
 
+
+/**
+ * @swagger
+ * /api/galeria/{id}:
+ *   delete:
+ *     summary: Exclui uma imagem
+ *     description: Remove permanentemente uma imagem da galeria
+ *     tags: [Galeria]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID da imagem a ser excluída
+ *     responses:
+ *       200:
+ *         description: Imagem excluída com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Imagem excluída com sucesso"
+ *       400:
+ *         description: ID inválido
+ *       404:
+ *         description: Imagem não encontrada
+ *       500:
+ *         description: Erro ao excluir imagem
+ */
 // Rota para exclusão
 app.delete('/api/galeria/:id', async (req, res) => {
   try {
@@ -2380,6 +5223,32 @@ app.delete('/api/galeria/:id', async (req, res) => {
     res.status(500).json({ error: 'Erro ao excluir imagem' });
   }
 });
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     ImagemMetadata:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *           description: ID único da imagem
+ *         titulo:
+ *           type: string
+ *           description: Título da imagem
+ *         criadoEm:
+ *           type: string
+ *           format: date-time
+ *           description: Data de criação
+ *         imagem:
+ *           type: object
+ *           properties:
+ *             tipo:
+ *               type: string
+ *               description: Tipo MIME da imagem
+ *               example: "image/jpeg"
+ */
 
 
 

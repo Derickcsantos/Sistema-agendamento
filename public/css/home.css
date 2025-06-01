@@ -559,6 +559,12 @@ footer {
     cursor: pointer;
 }
 
+.nav-links li,
+.sidebar-links li{
+    cursor: pointer;
+}
+
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .gallery-grid {

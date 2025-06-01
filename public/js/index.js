@@ -496,12 +496,11 @@ async function loadEmployees(serviceId) {
   // Envio do formulário
   form.addEventListener('submit', async function(e) {
     e.preventDefault();
-    
+
     const clientName = document.getElementById('clientName').value;
     const clientEmail = document.getElementById('clientEmail').value;
     const clientPhone = document.getElementById('clientPhone').value;
 
-        
     try {
       // Calcular preço final considerando o cupom
       let finalPrice = originalPrice;
@@ -513,7 +512,7 @@ async function loadEmployees(serviceId) {
         }
         finalPrice = Math.max(0, finalPrice); // Garante que não fique negativo
       }
-      
+
       const response = await fetch('/api/appointments', {
         method: 'POST',
         headers: {
@@ -533,51 +532,36 @@ async function loadEmployees(serviceId) {
           final_price: finalPrice
         })
       });
-      
-      if (!response.ok) console.log('Erro ao confirmar agendamento');
-      
+
       const appointment = await response.json();
-      
-      // Mostrar modal de confirmação
+
+      // Sempre mostrar o modal de confirmação, mesmo se response.ok for falso
       const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
       const detailsList = document.getElementById('appointmentDetails');
 
-      const startHHMM = `${appointment.start_time.substring(0,2)}:${appointment.start_time.substring(2,4)}`;
-      const endHHMM = `${appointment.end_time.substring(0,2)}:${appointment.end_time.substring(2,4)}`;
-      // Calcular duração
-      // Por esta versão mais robusta:
+      // Função para calcular duração
       function calculateDuration(startTime, endTime) {
         try {
-          // Garante que os horários estão no formato HHmm
           const start = startTime.includes(':') ? startTime.replace(':', '') : startTime;
           const end = endTime.includes(':') ? endTime.replace(':', '') : endTime;
-          
           const startHours = parseInt(start.substring(0, 2));
           const startMins = parseInt(start.substring(2, 4));
           const endHours = parseInt(end.substring(0, 2));
           const endMins = parseInt(end.substring(2, 4));
-          
           const totalStart = startHours * 60 + startMins;
           const totalEnd = endHours * 60 + endMins;
-          
-          if (totalEnd <= totalStart) {
-            console.error('Horário final deve ser após horário inicial');
-            return '00:00';
-          }
-          
+          if (totalEnd <= totalStart) return '00:00';
           const durationMins = totalEnd - totalStart;
           const hours = Math.floor(durationMins / 60);
           const mins = durationMins % 60;
-          
           return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
-        } catch (error) {
-          console.error('Erro ao calcular duração:', error);
+        } catch {
           return '00:00';
         }
       }
 
       const duration = calculateDuration(appointment.start_time, appointment.end_time);
-        
+
       detailsList.innerHTML = `
         <li><strong>Nome:</strong> ${appointment.client_name}</li>
         <li><strong>Serviço:</strong> ${confirmService.textContent}</li>
@@ -591,10 +575,8 @@ async function loadEmployees(serviceId) {
           <li><strong>Valor total:</strong> R$ ${finalPrice.toFixed(2)}</li>
         ` : ''}
       `;
-      
-      modal.show();
-      
-      // Armazenar os dados do agendamento para uso nos botões
+
+      // Dados do agendamento para os botões
       let currentAppointment = {
         name: appointment.client_name,
         email: clientEmail,
@@ -608,224 +590,163 @@ async function loadEmployees(serviceId) {
         discount: appliedCoupon ? `${appliedCoupon.discount}${appliedCoupon.type === 'percentage' ? '%' : 'R$'}` : ''
       };
 
-      // Configurar os botões
-      document.getElementById('whatsappBtn').addEventListener('click', async () => {
-        const userPhone = currentAppointment.phone.replace(/\D/g, '');
-        
-        const successModal = new bootstrap.Modal(document.getElementById('successModal'));
-        const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
-        const validationModal = new bootstrap.Modal(document.getElementById('validationModal'));
-      
-        if (userPhone.length < 11) {
-          document.getElementById('validationMessage').textContent = 'Número inválido. Digite um número com DDD.';
-          validationModal.show();
-          return;
+      // Função para garantir que os botões SEMPRE tenham listeners corretos
+      function setupConfirmationButtons() {
+        // Substitui botões por clones para remover listeners antigos
+        function replaceButton(id) {
+          const oldBtn = document.getElementById(id);
+          if (!oldBtn) return null;
+          const newBtn = oldBtn.cloneNode(true);
+          oldBtn.parentNode.replaceChild(newBtn, oldBtn);
+          return newBtn;
         }
-      
-        try {
-          const response = await fetch('/api/send-whatsapp-confirmation', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              clientPhone: userPhone,
-              appointmentDetails: {
-                service: currentAppointment.service,
-                professional: currentAppointment.professional,
-                date: currentAppointment.date,
-                time: currentAppointment.time,
-                originalPrice: currentAppointment.originalPrice,
-                discount: currentAppointment.discount,
-                finalPrice: currentAppointment.finalPrice
+
+        // WhatsApp
+        const whatsappBtn = replaceButton('whatsappBtn');
+        if (whatsappBtn) {
+          whatsappBtn.addEventListener('click', async () => {
+            const userPhone = currentAppointment.phone.replace(/\D/g, '');
+            const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+            const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+            const validationModal = new bootstrap.Modal(document.getElementById('validationModal'));
+            if (userPhone.length < 11) {
+              document.getElementById('validationMessage').textContent = 'Número inválido. Digite um número com DDD.';
+              validationModal.show();
+              return;
+            }
+            try {
+              const response = await fetch('/api/send-whatsapp-confirmation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  clientPhone: userPhone,
+                  appointmentDetails: {
+                    service: currentAppointment.service,
+                    professional: currentAppointment.professional,
+                    date: currentAppointment.date,
+                    time: currentAppointment.time,
+                    originalPrice: currentAppointment.originalPrice,
+                    discount: currentAppointment.discount,
+                    finalPrice: currentAppointment.finalPrice
+                  }
+                })
+              });
+              const result = await response.json();
+              if (result.success) {
+                successModal.show();
+              } else {
+                document.getElementById('errorMessage').textContent = result.error || 'Erro ao enviar mensagem';
+                errorModal.show();
               }
-            })
+            } catch (error) {
+              document.getElementById('errorMessage').textContent = 'Falha na comunicação com o servidor';
+              errorModal.show();
+            }
           });
-      
-          const result = await response.json();
-          
-          if (result.success) {
-            successModal.show();
-          } else {
-            document.getElementById('errorMessage').textContent = result.error || 'Erro ao enviar mensagem';
-            errorModal.show();
-          }
-        } catch (error) {
-          console.error('Erro:', error);
-          document.getElementById('errorMessage').textContent = 'Falha na comunicação com o servidor';
-          errorModal.show();
-        }
-      });
-
-      document.getElementById('clientPhone').addEventListener('input', function(e) {
-        let value = e.target.value.replace(/\D/g, '');
-        
-        if (value.length > 2) {
-          value = `(${value.substring(0, 2)}) ${value.substring(2)}`;
-        }
-        if (value.length > 10) {
-          value = `${value.substring(0, 10)}-${value.substring(10)}`;
         }
 
-        if (!/^(\+55|55|0)?[\s-]?\(?[1-9]{2}\)?[\s-]?9?[\s-]?[0-9]{4}[\s-]?[0-9]{4}$/.test(currentAppointment.phone)) {
-          console.log('Por favor, digite um número de telefone válido com DDD');
-          return;
-        }
-        
-        e.target.value = value;
-      });
-
-      document.getElementById('emailBtn').addEventListener('click', async () => {
-        const emailSuccessModal = new bootstrap.Modal(document.getElementById('emailSuccessModal'));
-        const emailErrorModal = new bootstrap.Modal(document.getElementById('emailErrorModal'));
-        const emailLoadingModal = new bootstrap.Modal(document.getElementById('emailLoadingModal'));
-      
-        try {
-          emailLoadingModal.show();
-
-          const response = await fetch('/api/send-confirmation-email', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              email: currentAppointment.email,
-              subject: 'Confirmação de Agendamento',
-              body: `
-              <h1>Confirmação de Agendamento</h1>
-              <p>Seu agendamento foi confirmado com sucesso!</p>
-              <p><strong>Nome:</strong> ${currentAppointment.name}</p>
-              <p><strong>Serviço:</strong> ${currentAppointment.service}</p>
-              <p><strong>Profissional:</strong> ${currentAppointment.professional}</p>
-              <p><strong>Data:</strong> ${currentAppointment.date}</p>
-              <p><strong>Horário:</strong> ${currentAppointment.time}</p>
-              ${currentAppointment.originalPrice ? `<p><strong>Valor original:</strong> ${currentAppointment.originalPrice}</p>` : ''}
-              ${currentAppointment.discount ? `<p><strong>Desconto:</strong> ${currentAppointment.discount}</p>` : ''}
-              ${currentAppointment.finalPrice ? `<p><strong>Valor total:</strong> ${currentAppointment.finalPrice}</p>` : ''}
-              `
-            })
+        // Email
+        const emailBtn = replaceButton('emailBtn');
+        if (emailBtn) {
+          emailBtn.addEventListener('click', async () => {
+            const emailSuccessModal = new bootstrap.Modal(document.getElementById('emailSuccessModal'));
+            const emailErrorModal = new bootstrap.Modal(document.getElementById('emailErrorModal'));
+            const emailLoadingModal = new bootstrap.Modal(document.getElementById('emailLoadingModal'));
+            try {
+              emailLoadingModal.show();
+              const response = await fetch('/api/send-confirmation-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  email: currentAppointment.email,
+                  subject: 'Confirmação de Agendamento',
+                  body: `
+                    <h1>Confirmação de Agendamento</h1>
+                    <p>Seu agendamento foi confirmado com sucesso!</p>
+                    <p><strong>Nome:</strong> ${currentAppointment.name}</p>
+                    <p><strong>Serviço:</strong> ${currentAppointment.service}</p>
+                    <p><strong>Profissional:</strong> ${currentAppointment.professional}</p>
+                    <p><strong>Data:</strong> ${currentAppointment.date}</p>
+                    <p><strong>Horário:</strong> ${currentAppointment.time}</p>
+                    ${currentAppointment.originalPrice ? `<p><strong>Valor original:</strong> ${currentAppointment.originalPrice}</p>` : ''}
+                    ${currentAppointment.discount ? `<p><strong>Desconto:</strong> ${currentAppointment.discount}</p>` : ''}
+                    ${currentAppointment.finalPrice ? `<p><strong>Valor total:</strong> ${currentAppointment.finalPrice}</p>` : ''}
+                  `
+                })
+              });
+              emailLoadingModal.hide();
+              if (response.ok) {
+                emailSuccessModal.show();
+              } else {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Erro ao enviar e-mail');
+              }
+            } catch (error) {
+              document.getElementById('emailErrorMessage').textContent = error.message || 'Erro ao enviar e-mail de confirmação';
+              emailErrorModal.show();
+            }
           });
-
-          emailLoadingModal.hide();
-      
-          if (response.ok) {
-            emailSuccessModal.show();
-          } else {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Erro ao enviar e-mail');
-          }
-        } catch (error) {
-          console.error('Erro:', error);
-          document.getElementById('emailErrorMessage').textContent = error.message || 'Erro ao enviar e-mail de confirmação';
-          emailErrorModal.show();
         }
-      });
 
-      document.getElementById('calendarBtn').addEventListener('click', () => {
-        try {
-            // Criar variáveis específicas para o calendário
-            const calendarAppointment = {
+        // Calendário
+        const calendarBtn = replaceButton('calendarBtn');
+        if (calendarBtn) {
+          calendarBtn.addEventListener('click', () => {
+            try {
+              const calendarAppointment = {
                 service: currentAppointment.service,
                 professional: currentAppointment.professional,
                 name: currentAppointment.name,
                 finalPrice: currentAppointment.finalPrice,
                 date: currentAppointment.date, // formato dd/mm/yyyy
-                startTime: appointment.start_time, // "14:20:00" ou "1420"
-                endTime: appointment.end_time    // "20:20:00" ou "2020"
-            };
-    
-            // Preparar dados para o Google Calendar
-            const title = encodeURIComponent(`Agendamento: ${calendarAppointment.service}`);
-            const details = encodeURIComponent(
+                startTime: appointment.start_time,
+                endTime: appointment.end_time
+              };
+              const title = encodeURIComponent(`Agendamento: ${calendarAppointment.service}`);
+              const details = encodeURIComponent(
                 `Profissional: ${calendarAppointment.professional}\n` +
                 `Valor: ${calendarAppointment.finalPrice}\n` +
                 `Cliente: ${calendarAppointment.name}`
-            );
-            const location = encodeURIComponent('Online ou no local do serviço');
-    
-            // Converter data (dd/mm/yyyy) para yyyy-mm-dd
-            const [day, month, year] = calendarAppointment.date.split('/');
-            
-            // Função para normalizar e adicionar 3 horas
-            const normalizeAndAdjustTime = (timeStr) => {
-                // Remover todos os ':' se existirem
+              );
+              const location = encodeURIComponent('Online ou no local do serviço');
+              const [day, month, year] = calendarAppointment.date.split('/');
+              const normalizeAndAdjustTime = (timeStr) => {
                 const cleanTime = timeStr.replace(/:/g, '');
-                // Garantir que tem 4 dígitos
                 const paddedTime = cleanTime.padStart(4, '0');
-                
-                // Converter para objeto Date e adicionar 3 horas
-                const hours = parseInt(paddedTime.substring(0, 2));
+                let hours = parseInt(paddedTime.substring(0, 2));
                 const minutes = parseInt(paddedTime.substring(2, 4));
-                
                 let adjustedHours = hours + 3;
-                if (adjustedHours >= 24) {
-                    adjustedHours -= 24;
-                    // Aqui você precisaria ajustar o dia também se necessário
-                }
-                
+                if (adjustedHours >= 24) adjustedHours -= 24;
                 return `${String(adjustedHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-            };
-    
-            const startTime = normalizeAndAdjustTime(calendarAppointment.startTime);
-            const endTime = normalizeAndAdjustTime(calendarAppointment.endTime);
-    
-            // Criar strings de data/hora no formato ISO
-            const startDateStr = `${year}-${month}-${day}T${startTime}:00`;
-            const endDateStr = `${year}-${month}-${day}T${endTime}:00`;
-    
-            // Formatar para o padrão do Google Calendar
-            const formatForGoogleCalendar = (dateStr) => {
-                return dateStr.replace(/-/g, '')
-                             .replace(/:/g, '')
-                             .replace('T', 'T') + 'Z';
-            };
-    
-            const formattedStart = formatForGoogleCalendar(startDateStr);
-            const formattedEnd = formatForGoogleCalendar(endDateStr);
-    
-            // Montar URL do Google Calendar
-            const calendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE` +
+              };
+              const startTime = normalizeAndAdjustTime(calendarAppointment.startTime);
+              const endTime = normalizeAndAdjustTime(calendarAppointment.endTime);
+              const startDateStr = `${year}-${month}-${day}T${startTime}:00`;
+              const endDateStr = `${year}-${month}-${day}T${endTime}:00`;
+              const formatForGoogleCalendar = (dateStr) => {
+                return dateStr.replace(/-/g, '').replace(/:/g, '').replace('T', 'T') + 'Z';
+              };
+              const formattedStart = formatForGoogleCalendar(startDateStr);
+              const formattedEnd = formatForGoogleCalendar(endDateStr);
+              const calendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE` +
                 `&text=${title}` +
                 `&dates=${formattedStart}/${formattedEnd}` +
                 `&details=${details}` +
                 `&location=${location}` +
                 `&sf=true` +
                 `&output=xml`;
-    
-            window.open(calendarUrl, '_blank');
-    
-        } catch (error) {
-            console.error('Erro ao gerar link para Google Calendar:', error);
-            console.log('Dados usados:', {
-                date: currentAppointment.date,
-                startTime: appointment.start_time,
-                endTime: appointment.end_time
-            });
+              window.open(calendarUrl, '_blank');
+            } catch (error) {
+              console.error('Erro ao gerar link para Google Calendar:', error);
+            }
+          });
         }
-    });
-    
+      }
 
-      document.getElementById('pdfBtn').addEventListener('click', () => {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        
-        doc.text('Confirmação de Agendamento', 20, 20);
-        doc.text(`Nome: ${currentAppointment.name}`, 20, 30);
-        doc.text(`Serviço: ${currentAppointment.service}`, 20, 40);
-        doc.text(`Profissional: ${currentAppointment.professional}`, 20, 50);
-        doc.text(`Data: ${currentAppointment.date}`, 20, 60);
-        doc.text(`Horário: ${currentAppointment.time}`, 20, 70);
-        if (currentAppointment.originalPrice) {
-          doc.text(`Valor original: ${currentAppointment.originalPrice}`, 20, 80);
-        }
-        if (currentAppointment.discount) {
-          doc.text(`Desconto: ${currentAppointment.discount}`, 20, 90);
-        }
-        if (currentAppointment.finalPrice) {
-          doc.text(`Valor total: ${currentAppointment.finalPrice}`, 20, 100);
-        }
-        
-        doc.save(`Agendamento_${currentAppointment.name.replace(/\s/g, '_')}.pdf`);
-      });
-      
+      // Configura os botões ANTES de mostrar o modal
+      setupConfirmationButtons();
+      modal.show();
+
       // Resetar formulário após confirmação
       modal._element.addEventListener('hidden.bs.modal', function() {
         form.reset();
@@ -846,10 +767,143 @@ async function loadEmployees(serviceId) {
         // Voltar para o primeiro passo
         navigateToStep(1);
       });
-      
+
+      function setupConfirmationButtonsGlobal() {
+        function replaceButton(id) {
+        const oldBtn = document.getElementById(id);
+        if (!oldBtn) return null;
+        const newBtn = oldBtn.cloneNode(true);
+        oldBtn.parentNode.replaceChild(newBtn, oldBtn);
+        return newBtn;
+      }
+
+      // Email
+      const emailBtn = replaceButton('emailBtn');
+      if (emailBtn) {
+        emailBtn.addEventListener('click', async () => {
+          const emailSuccessModal = new bootstrap.Modal(document.getElementById('emailSuccessModal'));
+          const emailErrorModal = new bootstrap.Modal(document.getElementById('emailErrorModal'));
+          const emailLoadingModal = new bootstrap.Modal(document.getElementById('emailLoadingModal'));
+          try {
+            emailLoadingModal.show();
+            // Pega dados do formulário ou do último agendamento
+            const clientEmail = document.getElementById('clientEmail')?.value || '';
+            const clientName = document.getElementById('clientName')?.value || '';
+            const confirmServiceName = document.getElementById('confirmService')?.textContent || '';
+            const confirmEmployeeName = document.getElementById('confirmEmployee')?.textContent || '';
+            const confirmDateValue = document.getElementById('confirmDate')?.textContent || '';
+            const confirmTimeValue = document.getElementById('confirmTime')?.textContent || '';
+            const confirmOriginalPriceValue = document.getElementById('confirmOriginalPrice')?.textContent || '';
+            const confirmDiscountValue = document.getElementById('confirmDiscount')?.textContent || '';
+            const confirmPriceValue = document.getElementById('confirmPrice')?.textContent || '';
+
+            const response = await fetch('/api/send-confirmation-email', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email: clientEmail,
+                subject: 'Confirmação de Agendamento',
+                body: `
+                  <h1>Confirmação de Agendamento</h1>
+                  <p>Seu agendamento foi confirmado com sucesso!</p>
+                  <p><strong>Nome:</strong> ${clientName}</p>
+                  <p><strong>Serviço:</strong> ${confirmServiceName}</p>
+                  <p><strong>Profissional:</strong> ${confirmEmployeeName}</p>
+                  <p><strong>Data:</strong> ${confirmDateValue}</p>
+                  <p><strong>Horário:</strong> ${confirmTimeValue}</p>
+                  ${confirmOriginalPriceValue ? `<p><strong>Valor original:</strong> ${confirmOriginalPriceValue}</p>` : ''}
+                  ${confirmDiscountValue ? `<p><strong>Desconto:</strong> ${confirmDiscountValue}</p>` : ''}
+                  ${confirmPriceValue ? `<p><strong>Valor total:</strong> ${confirmPriceValue}</p>` : ''}
+                `
+              })
+            });
+            emailLoadingModal.hide();
+            if (response.ok) {
+              emailSuccessModal.show();
+            } else {
+              const errorData = await response.json();
+              throw new Error(errorData.error || 'Erro ao enviar e-mail');
+            }
+          } catch (error) {
+            document.getElementById('emailErrorMessage').textContent = error.message || 'Erro ao enviar e-mail de confirmação';
+            emailErrorModal.show();
+          }
+        });
+      }
+
+      // Calendário
+      const calendarBtn = replaceButton('calendarBtn');
+      if (calendarBtn) {
+        calendarBtn.addEventListener('click', () => {
+          try {
+            // Pega dados do formulário ou do último agendamento
+            const clientName = document.getElementById('clientName')?.value || '';
+            const confirmServiceName = document.getElementById('confirmService')?.textContent || '';
+            const confirmEmployeeName = document.getElementById('confirmEmployee')?.textContent || '';
+            const confirmDateValue = document.getElementById('confirmDate')?.textContent || '';
+            const confirmTimeValue = document.getElementById('confirmTime')?.textContent || '';
+            const confirmPriceValue = document.getElementById('confirmPrice')?.textContent || '';
+
+            // Extrai horário de início e fim
+            let startTime = '';
+            let endTime = '';
+            if (confirmTimeValue && confirmTimeValue.includes('-')) {
+              [startTime, endTime] = confirmTimeValue.split('-').map(s => s.trim());
+            }
+
+            // Extrai data
+            let day = '', month = '', year = '';
+            if (confirmDateValue && confirmDateValue.includes('/')) {
+              [day, month, year] = confirmDateValue.split('/');
+            }
+
+            const title = encodeURIComponent(`Agendamento: ${confirmServiceName}`);
+            const details = encodeURIComponent(
+              `Profissional: ${confirmEmployeeName}\n` +
+              `Valor: ${confirmPriceValue}\n` +
+              `Cliente: ${clientName}`
+            );
+            const location = encodeURIComponent('Rua mucugê 127 - Jardim maracanã');
+            const normalizeAndAdjustTime = (timeStr) => {
+              const cleanTime = timeStr.replace(/:/g, '');
+              const paddedTime = cleanTime.padStart(4, '0');
+              let hours = parseInt(paddedTime.substring(0, 2));
+              const minutes = parseInt(paddedTime.substring(2, 4));
+              let adjustedHours = hours + 3;
+              if (adjustedHours >= 24) adjustedHours -= 24;
+              return `${String(adjustedHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+            };
+            const startTimeAdj = normalizeAndAdjustTime(startTime);
+            const endTimeAdj = normalizeAndAdjustTime(endTime);
+            const startDateStr = `${year}-${month}-${day}T${startTimeAdj}:00`;
+            const endDateStr = `${year}-${month}-${day}T${endTimeAdj}:00`;
+            const formatForGoogleCalendar = (dateStr) => {
+              return dateStr.replace(/-/g, '').replace(/:/g, '').replace('T', 'T') + 'Z';
+            };
+            const formattedStart = formatForGoogleCalendar(startDateStr);
+            const formattedEnd = formatForGoogleCalendar(endDateStr);
+            const calendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE` +
+              `&text=${title}` +
+              `&dates=${formattedStart}/${formattedEnd}` +
+              `&details=${details}` +
+              `&location=${location}` +
+              `&sf=true` +
+              `&output=xml`;
+            window.open(calendarUrl, '_blank');
+          } catch (error) {
+            console.error('Erro ao gerar link para Google Calendar:', error);
+          }
+        });
+      }
+    }
+
     } catch (error) {
       console.error('Erro ao confirmar agendamento:', error);
       console.log('Erro ao confirmar agendamento. Por favor, tente novamente.');
+      // Ainda assim, mostrar o modal para permitir envio de comprovante
+      const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+     setupConfirmationButtonsGlobal();
+      modal.show();
     }
   });
 

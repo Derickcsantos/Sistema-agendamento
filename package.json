@@ -33,7 +33,9 @@
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.2",
     "nodemailer": "^6.10.1",
-    "puppeteer": "^24.8.2"
+    "puppeteer": "^24.8.2",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "eslint": "^8.56.0",

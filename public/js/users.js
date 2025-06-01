@@ -217,7 +217,7 @@ function renderUsersTable(users) {
     row.innerHTML = `
       <td>${user.username}</td>
       <td>${user.email}</td>
-      <td><span class="badge rounded-pill ${user.tipo === 'admin' ? 'bg-primary badge-admin' : 'bg-secondary badge-comum'}">${user.tipo}</span></td>
+      <td><span class="badge rounded-pill ${user.tipo === 'admin' ? 'bg-primary badge-admin' :  user.tipo === 'funcionario' ? 'bg-warning text-dark badge-funcionario' : 'bg-secondary badge-comum'}">${user.tipo}</span></td>
       <td>${new Date(user.created_at).toLocaleDateString()}</td>
       <td class="action-buttons">
         <button class="btn btn-sm btn-warning edit-user" data-id="${user.id}">Editar</button>

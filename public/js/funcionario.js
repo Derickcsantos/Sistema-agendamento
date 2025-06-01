@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             showLoadingAppointments();
             
-            // Primeiro, precisamos obter o ID do funcionário
+            // Primeiro, obter o ID do funcionário associado ao usuário
             const employeeResponse = await fetch(`/api/employees/by-user/${currentUser.id}`);
             const employeeData = await employeeResponse.json();
             
@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error('Funcionário não encontrado para este usuário');
             }
             
-            // Agora buscamos os agendamentos para este funcionário
+            // Agora buscar os agendamentos para este funcionário
             const appointmentsResponse = await fetch(`/api/appointments/by-employee/${employeeData.id}`);
             const appointmentsData = await appointmentsResponse.json();
             
