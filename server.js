@@ -3685,14 +3685,15 @@ function convertDayToNumber(day) {
     return (day >= 0 && day <= 6) ? day : null;
   }
 
-  const daysMap = {
-    'segunda': 0, 'segunda-feira': 0,
-    'terça': 1, 'terça-feira': 1,
-    'quarta': 2, 'quarta-feira': 2,
-    'quinta': 3, 'quinta-feira': 3,
-    'sexta': 4, 'sexta-feira': 4,
-    'sábado': 5, 'sabado': 5,
-    'domingo': 6
+   const daysMap = {
+    'domingo': 0,
+    'segunda': 1, 'segunda-feira': 1,
+    'terça': 2, 'terça-feira': 2,
+    'quarta': 3, 'quarta-feira': 3,
+    'quinta': 4, 'quinta-feira': 4,
+    'sexta': 5, 'sexta-feira': 5,
+    'sábado': 6, 'sabado': 6
+    
   };
 
   return daysMap[day.toLowerCase()] || null;
@@ -3764,13 +3765,13 @@ app.get("/schedules/:employee_id", async (req, res) => {
     // Função para converter número para nome do dia
     const convertNumberToDayName = (dayNumber) => {
       const days = [
+        'Domingo',
         'Segunda-feira', 
         'Terça-feira',
         'Quarta-feira',
         'Quinta-feira',
         'Sexta-feira',
-        'Sábado',
-        'Domingo'
+        'Sábado'
       ];
       return days[dayNumber] || 'Dia inválido';
     };
