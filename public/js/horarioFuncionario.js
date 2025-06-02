@@ -119,13 +119,13 @@ function addNewScheduleDay(day = '', startTime = '08:00', endTime = '17:00') {
   const scheduleId = Date.now();
   
   const dayOptions = [
+    'Domingo',
     'Segunda-feira', 
     'Terça-feira',
     'Quarta-feira',
     'Quinta-feira',
     'Sexta-feira',
-    'Sábado',
-    'Domingo'
+    'Sábado'
   ];
   
   const scheduleHtml = `
