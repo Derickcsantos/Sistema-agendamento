@@ -366,7 +366,7 @@ async function loadEmployees() {
 
 // Função auxiliar para obter nome do dia
 function getDayName(dayNumber) {
-  const days = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+  const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
   return days[dayNumber] || 'Dia';
 }
 
