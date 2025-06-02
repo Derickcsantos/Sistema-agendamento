@@ -1,38 +1,107 @@
 :root {
-  --primary-color: #bb6cc9;
-  --secondary-color: #ad59d1;
-  --dark-color: #212121;
-  --light-color: #f5f5f5;
+  --sidebar-width: 280px;
+  --sidebar-collapsed-width: 70px;
+  --topbar-height: 60px;
+  --primary-color: #bd7adcd8;
+  --primary-dark: #9c5cb8;
+  --primary-light: #e2c4f0;
+  --secondary-color: #f8f9fc;
+  --text-color: #5a5c69;
+  --text-dark: #2e2e2e;
+  --light-gray: #dddfeb;
+  --dark-gray: #d1d3e2;
+  --white: #ffffff;
+  --black: #000000;
+  --success-color: #28a745;
+  --warning-color: #ffc107;
+  --danger-color: #dc3545;
+  --info-color: #17a2b8;
+  --transition-speed: 0.3s;
 }
 
+/* Tema Claro (Padrão) */
+[data-bs-theme="light"] {
+  --bs-body-bg: var(--secondary-color);
+  --bs-body-color: var(--text-dark);
+  --bs-border-color: var(--light-gray);
+  --bs-card-bg: var(--white);
+  --bs-card-color: var(--text-dark);
+  --bs-navbar-bg: var(--primary-color);
+  --bs-navbar-color: var(--white);
+  --bs-table-bg: var(--white);
+  --bs-table-color: var(--text-dark);
+  --bs-table-hover-bg: rgba(189, 122, 220, 0.1);
+}
+
+/* Tema Escuro */
 [data-bs-theme="dark"] {
   --bs-body-bg: #121212;
   --bs-body-color: #f5f5f5;
-  --bs-light-rgb: 33, 37, 41;
-  --bs-dark-rgb: 248, 249, 250;
-  --bs-primary-rgb: 156, 39, 176;
+  --bs-border-color: #333333;
+  --bs-card-bg: #1e1e1e;
+  --bs-card-color: #f5f5f5;
+  --bs-navbar-bg: #1a1033;
+  --bs-navbar-color: #f5f5f5;
+  --bs-table-bg: #1e1e1e;
+  --bs-table-color: #f5f5f5;
+  --bs-table-hover-bg: rgba(156, 92, 184, 0.2);
 }
 
+/* Estilos Gerais */
 body {
   background-color: var(--bs-body-bg);
   color: var(--bs-body-color);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  transition: background-color var(--transition-speed), color var(--transition-speed);
 }
 
+/* Barra de Navegação */
 .navbar {
+  background-color: var(--bs-navbar-bg) !important;
+  color: var(--bs-navbar-color) !important;
+  height: var(--topbar-height);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition: all var(--transition-speed);
 }
 
 [data-bs-theme="dark"] .navbar {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
+.navbar-brand {
+  font-weight: 700;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.navbar-brand img {
+  height: 40px;
+  margin-right: 10px;
+}
+
+.nav-link {
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  transition: all var(--transition-speed);
+}
+
+.nav-link:hover, .nav-link:focus {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Cards */
 .card {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  background-color: var(--bs-body-bg);
+  transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+  background-color: var(--bs-card-bg);
+  color: var(--bs-card-color);
   border: 1px solid var(--bs-border-color);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
 }
 
 .card:hover {
@@ -44,39 +113,176 @@ body {
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
 }
 
-footer {
-  margin-top: auto;
+.card-header {
+  background-color: var(--primary-color);
+  color: white;
+  font-weight: 600;
+  padding: 1rem 1.5rem;
 }
 
-#btnPerfil {
-  margin-left: auto;
+.card-body {
+  padding: 1.5rem;
 }
 
+/* Botões */
 .btn-primary {
   background-color: var(--primary-color);
   border-color: var(--primary-color);
+  color: white;
+  transition: all var(--transition-speed);
 }
 
-.btn-primary:hover {
-  background-color: var(--secondary-color);
-  border-color: var(--secondary-color);
+.btn-primary:hover, .btn-primary:focus {
+  background-color: var(--primary-dark);
+  border-color: var(--primary-dark);
+  transform: translateY(-2px);
 }
 
-.password-input {
-  border-right: none;
+.btn-outline-primary {
+  color: var(--primary-color);
+  border-color: var(--primary-color);
 }
 
-.toggle-password {
-  border-left: none;
-  background-color: var(--bs-body-bg);
+.btn-outline-primary:hover {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
 }
 
-@media (max-width: 768px) {
+/* Formulários */
+.form-control {
+  background-color: var(--bs-card-bg);
+  color: var(--bs-body-color);
+  border: 1px solid var(--bs-border-color);
+  transition: all var(--transition-speed);
+}
+
+.form-control:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.25rem rgba(189, 122, 220, 0.25);
+}
+
+/* Tabelas */
+.table {
+  color: var(--bs-table-color);
+  background-color: var(--bs-table-bg);
+  margin-bottom: 0;
+}
+
+.table th {
+  border-bottom: 2px solid var(--bs-border-color);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+}
+
+.table td {
+  border-top: 1px solid var(--bs-border-color);
+  vertical-align: middle;
+}
+
+.table-hover tbody tr:hover {
+  background-color: var(--bs-table-hover-bg);
+}
+
+/* Badges */
+.badge {
+  font-weight: 500;
+  padding: 0.5em 0.75em;
+  border-radius: 0.25rem;
+}
+
+.badge.bg-primary {
+  background-color: var(--primary-color) !important;
+}
+
+/* Alertas */
+.alert {
+  border-radius: 0.5rem;
+  padding: 1rem 1.5rem;
+}
+
+/* Ícones */
+.bi {
+  vertical-align: middle;
+}
+
+/* Rodapé */
+footer {
+  margin-top: auto;
+  background-color: var(--bs-navbar-bg);
+  color: var(--bs-navbar-color);
+}
+
+footer a {
+  color: var(--bs-navbar-color);
+  text-decoration: none;
+  transition: color var(--transition-speed);
+}
+
+footer a:hover {
+  color: var(--primary-light);
+}
+
+/* Botão WhatsApp */
+.whatsapp-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #25d366;
+  color: #fff;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: all var(--transition-speed);
+  z-index: 1000;
+}
+
+.whatsapp-button:hover {
+  background-color: #128C7E;
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* Contagem Regressiva */
+#contagemRegressiva {
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: var(--primary-light);
+  color: var(--text-dark);
+  border-left: 4px solid var(--primary-color);
+}
+
+/* Modal */
+.modal-content {
+  background-color: var(--bs-card-bg);
+  color: var(--bs-card-color);
+  border: 1px solid var(--bs-border-color);
+}
+
+.modal-header {
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+.modal-footer {
+  border-top: 1px solid var(--bs-border-color);
+}
+
+/* Responsividade */
+@media (max-width: 992px) {
   .navbar-collapse {
     padding-top: 1rem;
   }
   
-  .d-sm-flex {
+  .d-flex {
     flex-direction: column;
     gap: 0.5rem !important;
   }
@@ -85,57 +291,48 @@ footer {
     width: 100%;
   }
 }
-  
-/* Estilos para a tabela de agendamentos */
-#tabelaAgendamentos {
-  font-size: 0.9rem;
-}
 
-#tabelaAgendamentos th {
-  white-space: nowrap;
-}
-
-#tabelaAgendamentos .badge {
-  font-size: 0.8em;
-  padding: 0.35em 0.65em;
-}
-
-/* Contagem regressiva */
-#contagemRegressiva {
-  font-size: 1.1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.whatsapp-button {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background-color: #25d366;
-    color: #fff;
-    border-radius: 50%;
-    padding: 10px;
-    font-size:12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    transition: background-color 0.3s ease, transform 0.3s ease;
-    z-index: 3;
-}
-
-.whatsapp-button:hover {
-    background-color: #25d366;
-    transform: scale(1.1);
-}
-
-.whatsapp-button i {
-    margin-right: 0;
-    font-size: 3rem;
-}
-
-/* Responsividade */
 @media (max-width: 768px) {
   #tabelaAgendamentos {
     display: block;
     overflow-x: auto;
+    white-space: nowrap;
   }
+  
+  .card {
+    margin-bottom: 1rem;
+  }
+  
+  .table-responsive {
+    border: none;
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--light-gray);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-dark);
 }
