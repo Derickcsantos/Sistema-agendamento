@@ -314,7 +314,9 @@ async function loadServices() {
   }
 }
 
-
+function formatTimeToHHMM(timeStr) {
+  return timeStr && typeof timeStr === 'string' ? timeStr.slice(0, 5) : '';
+}
 
 async function loadEmployees() {
   try {
@@ -331,7 +333,7 @@ async function loadEmployees() {
       // Formatando os horários para exibição
       const schedulesText = employee.work_schedules && employee.work_schedules.length > 0
         ? employee.work_schedules.map(s => 
-            `${getDayName(s.day_of_week)}: ${s.start_time.slice(0, 2)}:${s.start_time.slice(2)}-${s.end_time.slice(0, 2)}:${s.end_time.slice(2)}`
+            `${getDayName(s.day_of_week)}: ${formatTimeToHHMM(s.start_time)}-${formatTimeToHHMM(s.end_time)}`
           ).join('<br>')
         : 'Sem horários definidos';
       
