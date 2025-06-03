@@ -463,23 +463,23 @@ async function handleEmployeeSubmit(e) {
 // Funções auxiliares no cliente
 function convertDayNameToNumber(dayName) {
   // Mapeamento completo e case insensitive
- const daysMap = {
-  'domingo': 0,
-  'segunda': 1,
-  'segunda-feira': 1,
-  'terca': 2,
-  'terca-feira': 2,
-  'terça': 2,
-  'terça-feira': 2,
-  'quarta': 3,
-  'quarta-feira': 3,
-  'quinta': 4,
-  'quinta-feira': 4,
-  'sexta': 5,
-  'sexta-feira': 5,
-  'sabado': 6,
-  'sábado': 6
-};
+  const daysMap = {
+    'domingo': 0,
+    'segunda': 1,
+    'segunda-feira': 1,
+    'terca': 2,
+    'terca-feira': 2,
+    'terça': 2,
+    'terça-feira': 2,
+    'quarta': 3,
+    'quarta-feira': 3,
+    'quinta': 4,
+    'quinta-feira': 4,
+    'sexta': 5,
+    'sexta-feira': 5,
+    'sabado': 6,
+    'sábado': 6
+  };
 
 
   // Normaliza o nome do dia (remove acentos, espaços extras, etc.)
@@ -488,7 +488,7 @@ function convertDayNameToNumber(dayName) {
   .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove acentos
   .trim();
 
-  const dayNumber = daysMap[normalizedDay];
+  return daysMap[normalizedDay];
   
   if (dayNumber === undefined) {
     console.error(`Dia não reconhecido: "${dayName}" (normalizado: "${normalizedDay}")`);
