@@ -345,6 +345,54 @@ async function deleteUser(userId) {
   }
 }
 
+document.addEventListener("DOMContentLoaded", function () {
+    const userTypeSelect = document.getElementById("userType");
+    const employeeSelectContainer = document.getElementById("employeeSelectContainer");
+    const employeeSelect = document.getElementById("employeeSelect");
+
+    // Mock de dados de funcionários
+    const mockEmployees = [
+      { id: 1, name: "João Silva" },
+      { id: 2, name: "Maria Oliveira" },
+      { id: 3, name: "Carlos Souza" }
+    ];
+
+    // Função para popular o select com os funcionários mockados
+    function populateEmployeeSelect() {
+      // Limpa opções anteriores
+      employeeSelect.innerHTML = "";
+
+      // Adiciona opção padrão
+      const defaultOption = document.createElement("option");
+      defaultOption.value = "";
+      defaultOption.textContent = "Selecione um funcionário";
+      defaultOption.disabled = true;
+      defaultOption.selected = true;
+      employeeSelect.appendChild(defaultOption);
+
+      // Adiciona os funcionários mockados
+      mockEmployees.forEach(employee => {
+        const option = document.createElement("option");
+        option.value = employee.id;
+        option.textContent = employee.name;
+        employeeSelect.appendChild(option);
+      });
+    }
+
+    // Listener para alteração do tipo de usuário
+    userTypeSelect.addEventListener("change", function () {
+      const selectedValue = userTypeSelect.value;
+
+      if (selectedValue === "funcionario") {
+        populateEmployeeSelect(); // Preenche o select
+        employeeSelectContainer.style.display = "block"; // Mostra o campo
+      } else {
+        employeeSelectContainer.style.display = "none"; // Esconde o campo
+        employeeSelect.innerHTML = ""; // Limpa as opções
+      }
+    });
+  });
+
 // Função para resetar formulário de usuário (admin)
 function resetUserForm() {
   userForm.reset();
