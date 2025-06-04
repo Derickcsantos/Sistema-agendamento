@@ -352,9 +352,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Mock de dados de funcionários
     const mockEmployees = [
-      { id: 1, name: "João Silva" },
-      { id: 2, name: "Maria Oliveira" },
-      { id: 3, name: "Carlos Souza" }
+      { id: 1, name: "Dayane" },
+      { id: 2, name: "Aline" },
+      { id: 3, name: "Geovana" }
     ];
 
     // Função para popular o select com os funcionários mockados
