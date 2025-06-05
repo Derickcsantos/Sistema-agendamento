@@ -243,7 +243,7 @@ function renderUsersTable(users) {
       <td><span class="badge rounded-pill ${user.tipo === 'admin' ? 'bg-primary badge-admin' :  user.tipo === 'funcionario' ? 'bg-warning text-dark badge-funcionario' : 'bg-secondary badge-comum'}">${user.tipo}</span></td>
       <td>${new Date(user.created_at).toLocaleDateString()}</td>
       <td class="action-buttons">
-        <button class="btn btn-sm btn-warning edit-user" data-id="${user.id}">Editar</button>
+        <button class="btn btn-sm btn-primary edit-user" data-id="${user.id}">Editar</button>
         <button class="btn btn-sm btn-danger delete-user" data-id="${user.id}">Excluir</button>
       </td>
     `;
