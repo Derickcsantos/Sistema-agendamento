@@ -570,7 +570,7 @@ app.get('/api/users/:id', async (req, res) => {
  *         description: Erro interno do servidor
  */
 app.post('/api/users', async (req, res) => {
-  const { username, email, password_plaintext, tipo = 'comum' } = req.body;
+  const { username, email, password_plaintext, tipo = 'comum', employee_id } = req.body;
 
   try {
     const { data: existingUsers, error: userError } = await supabase
@@ -593,6 +593,7 @@ app.post('/api/users', async (req, res) => {
         email,
         password_plaintext,
         tipo,
+        employee_id: tipo === 'funcionario' ? employee_id : null,
         created_at: new Date().toISOString()
       }])
       .select('*')
@@ -643,7 +644,7 @@ app.post('/api/users', async (req, res) => {
 app.put('/api/users/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { username, email, password_plaintext, tipo } = req.body;
+    const { username, email, password_plaintext, tipo, employee_id } = req.body;
 
     if (!username || !email) {
       return res.status(400).json({ error: 'Nome de usuário e e-mail são obrigatórios' });
@@ -654,7 +655,8 @@ app.put('/api/users/:id', async (req, res) => {
       email,
       updated_at: new Date().toISOString(),
       ...(tipo && { tipo }),
-      ...(password_plaintext && { password_plaintext })
+      ...(password_plaintext && { password_plaintext }),
+      employee_id: tipo === 'funcionario' ? employee_id : null
     };
 
     const { data, error } = await supabase

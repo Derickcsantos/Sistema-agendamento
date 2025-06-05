@@ -82,6 +82,19 @@ async function loadAndDisplayUserData() {
         </div>
       `;
     }
+
+        if (currentUser.tipo === 'funcionario') {
+      employeeSelectContainer.style.display = "block";
+      await populateEmployeeSelect(); // Garante que os funcionários já estejam carregados
+
+      // Preencher o funcionário selecionado, se existir
+      if (currentUser.employee_id) {
+        employeeSelect.value = currentUser.employee_id.toString();
+      }
+    } else {
+      employeeSelectContainer.style.display = "none";
+    }
+
   } catch (error) {
     console.error('Erro ao carregar dados do usuário:', error);
     
@@ -129,6 +142,15 @@ async function updateUserProfile(e) {
       ...(password && { password_plaintext: password })
     };
 
+    // Adiciona employee_id se o tipo for funcionario
+    if (userTypeSelect.value === 'funcionario') {
+      const selectedEmployeeId = employeeSelect.value;
+      if (selectedEmployeeId) {
+        updateData.employee_id = parseInt(selectedEmployeeId); // se for integer
+      }
+    }
+
+
     const response = await fetch(`/api/users/${userId}`, {
       method: 'PUT',
       headers: {
@@ -152,7 +174,8 @@ async function updateUserProfile(e) {
       username: updatedUser.username,
       email: updatedUser.email,
       // Mantém a senha existente se não foi alterada, ou atualiza se foi alterada
-      password: password || currentUser.password
+      password: password || currentUser.password,
+      ...(updatedUser.employee_id && { employee_id: updatedUser.employee_id })
     };
     
     localStorage.setItem('currentUser', JSON.stringify(updatedUserData));
@@ -299,15 +322,21 @@ async function createUser(userData) {
 // Função para atualizar usuário (admin)
 async function updateUser(userData) {
   try {
+    const updatePayload = {
+      username: userData.username,
+      email: userData.email,
+      tipo: userData.tipo,
+      ...(userData.password_plaintext && { password_plaintext: userData.password_plaintext }),
+    };
+
+    if (userData.tipo === 'funcionario' && userData.employee_id) {
+      updatePayload.employee_id = userData.employee_id;
+    }
+
     const response = await fetch(`/api/users/${userData.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: userData.username,
-        email: userData.email,
-        tipo: userData.tipo,
-        ...(userData.password_plaintext && { password_plaintext: userData.password_plaintext })
-      })
+      body: JSON.stringify(updatePayload),
     });
 
     const result = await response.json();
@@ -324,6 +353,7 @@ async function updateUser(userData) {
     return false;
   }
 }
+
 
 // Função para excluir usuário (admin)
 async function deleteUser(userId) {
@@ -350,15 +380,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const employeeSelectContainer = document.getElementById("employeeSelectContainer");
     const employeeSelect = document.getElementById("employeeSelect");
 
-    // Mock de dados de funcionários
-    const mockEmployees = [
-      { id: 1, name: "Dayane" },
-      { id: 2, name: "Aline" },
-      { id: 3, name: "Geovana" }
-    ];
-
     // Função para popular o select com os funcionários mockados
-    function populateEmployeeSelect() {
+      async function populateEmployeeSelect() {
       // Limpa opções anteriores
       employeeSelect.innerHTML = "";
 
@@ -370,14 +393,21 @@ document.addEventListener("DOMContentLoaded", function () {
       defaultOption.selected = true;
       employeeSelect.appendChild(defaultOption);
 
-      // Adiciona os funcionários mockados
-      mockEmployees.forEach(employee => {
-        const option = document.createElement("option");
-        option.value = employee.id;
-        option.textContent = employee.name;
-        employeeSelect.appendChild(option);
-      });
+      try {
+        const response = await fetch('/api/admin/employees');
+        const employees = await response.json();
+
+        employees.forEach(employee => {
+          const option = document.createElement("option");
+          option.value = employee.id; // ou employee.name se quiser o nome como value
+          option.textContent = employee.name;
+          employeeSelect.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Erro ao buscar funcionários:', error);
+      }
     }
+
 
     // Listener para alteração do tipo de usuário
     userTypeSelect.addEventListener("change", function () {
