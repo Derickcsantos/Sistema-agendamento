@@ -2100,6 +2100,20 @@ cron.schedule('0 3 * * *', async () => {
   }
 });
 
+// Significa:
+
+// 0 → no minuto 0
+
+// 3 → na hora 3 (ou seja, 03:00)
+
+// * → todos os dias do mês
+
+// * → todos os meses
+
+// * → todos os dias da semana
+
+// 👉 Ou seja: todo dia às 03:00 da manhã.
+
 /**
  * @swagger
  * /api/admin/appointments/{id}/cancel:
