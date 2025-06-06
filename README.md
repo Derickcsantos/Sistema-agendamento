@@ -8,7 +8,6 @@ Sistema de agendamento online com direcionado para salões de beleza. Desenvolvi
 
 - **Backend**: Node.js com Express
 - **Banco de Dados**: Supabase (relacional) e MongoDB (não-relacional)
-- **Autenticação**: JWT com sessões limitadas
 - **Integrações**: WhatsApp via WPPConnect, Nodemailer para e-mails
 - **Interface**: HTML5, JavaScript ES6+
 - **Documentação**: Swagger
