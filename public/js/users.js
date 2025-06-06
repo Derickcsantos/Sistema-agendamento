@@ -295,6 +295,55 @@ async function loadUserForEdit(userId) {
   }
 }
 
+document.addEventListener("DOMContentLoaded", function () {
+    const userTypeSelect = document.getElementById("userType");
+    const employeeSelectContainer = document.getElementById("employeeSelectContainer");
+    const employeeSelect = document.getElementById("employeeSelect");
+
+    // Função para popular o select com os funcionários mockados
+      async function populateEmployeeSelect() {
+      // Limpa opções anteriores
+      employeeSelect.innerHTML = "";
+
+      // Adiciona opção padrão
+      const defaultOption = document.createElement("option");
+      defaultOption.value = "";
+      defaultOption.textContent = "Selecione um funcionário";
+      defaultOption.disabled = true;
+      defaultOption.selected = true;
+      employeeSelect.appendChild(defaultOption);
+
+      try {
+        const response = await fetch('/api/admin/employees');
+        const employees = await response.json();
+
+        employees.forEach(employee => {
+          const option = document.createElement("option");
+          option.value = employee.id_employee; // <-- Agora será um número, como 23e
+          option.textContent = employee.name;
+          employeeSelect.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Erro ao buscar funcionários:', error);
+      }
+    }
+
+
+    // Listener para alteração do tipo de usuário
+    userTypeSelect.addEventListener("change", function () {
+      const selectedValue = userTypeSelect.value;
+
+      if (selectedValue === "funcionario") {
+        populateEmployeeSelect(); // Preenche o select
+        employeeSelectContainer.style.display = "block"; // Mostra o campo
+      } else {
+        employeeSelectContainer.style.display = "none"; // Esconde o campo
+        employeeSelect.innerHTML = ""; // Limpa as opções
+      }
+    });
+  });
+
+
 // Função para criar usuário (admin)
 async function createUser(userData) {
   try {
@@ -329,8 +378,8 @@ async function updateUser(userData) {
       ...(userData.password_plaintext && { password_plaintext: userData.password_plaintext }),
     };
 
-    if (userData.tipo === 'funcionario' && userData.employee_id) {
-      updatePayload.employee_id = userData.employee_id;
+    if (userData.tipo === 'funcionario' && userData.id_employee) {
+      updatePayload.id_employee = userData.id_employee;
     }
 
     const response = await fetch(`/api/users/${userData.id}`, {
@@ -375,54 +424,6 @@ async function deleteUser(userId) {
   }
 }
 
-document.addEventListener("DOMContentLoaded", function () {
-    const userTypeSelect = document.getElementById("userType");
-    const employeeSelectContainer = document.getElementById("employeeSelectContainer");
-    const employeeSelect = document.getElementById("employeeSelect");
-
-    // Função para popular o select com os funcionários mockados
-      async function populateEmployeeSelect() {
-      // Limpa opções anteriores
-      employeeSelect.innerHTML = "";
-
-      // Adiciona opção padrão
-      const defaultOption = document.createElement("option");
-      defaultOption.value = "";
-      defaultOption.textContent = "Selecione um funcionário";
-      defaultOption.disabled = true;
-      defaultOption.selected = true;
-      employeeSelect.appendChild(defaultOption);
-
-      try {
-        const response = await fetch('/api/admin/employees');
-        const employees = await response.json();
-
-        employees.forEach(employee => {
-          const option = document.createElement("option");
-          option.value = employee.id; // ou employee.name se quiser o nome como value
-          option.textContent = employee.name;
-          employeeSelect.appendChild(option);
-        });
-      } catch (error) {
-        console.error('Erro ao buscar funcionários:', error);
-      }
-    }
-
-
-    // Listener para alteração do tipo de usuário
-    userTypeSelect.addEventListener("change", function () {
-      const selectedValue = userTypeSelect.value;
-
-      if (selectedValue === "funcionario") {
-        populateEmployeeSelect(); // Preenche o select
-        employeeSelectContainer.style.display = "block"; // Mostra o campo
-      } else {
-        employeeSelectContainer.style.display = "none"; // Esconde o campo
-        employeeSelect.innerHTML = ""; // Limpa as opções
-      }
-    });
-  });
-
 // Função para resetar formulário de usuário (admin)
 function resetUserForm() {
   userForm.reset();
@@ -449,10 +450,24 @@ document.addEventListener('DOMContentLoaded', function() {
         email: userEmailInput.value.trim(),
         tipo: userTypeSelect.value
       };
-
+      
       if (userPasswordInput.value) {
         userData.password_plaintext = userPasswordInput.value;
       }
+
+       // ✅ Se tipo for "funcionario", adiciona o ID do funcionário selecionado
+      if (userData.tipo === 'funcionario') {
+        const employeeSelect = document.getElementById('employeeSelect');
+        const selectedEmployeeId = employeeSelect?.value;
+
+        if (selectedEmployeeId) {
+          userData.id_employee = selectedEmployeeId;
+        } else {
+          showToast('Você precisa selecionar um funcionário.', 'error');
+          return; // Impede o envio sem um funcionário selecionado
+        }
+      }
+
 
       if (userIdInput.value) {
         userData.id = userIdInput.value;

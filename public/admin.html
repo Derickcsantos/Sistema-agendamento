@@ -400,6 +400,10 @@
                 <label for="serviceDuration" class="form-label">Duração (minutos)</label>
                 <input type="number" class="form-control" id="serviceDuration" required>
               </div>
+              <div class="col-md-6 mb-3 d-flex align-items-center">
+                <input type="text" id="searchServiceInput" class="form-control w-50" placeholder="Buscar serviço por nome...">
+                <button class="btn btn-outline-primary ms-2" id="searchServiceBtn">Buscar</button>
+              </div>      
             </div>
             <div class="row mb-3">
               <div class="col-md-12">
@@ -1094,13 +1098,13 @@
                 <label class="form-label">Dia da Semana</label>
                 <select class="form-select day-select">
                   <option value="">Selecione um dia</option>
-                  <option value="0">Segunda-feira</option>
-                  <option value="1">Terça-feira</option>
-                  <option value="2">Quarta-feira</option>
-                  <option value="3">Quinta-feira</option>
-                  <option value="4">Sexta-feira</option>
-                  <option value="5">Sábado</option>
-                  <option value="6">Domingo</option>
+                  <option value="0">Domingo</option>
+                  <option value="1">Segunda-feira</option>
+                  <option value="2">Terça-feira</option>
+                  <option value="3">Quarta-feira</option>
+                  <option value="4">Quinta-feira</option>
+                  <option value="5">Sexta-feira</option>
+                  <option value="6">Sábado</option>
                 </select>
               </div>
               <div class="col-md-3">

@@ -296,6 +296,42 @@ async function updateUserPassword(userId, newPassword) {
   }
 }
 
+/**
+ * @swagger
+ * /api/forgot-password:
+ *   post:
+ *     summary: Recuperação de senha
+ *     description: Envia uma nova senha para o e-mail do usuário caso ele tenha esquecido.
+ *     tags:
+ *       - Autenticação
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: usuario@exemplo.com
+ *     responses:
+ *       200:
+ *         description: Senha enviada com sucesso por e-mail
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *       404:
+ *         description: E-mail não encontrado
+ *       500:
+ *         description: Erro interno ao processar a solicitação
+ */
 
 // Rota para recuperação de senha
 app.post('/api/forgot-password', async (req, res) => {
@@ -339,6 +375,41 @@ app.post('/api/forgot-password', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/send-confirmation-email:
+ *   post:
+ *     summary: Enviar e-mail de confirmação
+ *     description: Envia um e-mail com assunto e corpo personalizados.
+ *     tags:
+ *       - Notificações
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - subject
+ *               - body
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: cliente@exemplo.com
+ *               subject:
+ *                 type: string
+ *                 example: Confirmação de Agendamento
+ *               body:
+ *                 type: string
+ *                 example: "<p>Olá! Seu agendamento está confirmado.</p>"
+ *     responses:
+ *       200:
+ *         description: E-mail enviado com sucesso
+ *       500:
+ *         description: Erro ao enviar e-mail
+ */
 app.post('/api/send-confirmation-email', async (req, res) => {
   try {
     const { email, subject, body } = req.body;
@@ -358,6 +429,55 @@ app.post('/api/send-confirmation-email', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/send-whatsapp-confirmation:
+ *   post:
+ *     summary: Enviar mensagem de confirmação via WhatsApp
+ *     description: Envia uma mensagem de confirmação de agendamento para o cliente via WhatsApp.
+ *     tags:
+ *       - Notificações
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - clientPhone
+ *               - appointmentDetails
+ *             properties:
+ *               clientPhone:
+ *                 type: string
+ *                 example: "11987654321"
+ *               appointmentDetails:
+ *                 type: object
+ *                 required:
+ *                   - service
+ *                   - professional
+ *                   - date
+ *                   - time
+ *                 properties:
+ *                   service:
+ *                     type: string
+ *                     example: "Corte de Cabelo"
+ *                   professional:
+ *                     type: string
+ *                     example: "Maria Silva"
+ *                   date:
+ *                     type: string
+ *                     example: "2025-06-10"
+ *                   time:
+ *                     type: string
+ *                     example: "14:00"
+ *     responses:
+ *       200:
+ *         description: Mensagem enviada com sucesso
+ *       400:
+ *         description: Dados incompletos
+ *       500:
+ *         description: Erro ao enviar mensagem via WhatsApp
+ */
 // Rota para enviar mensagem via WhatsApp
 app.post('/api/send-whatsapp-confirmation', async (req, res) => {
   try {
@@ -400,6 +520,31 @@ app.post('/api/send-whatsapp-confirmation', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /health:
+ *   get:
+ *     summary: Verifica o estado da aplicação
+ *     description: Retorna o status da API e do cliente WhatsApp.
+ *     tags:
+ *       - Sistema
+ *     responses:
+ *       200:
+ *         description: Sistema está saudável
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: healthy
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *       503:
+ *         description: Cliente WhatsApp não conectado
+ */
 // Health Check
 app.get('/health', (req, res) => {
   res.status(whatsappClient ? 200 : 503).json({
@@ -407,6 +552,7 @@ app.get('/health', (req, res) => {
     timestamp: new Date()
   });
 });
+
 async function startWhatsappBot() {
   try {
     const sessionExists = fs.existsSync(SESSION_FILE);
@@ -570,7 +716,7 @@ app.get('/api/users/:id', async (req, res) => {
  *         description: Erro interno do servidor
  */
 app.post('/api/users', async (req, res) => {
-  const { username, email, password_plaintext, tipo = 'comum', employee_id } = req.body;
+  const { username, email, password_plaintext, tipo = 'comum', id_employee } = req.body;
 
   try {
     const { data: existingUsers, error: userError } = await supabase
@@ -593,7 +739,7 @@ app.post('/api/users', async (req, res) => {
         email,
         password_plaintext,
         tipo,
-        employee_id: tipo === 'funcionario' ? employee_id : null,
+        id_employee: tipo === 'funcionario' ? id_employee : null,
         created_at: new Date().toISOString()
       }])
       .select('*')
@@ -644,7 +790,7 @@ app.post('/api/users', async (req, res) => {
 app.put('/api/users/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { username, email, password_plaintext, tipo, employee_id } = req.body;
+    const { username, email, password_plaintext, tipo, id_employee } = req.body;
 
     if (!username || !email) {
       return res.status(400).json({ error: 'Nome de usuário e e-mail são obrigatórios' });
@@ -656,7 +802,7 @@ app.put('/api/users/:id', async (req, res) => {
       updated_at: new Date().toISOString(),
       ...(tipo && { tipo }),
       ...(password_plaintext && { password_plaintext }),
-      employee_id: tipo === 'funcionario' ? employee_id : null
+      id_employee: tipo === 'funcionario' ? id_employee : null
     };
 
     const { data, error } = await supabase
@@ -2762,6 +2908,25 @@ app.get('/api/admin/services/:id', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+app.get('/api/admin/services/search', async (req, res) => {
+  try {
+    const { name } = req.query;
+
+    const { data, error } = await supabase
+      .from('services')
+      .select('*, categories(name)')
+      .ilike('name', `%${name}%`);
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (error) {
+    console.error('Erro na busca de serviços:', error);
+    res.status(500).json({ error: 'Erro interno no servidor' });
+  }
+});
+
 
 /**
  * @swagger

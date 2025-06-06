@@ -314,6 +314,64 @@ async function loadServices() {
   }
 }
 
+async function searchServicesByName(name) {
+  try {
+    const response = await fetch(`/api/admin/services/search?name=${encodeURIComponent(name)}`);
+    if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status}`);
+    
+    const data = await response.json();
+    renderServicesTable(data);
+  } catch (error) {
+    console.error('Erro ao buscar serviços:', error);
+    showToast(`Erro ao buscar serviços: ${error.message}`, 'error');
+  }
+}
+
+function renderServicesTable(data) {
+  const tableBody = document.getElementById('servicesTable');
+  tableBody.innerHTML = '';
+
+  data.forEach(service => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${service.id}</td>
+      <td>${service.name}</td>
+      <td>${service.categories?.name || 'N/A'}</td>
+      <td>${service.duration} min</td>
+      <td>R$ ${service.price?.toFixed(2) || '0,00'}</td>
+      <td>
+        <button class="btn btn-sm btn-primary edit-service" data-id="${service.id}">Editar</button>
+        <button class="btn btn-sm btn-danger delete-service" data-id="${service.id}">Excluir</button>
+      </td>
+    `;
+    tableBody.appendChild(row);
+  });
+}
+
+async function searchServicesByName(name) {
+  try {
+    const response = await fetch(`/api/admin/services/search?name=${encodeURIComponent(name)}`);
+    if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status}`);
+    
+    const data = await response.json();
+    renderServicesTable(data);
+  } catch (error) {
+    console.error('Erro ao buscar serviços:', error);
+    showToast(`Erro ao buscar serviços: ${error.message}`, 'error');
+  }
+}
+
+// Evento no botão de busca
+document.getElementById('searchServiceBtn').addEventListener('click', () => {
+  const searchValue = document.getElementById('searchServiceInput').value.trim();
+  if (searchValue) {
+    searchServicesByName(searchValue);
+  } else {
+    loadServices(); // mostra todos se o campo estiver vazio
+  }
+});
+
+
 function formatTimeToHHMM(timeStr) {
   return timeStr && typeof timeStr === 'string' ? timeStr.slice(0, 5) : '';
 }
