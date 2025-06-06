@@ -2764,15 +2764,20 @@ app.get('/api/services', async (req, res) => {
 // Rotas para serviços
 app.get('/api/admin/services', async (req, res) => {
   try {
+    console.log('Buscando serviços...'); // Log para verificar o fluxo
     const { data, error } = await supabase
       .from('services')
       .select('*, categories(name)')
       .order('name', { ascending: true });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Erro ao buscar dados do Supabase:', error); // Log do erro detalhado
+      throw error;
+    }
+    console.log('Serviços encontrados:', data); // Log dos dados recebidos
     res.json(data);
   } catch (error) {
-    console.error('Error fetching services:', error);
+    console.error('Erro no servidor ao buscar serviços:', error); // Log do erro geral
     res.status(500).json({ error: 'Internal server error' });
   }
 });

@@ -285,14 +285,16 @@ async function loadCategories() {
 async function loadServices() {
   try {
     const response = await fetch('/api/admin/services');
-    if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status}`);
-    
+    if (!response.ok) {
+      throw new Error(`Erro HTTP! status: ${response.status}`);
+    }
+
     const data = await response.json();
     const tableBody = document.getElementById('servicesTable');
     if (!tableBody) return;
-    
+
     tableBody.innerHTML = '';
-    
+
     data.forEach(service => {
       const row = document.createElement('tr');
       row.innerHTML = `
@@ -313,6 +315,7 @@ async function loadServices() {
     showToast(`Erro ao carregar serviços: ${error.message}`, 'error');
   }
 }
+
 
 async function searchServicesByName(name) {
   try {
