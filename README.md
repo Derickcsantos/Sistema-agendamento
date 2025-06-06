@@ -1,10 +1,8 @@
 # Sistema de Agendamento para Salão de Beleza
 
-![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)
-![GitHub language count](https://img.shields.io/github/languages/count/Derickcsantos/Sistema-agendamento)
-![GitHub top language](https://img.shields.io/github/languages/top/Derickcsantos/Sistema-agendamento)
+## Sobre o projeto
 
-Desenvolvido por [Derick Campos Santos](https://www.linkedin.com/in/derick-campos-santos), este sistema oferece uma solução completa e eficiente para gerenciamento de agendamentos em salões de beleza, combinando tecnologias modernas e boas práticas de desenvolvimento.
+Sistema de agendamento online com direcionado para salões de beleza. Desenvolvido com objetivo de otimizar o processo de agendamento, gerenciamento de serviços e gestão financeira. O sistema oferece uma solução completa e eficiente para gerenciamento de salões de beleza, combinando tecnologias modernas e boas práticas de desenvolvimento.
 
 ## 🚀 Tecnologias Utilizadas
 
