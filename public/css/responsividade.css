@@ -714,3 +714,170 @@
   .tab-content > .active {
     display: block;
   }
+
+ /* Estilos base para o calendário */
+#calendar {
+  max-width: 100%;
+  margin: 0 auto;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  padding: 1rem;
+  min-height: 500px; /* Altura mínima para evitar colapso */
+}
+
+/* Estilos para desktop (acima de 768px) */
+@media (min-width: 768px) {
+  #calendar {
+    padding: 1.5rem;
+  }
+  
+  .fc-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  
+  .fc-header-toolbar {
+    margin-bottom: 1.5em;
+  }
+}
+
+/* Estilos para mobile (abaixo de 768px) */
+@media (max-width: 767px) {
+  #calendar {
+    padding: 0.5rem;
+    min-height: 400px;
+  }
+  
+  /* Ajusta a toolbar para mobile */
+  .fc-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .fc-toolbar-title {
+    font-size: 1.25rem;
+    margin: 0.5rem 0;
+    order: 1;
+  }
+  
+  .fc-toolbar-chunk {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    width: 100%;
+  }
+  
+  /* Botões de navegação */
+  .fc-prev-button, 
+  .fc-next-button,
+  .fc-today-button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+  }
+  
+  /* Botões de visualização */
+  .fc-timeGridWeek-button,
+  .fc-timeGridDay-button,
+  .fc-listWeek-button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
+  }
+  
+  /* Cabeçalho dos dias */
+  .fc-col-header-cell {
+    font-size: 0.7rem;
+    padding: 0.25rem;
+  }
+  
+  /* Células de tempo */
+  .fc-timegrid-slot {
+    height: 2em !important;
+    font-size: 0.7rem;
+  }
+  
+  /* Eventos */
+  .fc-event {
+    font-size: 0.65rem;
+    padding: 1px 2px;
+    margin: 1px 0;
+  }
+  
+  /* Esconde alguns elementos em mobile */
+  .fc-timegrid-axis {
+    display: none;
+  }
+}
+
+/* Estilos gerais para eventos */
+.fc-event {
+  cursor: pointer;
+  border-radius: 3px;
+  border: none;
+}
+
+.fc-event-title {
+  white-space: normal;
+  font-weight: 500;
+  display: block;
+  padding: 2px;
+}
+
+.fc-event-time {
+  font-weight: bold;
+  margin-right: 3px;
+}
+
+/* Estado de loading */
+#calendar.loading {
+  opacity: 0.7;
+  pointer-events: none;
+  position: relative;
+}
+
+#calendar.loading::after {
+  content: "Carregando...";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  font-size: 1rem;
+  z-index: 1000;
+}
+
+/* Ajustes para a visualização de lista em mobile */
+.fc-list-view {
+  font-size: 0.8rem;
+}
+
+.fc-list-event td {
+  padding: 0.3rem;
+}
+
+/* Ajustes para o spinner no botão */
+#toggleSpinner {
+  margin-right: 8px;
+}
+
+/* Melhorias para a visualização de dia */
+.fc-timeGridDay-view .fc-timegrid-slot {
+  height: 3em !important;
+}
+
+/* Corrige a altura das células em mobile */
+.fc-scrollgrid-section-body table {
+  height: auto !important;
+}
+
+/* Ajusta o cabeçalho em telas pequenas */
+.fc-col-header-cell-cushion {
+  display: block;
+  padding: 2px;
+  white-space: normal;
+  text-align: center;
+}

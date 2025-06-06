@@ -437,39 +437,224 @@ function getDayName(dayNumber) {
   return days[dayNumber] || 'Dia';
 }
 
-// Função para carregar todos os agendamentos com filtros
-// Função para formatar a data para YYYY-MM-DD
-function formatDateForAPI(dateString) {
-  if (!dateString) return null;
+// Variável para controlar a visualização atual
+let isCalendarView = false;
+let calendar = null; // Armazenamos a instância do calendário globalmente
+
+// Inicializa a aplicação quando o DOM estiver pronto
+document.addEventListener('DOMContentLoaded', function() {
+  initializeViews();
+});
+
+async function initializeViews() {
+  const toggleViewBtn = document.getElementById('toggleView');
+  const tableView = document.getElementById('tableView');
+  const calendarView = document.getElementById('calendarView');
+  const calendarEl = document.getElementById('calendar');
   
-  // Converte de DD-MM-YYYY para YYYY-MM-DD
-  const parts = dateString.split('-');
-  if (parts.length === 3) {
-    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  // Verifica se os elementos existem
+  if (!toggleViewBtn || !tableView || !calendarView || !calendarEl) {
+    console.error('Elementos necessários não encontrados no DOM');
+    return;
   }
-  return dateString; // Retorna no formato original se não puder converter
+
+  // Carrega os dados iniciais (tabela)
+  await loadAppointments();
+
+  // Configura o listener do botão com tratamento de loading
+  toggleViewBtn.addEventListener('click', async () => {
+    const spinner = document.getElementById('toggleSpinner');
+    const text = document.getElementById('toggleText');
+    
+    // Ativa o estado de carregamento
+    spinner.classList.remove('d-none');
+    text.textContent = isCalendarView ? 'Carregando tabela...' : 'Carregando calendário...';
+    toggleViewBtn.disabled = true;
+    
+    try {
+      isCalendarView = !isCalendarView;
+      
+      if (isCalendarView) {
+        // Mostra o calendário e esconde a tabela
+        tableView.classList.add('d-none');
+        calendarView.classList.remove('d-none');
+        
+        // Inicializa o calendário se não existir
+        if (!calendar) {
+          calendar = initializeCalendar(calendarEl);
+          await calendar.render();
+        } else {
+          // Força uma atualização completa do calendário
+          await calendar.refetchEvents();
+          calendar.render();
+        }
+      } else {
+        // Mostra a tabela e esconde o calendário
+        tableView.classList.remove('d-none');
+        calendarView.classList.add('d-none');
+        
+        // Recarrega os dados da tabela
+        await loadAppointments();
+      }
+    } catch (error) {
+      console.error('Erro ao alternar visualizações:', error);
+      showToast('Erro ao alternar visualizações. Tente novamente.', 'error');
+      
+      // Reverte a mudança em caso de erro
+      isCalendarView = !isCalendarView;
+    } finally {
+      // Restaura o estado normal do botão
+      spinner.classList.add('d-none');
+      text.textContent = isCalendarView ? 'Visualizar como Tabela' : 'Visualizar por Semana';
+      toggleViewBtn.disabled = false;
+    }
+  });
 }
 
+function initializeCalendar(calendarEl) {
+  return new FullCalendar.Calendar(calendarEl, {
+    initialView: 'timeGridWeek',
+    locale: 'pt-br',
+    headerToolbar: {
+      left: 'prev,next today',
+      center: 'title',
+      right: 'timeGridWeek,timeGridDay,listWeek'
+    },
+    buttonText: {
+      today: 'Hoje',
+      week: 'Semana',
+      day: 'Dia',
+      list: 'Lista'
+    },
+    slotMinTime: '08:00:00',
+    slotMaxTime: '22:00:00',
+    slotLabelInterval: '01:00', // Mostrar rótulos a cada 1 hora
+    slotDuration: '00:30:00', // Intervalos de 30 minutos
+    height: 'auto',
+    
+    events: async function(fetchInfo, successCallback, failureCallback) {
+      try {
+        // Converte as datas para o formato esperado pela API
+        const startDate = formatDateForAPI(fetchInfo.start);
+        const endDate = formatDateForAPI(fetchInfo.end);
+        
+        // Adiciona feedback visual de loading
+        calendarEl.classList.add('loading');
+        
+        const response = await fetch(`/api/admin/appointments?start_date=${startDate}&end_date=${endDate}`);
+        if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status}`);
+        
+        const data = await response.json();
+        
+        // Formata os eventos para o FullCalendar
+        const events = data.map(appointment => ({
+          id: appointment.id,
+          title: `${appointment.client_name} - ${appointment.services?.name || 'Serviço'}`,
+          start: `${appointment.appointment_date}T${appointment.start_time}`,
+          end: `${appointment.appointment_date}T${appointment.end_time}`,
+          extendedProps: {
+            employee: appointment.employees?.name || 'N/A',
+            status: appointment.status
+          },
+          color: getStatusColor(appointment.status)
+        }));
+        
+        successCallback(events);
+      } catch (error) {
+        console.error('Erro ao carregar eventos:', error);
+        failureCallback(error);
+        showToast('Erro ao carregar agendamentos para o calendário.', 'error');
+      } finally {
+        calendarEl.classList.remove('loading');
+      }
+    },
+    loading: function(isLoading) {
+      // Feedback visual adicional durante o carregamento
+      if (isLoading) {
+        calendarEl.classList.add('loading');
+      } else {
+        calendarEl.classList.remove('loading');
+      }
+    },
+    eventClick: function(info) {
+      // Implemente a lógica para mostrar detalhes do agendamento
+      console.log('Evento clicado:', info.event);
+      // Exemplo: abrir modal com info.event.extendedProps
+    }
+  });
+}
+  calendar.render();
+
+  // Função auxiliar para formatar data para a API
+  function formatDateForAPI(date) {
+    const d = new Date(date);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+  }
+  
+  // Função auxiliar para definir cores baseadas no status
+  function getStatusColor(status) {
+    switch (status) {
+      case 'confirmed': return '#0d6efd'; // verde
+      case 'completed': return '#198754'; // azul
+      case 'canceled': return '#dc3545'; // vermelho
+      default: return '#6c757d'; // cinza
+    }
+  }
+
+function toggleCalendarView() {
+  if (!tableView || !calendarView) return;
+  
+  isCalendarView = !isCalendarView;
+  
+  if (isCalendarView) {
+    tableView.classList.add('d-none');
+    calendarView.classList.remove('d-none');
+    toggleViewBtn.textContent = 'Tabela';
+    calendar.refetchEvents();
+  } else {
+    tableView.classList.remove('d-none');
+    calendarView.classList.add('d-none');
+    toggleViewBtn.textContent = 'Visão geral';
+    loadAppointments();
+  }
+}
+
+if (toggleViewBtn) {
+  toggleViewBtn.addEventListener('click', toggleCalendarView);
+}
+
+// Modifique sua função loadAppointments para aceitar datas de início e fim
 async function loadAppointments(filters = {}) {
   try {
     const queryParams = new URLSearchParams();
     
     if (filters.search) queryParams.append('search', filters.search);
     if (filters.date) {
-      // Converte de YYYY-MM-DD (input) para DD-MM-YYYY (banco)
       const [year, month, day] = filters.date.split('-');
       queryParams.append('date', `${day}-${month}-${year}`);
     }
     if (filters.employee) queryParams.append('employee', filters.employee);
+    if (filters.start_date) queryParams.append('start_date', filters.start_date);
+    if (filters.end_date) queryParams.append('end_date', filters.end_date);
 
     const response = await fetch(`/api/admin/appointments?${queryParams.toString()}`);
     if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status}`);
     
     const data = await response.json();
-    renderAppointmentsTable(data);
+    
+    // Se estiver na visualização de tabela, renderiza a tabela
+    if (!isCalendarView) {
+      renderAppointmentsTable(data);
+    }
+    
+    return data;
   } catch (error) {
     console.error('Erro ao carregar agendamentos:', error);
     showToast('Erro ao carregar agendamentos. Tente novamente.', 'error');
+    throw error;
   }
 }
 
@@ -653,6 +838,7 @@ function renderAppointmentsTable(appointments) {
 
   // ... (outros event listeners se necessário)
 }
+
 
 // Funções auxiliares para status
 function getStatusBadgeClass(status) {

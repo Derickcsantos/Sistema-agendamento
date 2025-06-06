@@ -1964,7 +1964,7 @@ app.get('/api/appointments/by-employee/:employeeId', async (req, res) => {
 // Rotas para agendamentos (admin)
 app.get('/api/admin/appointments', async (req, res) => {
   try {
-    const { search, date, employee } = req.query;
+    const { search, date, employee, start_date, end_date } = req.query;
     let query = supabase
       .from('appointments')
       .select(`
@@ -1984,10 +1984,18 @@ app.get('/api/admin/appointments', async (req, res) => {
       const [day, month, year] = date.split('-');
       const dbDate = `${year}-${month}-${day}`;
       query = query.eq('appointment_date', dbDate);
+    } else if (start_date && end_date) {
+      // Converte DD-MM-YYYY para YYYY-MM-DD
+      const [startDay, startMonth, startYear] = start_date.split('-');
+      const [endDay, endMonth, endYear] = end_date.split('-');
+      
+      const dbStartDate = `${startYear}-${startMonth}-${startDay}`;
+      const dbEndDate = `${endYear}-${endMonth}-${endDay}`;
+      
+      query = query.gte('appointment_date', dbStartDate).lte('appointment_date', dbEndDate);
     }
 
     if (employee) {
-      // Filtrar usando a relação com employees
       query = query.ilike('employees.name', `%${employee}%`);
     }
 
@@ -1995,7 +2003,6 @@ app.get('/api/admin/appointments', async (req, res) => {
 
     if (error) throw error;
     
-    // Filtro adicional para funcionários (caso o filtro do Supabase não funcione)
     let filteredData = data;
     if (employee) {
       filteredData = data.filter(appt => 
