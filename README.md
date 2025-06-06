@@ -80,4 +80,4 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 
 ---
 
-Desenvolvido com 💻 e 🤍 por [Derick Campos Santos](https://www.linkedin.com/in/derick-campos-santos)
+Desenvolvido por [Derick Campos Santos](https://www.linkedin.com/in/derick-campos-santos)
