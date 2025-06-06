@@ -2764,23 +2764,32 @@ app.get('/api/services', async (req, res) => {
 // Rotas para serviços
 app.get('/api/admin/services', async (req, res) => {
   try {
-    console.log('Buscando serviços...'); // Log para verificar o fluxo
-    const { data, error } = await supabase
+    const { name } = req.query;
+
+    let query = supabase
       .from('services')
       .select('*, categories(name)')
       .order('name', { ascending: true });
 
+    // Se o parâmetro `name` for fornecido, aplica o filtro
+    if (name) {
+      query = query.ilike('name', `%${name}%`);
+    }
+
+    const { data, error } = await query;
+
     if (error) {
-      console.error('Erro ao buscar dados do Supabase:', error); // Log do erro detalhado
+      console.error('Erro ao buscar dados do Supabase:', error);
       throw error;
     }
-    console.log('Serviços encontrados:', data); // Log dos dados recebidos
+
     res.json(data);
   } catch (error) {
-    console.error('Erro no servidor ao buscar serviços:', error); // Log do erro geral
+    console.error('Erro no servidor ao buscar serviços:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 
 /**
  * @swagger
@@ -2913,25 +2922,6 @@ app.get('/api/admin/services/:id', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-
-app.get('/api/admin/services/search', async (req, res) => {
-  try {
-    const { name } = req.query;
-
-    const { data, error } = await supabase
-      .from('services')
-      .select('*, categories(name)')
-      .ilike('name', `%${name}%`);
-
-    if (error) throw error;
-
-    res.json(data);
-  } catch (error) {
-    console.error('Erro na busca de serviços:', error);
-    res.status(500).json({ error: 'Erro interno no servidor' });
-  }
-});
-
 
 /**
  * @swagger

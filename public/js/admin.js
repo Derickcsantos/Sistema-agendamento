@@ -80,13 +80,19 @@ async function loadCategories() {
 // Funções auxiliares
 function formatDate(dateString) {
   try {
+    const date = new Date(dateString);
+
+    // Corrige o fuso horário manualmente adicionando o offset (em milissegundos)
+    const localDate = new Date(date.getTime() + (date.getTimezoneOffset() * 60000));
+
     const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
-    return new Date(dateString).toLocaleDateString('pt-BR', options);
+    return localDate.toLocaleDateString('pt-BR', options);
   } catch (error) {
     console.error('Erro ao formatar data:', error);
     return dateString;
   }
 }
+
 
 function getStatusBadgeClass(status) {
   switch (status) {
@@ -353,7 +359,7 @@ function renderServicesTable(data) {
 
 async function searchServicesByName(name) {
   try {
-    const response = await fetch(`/api/admin/services/search?name=${encodeURIComponent(name)}`);
+    const response = await fetch(`/api/admin/services?name=${encodeURIComponent(name)}`);
     if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status}`);
     
     const data = await response.json();
@@ -364,15 +370,13 @@ async function searchServicesByName(name) {
   }
 }
 
-// Evento no botão de busca
+// Evento do botão de busca
 document.getElementById('searchServiceBtn').addEventListener('click', () => {
   const searchValue = document.getElementById('searchServiceInput').value.trim();
-  if (searchValue) {
-    searchServicesByName(searchValue);
-  } else {
-    loadServices(); // mostra todos se o campo estiver vazio
-  }
+  searchServicesByName(searchValue); // Busca com ou sem valor
 });
+
+
 
 
 function formatTimeToHHMM(timeStr) {
