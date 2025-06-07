@@ -86,17 +86,17 @@ const mongoURI = process.env.MONGO_URI || 'mongodb+srv://derickcampos:Dede%4002%
 
 
 // Conexão com MongoDB
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 10000,
-  socketTimeoutMS: 45000
-})
-.then(() => console.log('✅ MongoDB conectado com sucesso'))
-.catch(err => {
-  console.error('❌ Falha na conexão com MongoDB:', err);
-  process.exit(1);
-});
+// mongoose.connect(process.env.MONGO_URI, {
+//   useNewUrlParser: true,
+//   useUnifiedTopology: true,
+//   serverSelectionTimeoutMS: 10000,
+//   socketTimeoutMS: 45000
+// })
+// .then(() => console.log('✅ MongoDB conectado com sucesso'))
+// .catch(err => {
+//   console.error('❌ Falha na conexão com MongoDB:', err);
+//   process.exit(1);
+// });
 
 // Modelo da Galeria
 const ImagemSchema = new mongoose.Schema({

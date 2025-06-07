@@ -12,8 +12,13 @@ document.addEventListener('DOMContentLoaded', function() {
   const perfilModal = new bootstrap.Modal(document.getElementById('perfilModal'));
   const btnPerfil = document.getElementById('btnPerfil');
   const btnLogout = document.getElementById('btnLogout');
-  const themeToggle = document.getElementById('themeToggle');
   const profileForm = document.getElementById('profileForm');
+  const themeToggle = document.getElementById('themeToggle');
+
+  // Aplicar tema salvo ao carregar
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-bs-theme', savedTheme);
+  updateThemeIcon();
 
   // Configurar páginas
   if (window.location.pathname === '/logado/agendamentos') {
@@ -37,14 +42,15 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Função para carregar dados do perfil
+  // Função para carregar dados do perfil - CORRIGIDA
   function carregarDadosPerfil(user) {
-    document.getElementById('profileUsername').value = user.username || '';
+    document.getElementById('profileName').value = user.name || '';
+    document.getElementById('profilePhone').value = user.phone || '';
     document.getElementById('profileEmail').value = user.email || '';
+    document.getElementById('profileBirthdate').value = user.birthdate || '';
     document.getElementById('profileTipo').value = user.tipo || 'comum';
     perfilModal.show();
   }
-
   // Função para carregar agendamentos
   async function carregarAgendamentos(user) {
     try {
@@ -207,7 +213,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.location.href = '/login';
   }
 
-  // Função para alternar tema
+    // Função para alternar tema - CORRIGIDA
   function toggleTheme() {
     const currentTheme = document.documentElement.getAttribute('data-bs-theme');
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
@@ -216,19 +222,23 @@ document.addEventListener('DOMContentLoaded', function() {
     updateThemeIcon();
   }
 
-  // Função para atualizar ícone do tema
+  // Função para atualizar ícone do tema - CORRIGIDA
   function updateThemeIcon() {
     const currentTheme = document.documentElement.getAttribute('data-bs-theme');
     const icon = themeToggle.querySelector('i');
+    const banner = document.getElementById('bannerPrincipal');
     
     if (currentTheme === 'dark') {
       icon.classList.remove('bi-moon-fill');
       icon.classList.add('bi-sun-fill');
+      banner.style.backgroundColor = '#771bce'; // Cor escura
     } else {
       icon.classList.remove('bi-sun-fill');
       icon.classList.add('bi-moon-fill');
+      banner.style.backgroundColor = '#9c5cb8'; // Cor escura
     }
   }
+
 
   // Funções auxiliares
   function formatarData(dataString) {
@@ -318,8 +328,26 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // Carregar tema salvo
-  const savedTheme = localStorage.getItem('theme') || 'light';
-  document.documentElement.setAttribute('data-bs-theme', savedTheme);
-  updateThemeIcon();
+  // Ano atual no footer
+    document.getElementById('ano').textContent = new Date().getFullYear();
+    
+    // Inicializar VLibras
+    new window.VLibras.Widget('https://vlibras.gov.br/app');
+    
+    
+    // Definir ícone inicial
+    const icon = themeToggle.querySelector('i');
+    icon.className = savedTheme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+    
+    // Alternar visibilidade da senha
+    document.querySelectorAll('.toggle-password').forEach(button => {
+      button.addEventListener('click', function() {
+        const input = this.previousElementSibling;
+        const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+        input.setAttribute('type', type);
+        
+        const icon = this.querySelector('i');
+        icon.className = type === 'password' ? 'bi bi-eye-slash-fill' : 'bi bi-eye-fill';
+      });
+    });
 });

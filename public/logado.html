@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
   
   <!-- CSS Customizado -->
-  <link rel="stylesheet" href="/css/logado.css">
+  <link rel="stylesheet" href="css/logado.css">
   
   <!-- Fonte Poppins -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -39,8 +39,8 @@
   <!-- Barra de Navegação -->
   <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
     <div class="container-fluid">
-      <a class="navbar-brand" href="/logado">
-        <img src="img/LogoPaulaTrancas.png" alt="Logo" class="d-inline-block align-top">
+      <a class="navbar-brand" href="/logado" >
+        <img src="img/LogoPaulaTrancas.png" alt="Logo" class="d-inline-block align-top" style="border-radius: 50%;">
         Paula Tranças
       </a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -85,13 +85,13 @@
     <div id="paginaInicial" class="fade-in">
       <div class="container my-4">
         <!-- Banner Hero -->
-        <div class="hero-banner bg-primary text-white rounded-3 p-5 mb-5 position-relative overflow-hidden">
+        <div id="bannerPrincipal" class="hero-banner text-white rounded-3 p-5 mb-5 position-relative overflow-hidden" style="background-color: #9c5cb8;">
           <div class="position-absolute top-0 end-0 opacity-25">
             <i class="bi bi-scissors" style="font-size: 8rem;"></i>
           </div>
           <div class="position-relative z-index-1">
-            <h1 class="display-4 fw-bold mb-3">Bem-vinda ao Salão Paula Tranças</h1>
-            <p class="lead mb-4">Seu espaço de beleza e bem-estar, onde cada detalhe é pensado para realçar sua beleza única.</p>
+            <h1 class="display-4 fw-bold mb-3 text-center">Bem-vindo(a) ao Salão Paula Tranças</h1>
+            <p class="lead mb-4 text-center">Seu espaço de beleza e bem-estar, onde cada detalhe é pensado para realçar sua beleza única.</p>
             <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
               <a href="/" class="btn btn-light btn-lg px-4 gap-3">
                 <i class="bi bi-calendar-plus"></i> Agendar Agora
@@ -110,11 +110,11 @@
             <div class="card h-100 border-0 shadow-sm">
               <div class="card-body text-center p-4">
                 <div class="icon-wrapper bg-primary-light rounded-circle p-3 mb-3 mx-auto" style="width: 80px; height: 80px;">
-                  <i class="bi bi-scissors text-primary" style="font-size: 2rem;"></i>
+                  <i class="bi bi-scissors" style="font-size: 2rem; color: #9c5cb8;"></i>
                 </div>
                 <h3 class="h4">Tranças e Penteados</h3>
                 <p class="card-text">Transforme seu visual com nossas tranças exclusivas e penteados sofisticados para cada ocasião.</p>
-                <a href="/" class="btn btn-sm btn-outline-primary mt-2">Agendar</a>
+                <a onclick="window.location.href='/'" class="btn btn-sm btn-outline-primary mt-2">Agendar</a>
               </div>
             </div>
           </div>
@@ -122,11 +122,11 @@
             <div class="card h-100 border-0 shadow-sm">
               <div class="card-body text-center p-4">
                 <div class="icon-wrapper bg-primary-light rounded-circle p-3 mb-3 mx-auto" style="width: 80px; height: 80px;">
-                  <i class="bi bi-palette text-primary" style="font-size: 2rem;"></i>
+                  <i class="bi bi-palette" style="font-size: 2rem; color: #9c5cb8;"></i>
                 </div>
                 <h3 class="h4">Alongamentos</h3>
                 <p class="card-text">Alongamentos de cabelo com técnicas avançadas e produtos de alta qualidade para um resultado natural.</p>
-                <a href="/" class="btn btn-sm btn-outline-primary mt-2">Agendar</a>
+                <a onclick="window.location.href='/'" class="btn btn-sm btn-outline-primary mt-2">Agendar</a>
               </div>
             </div>
           </div>
@@ -134,11 +134,11 @@
             <div class="card h-100 border-0 shadow-sm">
               <div class="card-body text-center p-4">
                 <div class="icon-wrapper bg-primary-light rounded-circle p-3 mb-3 mx-auto" style="width: 80px; height: 80px;">
-                  <i class="bi bi-emoji-heart-eyes text-primary" style="font-size: 2rem;"></i>
+                  <i class="bi bi-emoji-heart-eyes" style="font-size: 2rem; color: #9c5cb8;"></i>
                 </div>
                 <h3 class="h4">Tratamentos</h3>
                 <p class="card-text">Tratamentos capilares personalizados para cuidar da saúde e beleza dos seus cabelos.</p>
-                <a href="/" class="btn btn-sm btn-outline-primary mt-2">Agendar</a>
+                <a onclick="window.location.href='/'" class="btn btn-sm btn-outline-primary mt-2">Agendar</a>
               </div>
             </div>
           </div>
@@ -305,25 +305,26 @@
           <h5 class="text-white mb-3">Salão Paula Tranças</h5>
           <p class="text-white-50">Especializado em beleza feminina, oferecemos serviços personalizados para realçar sua beleza natural.</p>
           <div class="social-icons mt-3">
-            <a href="#" class="text-white me-2"><i class="bi bi-facebook"></i></a>
-            <a href="#" class="text-white me-2"><i class="bi bi-instagram"></i></a>
-            <a href="#" class="text-white"><i class="bi bi-tiktok"></i></a>
+            <a href="https://wa.me/5511952801212" class="text-white me-2"><i class="bi bi-whatsapp"></i></a>
+            <a href="instagram.com/paulatrancasealongamentos" class="text-white me-2"><i class="bi bi-instagram"></i></a>
+            <a href="linkedin.com/in/derick-campos-santos" class="text-white"><i class="bi bi-linkedin"></i></a>
           </div>
         </div>
         <div class="col-lg-2 col-md-6 mb-4 mb-md-0">
           <h5 class="text-white mb-3">Links</h5>
           <ul class="list-unstyled">
-            <li class="mb-2"><a href="/logado" class="text-white-50">Início</a></li>
-            <li class="mb-2"><a href="/" class="text-white-50">Agendar</a></li>
-            <li class="mb-2"><a href="/logado/agendamentos" class="text-white-50">Meus Agendamentos</a></li>
-            <li><a href="#" class="text-white-50">Contato</a></li>
+            <li class="mb-2"><a onclick="window.location.href='/home'" class="text-white-50">Home</a></li>
+            <li class="mb-2"><a onclick="window.location.href='/logado'" class="text-white-50">Início</a></li>
+            <li class="mb-2"><a onclick="window.location.href='/'" class="text-white-50">Agendar</a></li>
+            <li class="mb-2"><a onclick="window.location.href='/logado/agendamentos'" class="text-white-50">Meus Agendamentos</a></li>
+            <li class="mb-2"><a onclick="window.location.href='/galeria'" class="text-white-50">Galeria</a></li>
           </ul>
         </div>
         <div class="col-lg-3 col-md-6 mb-4 mb-md-0">
           <h5 class="text-white mb-3">Horário</h5>
           <ul class="list-unstyled text-white-50">
-            <li class="mb-2"><i class="bi bi-clock me-2"></i>Seg-Sex: 9h - 19h</li>
-            <li class="mb-2"><i class="bi bi-clock me-2"></i>Sábado: 9h - 17h</li>
+            <li class="mb-2"><i class="bi bi-clock me-2"></i>Seg-Sex: 10h - 22h</li>
+            <li class="mb-2"><i class="bi bi-clock me-2"></i>Sábado: 10h - 22h</li>
             <li><i class="bi bi-clock me-2"></i>Dom: Fechado</li>
           </ul>
         </div>
@@ -332,7 +333,7 @@
           <ul class="list-unstyled text-white-50">
             <li class="mb-2"><i class="bi bi-telephone me-2"></i> (11) 95280-1212</li>
             <li class="mb-2"><i class="bi bi-geo-alt me-2"></i> Rua Mucugê, 123</li>
-            <li><i class="bi bi-envelope me-2"></i> contato@paulatrancas.com</li>
+            <li><i class="bi bi-envelope me-2"></i> salaopaulatrancas@gmail.com</li>
           </ul>
         </div>
       </div>
@@ -342,7 +343,7 @@
           <p class="mb-0 text-white-50">&copy; <span id="ano"></span> Salão Paula Tranças. Todos os direitos reservados.</p>
         </div>
         <div class="col-md-6 text-center text-md-end">
-          <p class="mb-0 text-white-50">Desenvolvido com <i class="bi bi-heart-fill text-danger"></i> por Derick Campos</p>
+          <p class="mb-0 text-white-50">Desenvolvido por Derick Campos Santos</p>
         </div>
       </div>
     </div>
@@ -355,50 +356,6 @@
   <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
   
   <!-- JavaScript Customizado -->
-  <script src="/js/logado.js"></script>
-  
-  <!-- Inicialização -->
-  <script>
-    // Ano atual no footer
-    document.getElementById('ano').textContent = new Date().getFullYear();
-    
-    // Inicializar VLibras
-    new window.VLibras.Widget('https://vlibras.gov.br/app');
-    
-    // Alternar tema
-    const themeToggle = document.getElementById('themeToggle');
-    const html = document.documentElement;
-    
-    themeToggle.addEventListener('click', () => {
-      const currentTheme = html.getAttribute('data-bs-theme');
-      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-      html.setAttribute('data-bs-theme', newTheme);
-      localStorage.setItem('theme', newTheme);
-      
-      // Atualizar ícone do botão
-      const icon = themeToggle.querySelector('i');
-      icon.className = newTheme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
-    });
-    
-    // Verificar tema salvo
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    html.setAttribute('data-bs-theme', savedTheme);
-    
-    // Definir ícone inicial
-    const icon = themeToggle.querySelector('i');
-    icon.className = savedTheme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
-    
-    // Alternar visibilidade da senha
-    document.querySelectorAll('.toggle-password').forEach(button => {
-      button.addEventListener('click', function() {
-        const input = this.previousElementSibling;
-        const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
-        input.setAttribute('type', type);
-        
-        const icon = this.querySelector('i');
-        icon.className = type === 'password' ? 'bi bi-eye-slash-fill' : 'bi bi-eye-fill';
-      });
-    });
-  </script>
+  <script src="js/logado.js"></script>
 </body>
 </html>

@@ -2,7 +2,7 @@
   --sidebar-width: 280px;
   --sidebar-collapsed-width: 70px;
   --topbar-height: 60px;
-  --primary-color: #bd7adcd8;
+  --primary-color: #a855ccfd;
   --primary-dark: #9c5cb8;
   --primary-light: #e2c4f0;
   --secondary-color: #f8f9fc;
@@ -27,6 +27,7 @@
   --bs-card-bg: var(--white);
   --bs-card-color: var(--text-dark);
   --bs-navbar-bg: var(--primary-color);
+  --banner: var(--primary-color);
   --bs-navbar-color: var(--white);
   --bs-table-bg: var(--white);
   --bs-table-color: var(--text-dark);
@@ -35,16 +36,17 @@
 
 /* Tema Escuro */
 [data-bs-theme="dark"] {
-  --bs-body-bg: #121212;
+  --bs-body-bg: rgba(31, 31, 31, 0.849);
   --bs-body-color: #f5f5f5;
   --bs-border-color: #333333;
   --bs-card-bg: #1e1e1e;
   --bs-card-color: #f5f5f5;
-  --bs-navbar-bg: #1a1033;
+  --bs-navbar-bg: #771bce;
+  --banner: #771bce;
   --bs-navbar-color: #f5f5f5;
   --bs-table-bg: #1e1e1e;
   --bs-table-color: #f5f5f5;
-  --bs-table-hover-bg: rgba(156, 92, 184, 0.2);
+  --bs-table-hover-bg: rgba(163, 23, 223, 0.603);
 }
 
 /* Estilos Gerais */
