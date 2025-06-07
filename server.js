@@ -1325,6 +1325,7 @@ app.get('/api/categories', async (req, res) => {
     const { data, error } = await supabase
       .from('categories')
       .select('id, name, imagem_category')
+      .not('name', 'eq', 'Interno')
       .order('name', { ascending: true });
 
     if (error) throw error;
