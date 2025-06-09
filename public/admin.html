@@ -121,6 +121,12 @@
           </a>
         </li>
         <li class="nav-item" role="presentation">
+          <a class="nav-link" id="quickBooking-tab" data-bs-toggle="tab" href="#quickBooking" role="tab" aria-controls="quickBooking" aria-selected="false">
+            <i class="bi bi-alarm"></i>
+            <span class="menu-text">Agendar</span>
+          </a>
+        </li>
+        <li class="nav-item" role="presentation">
           <a class="nav-link" id="appointments-tab" data-bs-toggle="tab" href="#appointments" role="tab" aria-controls="appointments" aria-selected="false">
             <i class="bi bi-calendar-check"></i>
             <span class="menu-text">Agendamentos</span>
@@ -554,7 +560,7 @@
               <tr>
                 <th>Nome</th>
                 <th>Email</th>
-                <th>Status</th>
+                <th>Telefone</th>
                 <th>Comissão</th>
                 <th>Status</th>
                 <th>Horários</th>
@@ -584,6 +590,73 @@
           </div>
         </div>
       </div>
+
+      <!-- Agendamento Rápido -->
+      <div class="tab-pane fade" id="quickBooking">
+        <div class="page-header mb-4">
+          <div class="page-title">
+            <h1>Agendamento Rápido</h1>
+          </div>
+          <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="#">Dashboard</a></li>
+            <li class="breadcrumb-item active">Agendamentos</li>
+          </ol>
+        </div>
+
+        <!-- Formulário de Agendamento -->
+        <div class="card">
+          <div class="card-body">
+            <form id="quickBookingForm">
+              <div class="row">
+                <div class="col-md-4 mb-3">
+                  <label for="clientName" class="form-label">Nome do Cliente</label>
+                  <input type="text" class="form-control" id="clientName" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label for="clientEmail" class="form-label">E-mail</label>
+                  <input type="email" class="form-control" id="clientEmail" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label for="clientPhone" class="form-label">Telefone</label>
+                  <input type="tel" class="form-control" id="clientPhone" required>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                  <label for="categorySelect" class="form-label">Categoria</label>
+                  <select class="form-select" id="categorySelect" required></select>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label for="serviceSelect" class="form-label">Serviço</label>
+                  <select class="form-select" id="serviceSelect" required></select>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label for="employeeSelect" class="form-label">Funcionário</label>
+                  <select class="form-select" id="employeeSelect" required></select>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                  <label for="appointmentDate" class="form-label">Data</label>
+                  <input type="date" class="form-control" id="appointmentDate" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label for="timeSlotSelect" class="form-label">Horário</label>
+                  <select class="form-select" id="timeSlotSelect" required></select>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                  <label for="finalPrice" class="form-label">Preço Final</label>
+                  <input type="number" class="form-control" id="finalPrice" required>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-success mt-3">
+                <i class="bi bi-check-circle me-2"></i>Confirmar Agendamento
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
       
       <!-- Agendamentos -->
       <div class="tab-pane fade" id="appointments">
@@ -1154,6 +1227,7 @@
   <script src="js/charts.js"></script>
   <script src="js/users.js"></script>
   <script src="js/cupom.js"></script>
+  <script src="js/agendamento-rapido.js"></script>
   <script src="js/receitas.js"></script>
   <script src="/js/galeria.js"></script>
   <script src="js/horarioFuncionario.js"></script>

@@ -86,17 +86,17 @@ const mongoURI = process.env.MONGO_URI || 'mongodb+srv://derickcampos:Dede%4002%
 
 
 // Conexão com MongoDB
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 10000,
-  socketTimeoutMS: 45000
-})
-.then(() => console.log('✅ MongoDB conectado com sucesso'))
-.catch(err => {
-  console.error('❌ Falha na conexão com MongoDB:', err);
-  process.exit(1);
-});
+// mongoose.connect(process.env.MONGO_URI, {
+//   useNewUrlParser: true,
+//   useUnifiedTopology: true,
+//   serverSelectionTimeoutMS: 10000,
+//   socketTimeoutMS: 45000
+// })
+// .then(() => console.log('✅ MongoDB conectado com sucesso'))
+// .catch(err => {
+//   console.error('❌ Falha na conexão com MongoDB:', err);
+//   process.exit(1);
+// });
 
 // Modelo da Galeria
 const ImagemSchema = new mongoose.Schema({
@@ -2443,7 +2443,7 @@ app.get('/api/admin/categories', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('categories')
-      .select('*')
+      .select('id, name') // Adicione aqui apenas os campos que você quer retornar
       .order('name', { ascending: true });
 
     if (error) throw error;
@@ -2738,7 +2738,7 @@ app.get('/api/services', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('services')
-      .select('*')
+      .select('id, name, category_id, duration, price, imagem_service')
       .order('name', { ascending: true });
 
     if (error) throw error;
@@ -3149,7 +3149,7 @@ app.get('/api/admin/employees', async (req, res) => {
     // Buscar funcionários
     const { data: employees, error: employeesError } = await supabase
       .from('employees')
-      .select('*')
+      .select('name, email, phone, comissao, imagem_funcionario, is_active, id')
       .order('created_at', { ascending: false });
 
     if (employeesError) throw employeesError;

@@ -194,65 +194,71 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Carregar categorias do banco de dados
-  async function loadCategories() {
-    try {
-      const container = document.getElementById('categories-container');
-      if (!container) return;
-      
-      container.innerHTML = '<div class="loading">Carregando categorias...</div>';
-      
-      const response = await fetch('/api/categories');
-      if (!response.ok) throw new Error('Erro ao carregar categorias');
-      
-      const categories = await response.json();
-      
-      if (categories.length === 0) {
-        container.innerHTML = '<div class="empty-message">Nenhuma categoria disponível</div>';
-        return;
-      }
-      
-      container.innerHTML = '';
-      
-      categories.forEach(category => {
-        const card = document.createElement('div');
-        card.className = 'item-card';
-        card.dataset.id = category.id;
-        
-        card.innerHTML = `
-          ${category.imagem_category ? 
-            `<img src="${category.imagem_category}" alt="${category.name}">` : 
-            `<div style="width: 40px; height: 40px; border-radius: 50%; background: #eee;"></div>`
-          }
-          <div class="item-info">
-            <h5>${category.name}</h5>
-          </div>
-        `;
-        
-        card.addEventListener('click', function() {
-          document.querySelectorAll('#categories-container .item-card').forEach(el => {
-            el.classList.remove('selected');
-          });
-          
-          this.classList.add('selected');
-          selectedCategory = {
-            id: category.id,
-            name: category.name,
-            image: category.imagem_category
-          };
-          
-          loadServices(category.id);
+async function loadCategories() {
+  try {
+    const container = document.getElementById('categories-container');
+    if (!container) return;
+    
+    container.innerHTML = '<div class="loading">Carregando categorias...</div>';
+    
+    const response = await fetch('/api/categories');
+    if (!response.ok) throw new Error('Erro ao carregar categorias');
+    
+    let categories = await response.json();
+
+    // Filtro extra no frontend - oculta "Serviços internos"
+    categories = categories.filter(category => 
+      category.name.toLowerCase().trim() !== 'serviços internos'
+    );
+
+    if (categories.length === 0) {
+      container.innerHTML = '<div class="empty-message">Nenhuma categoria disponível</div>';
+      return;
+    }
+
+    container.innerHTML = '';
+
+    categories.forEach(category => {
+      const card = document.createElement('div');
+      card.className = 'item-card';
+      card.dataset.id = category.id;
+
+      card.innerHTML = `
+        ${category.imagem_category ? 
+          `<img src="${category.imagem_category}" alt="${category.name}">` : 
+          `<div style="width: 40px; height: 40px; border-radius: 50%; background: #eee;"></div>`
+        }
+        <div class="item-info">
+          <h5>${category.name}</h5>
+        </div>
+      `;
+
+      card.addEventListener('click', function() {
+        document.querySelectorAll('#categories-container .item-card').forEach(el => {
+          el.classList.remove('selected');
         });
-        
-        container.appendChild(card);
+
+        this.classList.add('selected');
+        selectedCategory = {
+          id: category.id,
+          name: category.name,
+          image: category.imagem_category
+        };
+
+        loadServices(category.id);
       });
-    } catch (error) {
-      console.error('Erro ao carregar categorias:', error);
-      const container = document.getElementById('categories-container');
-      if (container) {
-        container.innerHTML = '<div class="empty-message">Erro ao carregar categorias. Recarregue a página.</div>';
-      }
+
+      container.appendChild(card);
+    });
+  } catch (error) {
+    console.error('Erro ao carregar categorias:', error);
+    const container = document.getElementById('categories-container');
+    if (container) {
+      container.innerHTML = '<div class="empty-message">Erro ao carregar categorias. Recarregue a página.</div>';
     }
   }
+}
+
 
   // Carregar serviços baseado na categoria selecionada
   async function loadServices(categoryId) {
