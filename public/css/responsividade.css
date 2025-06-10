@@ -693,6 +693,11 @@
       margin-top: 0.5rem;
     }
 
+    .btn {
+      padding: 5px;
+
+    }
+
     .form-section {
       padding: 1rem;
     }

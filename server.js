@@ -2776,7 +2776,7 @@ app.get('/api/admin/services', async (req, res) => {
 
     let query = supabase
       .from('services')
-      .select('*, categories(name)')
+      .select('id, name, category_id, duration, price, categories(name)')
       .order('name', { ascending: true });
 
     // Se o parâmetro `name` for fornecido, aplica o filtro
