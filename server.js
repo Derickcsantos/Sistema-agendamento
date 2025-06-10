@@ -3149,7 +3149,7 @@ app.get('/api/admin/employees', async (req, res) => {
     // Buscar funcionários
     const { data: employees, error: employeesError } = await supabase
       .from('employees')
-      .select('name, email, phone, comissao, imagem_funcionario, is_active, id')
+      .select('name, email, phone, comissao, is_active, id')
       .order('created_at', { ascending: false });
 
     if (employeesError) throw employeesError;
