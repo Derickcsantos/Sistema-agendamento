@@ -282,6 +282,7 @@ footer a:hover {
 @media (max-width: 992px) {
   .navbar-collapse {
     padding-top: 1rem;
+    background-color: #128C7E;
   }
   
   .d-flex {
@@ -337,4 +338,51 @@ footer a:hover {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary-dark);
+}
+
+/* Adicione ao seu arquivo CSS */
+#paginaAgendamentos {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+#paginaAgendamentos[style*="display: block"] {
+  opacity: 1;
+}
+
+.table-responsive {
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+}
+
+[data-bs-theme="dark"] .table-responsive {
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+}
+
+#tabelaAgendamentos {
+  min-width: 800px;
+}
+
+@media (max-width: 992px) {
+  #tabelaAgendamentos {
+    min-width: 100%;
+  }
+}
+
+/* Adicione ao seu arquivo CSS */
+.spinner-border.text-primary {
+  color: var(--primary-color) !important;
+}
+
+.text-center.py-4 {
+  padding: 2rem 0;
+}
+
+.btn-outline-primary {
+  transition: all var(--transition-speed);
+}
+
+.btn-outline-primary:hover {
+  transform: translateY(-2px);
 }

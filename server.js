@@ -181,8 +181,13 @@ app.get('/logado', (req, res) => {
   });
 });
 
-// Rota para a página de agendamentos
 app.get('/logado/agendamentos', (req, res) => {
+  // Verifique se o usuário está autenticado
+  if (!req.session.user) {
+    return res.redirect('/login');
+  }
+  
+  // Envie o mesmo arquivo que a página principal, mas o JavaScript cuidará da exibição
   res.sendFile(path.join(__dirname, 'public', 'logado.html'), {
     headers: {
       'Content-Type': 'text/html',
@@ -1788,6 +1793,10 @@ app.get('/api/logado/appointments', async (req, res) => {
   try {
     const { email } = req.query;
     
+    if (!email) {
+      return res.status(400).json({ error: 'Email é obrigatório' });
+    }
+
     // Busca os agendamentos do cliente
     const { data, error } = await supabase
       .from('appointments')
@@ -1810,17 +1819,16 @@ app.get('/api/logado/appointments', async (req, res) => {
 
     if (error) throw error;
 
-    // Formata os dados para resposta
+    // Formata os dados para resposta (ajustando para o formato esperado pelo frontend)
     const formattedData = data.map(item => ({
       id: item.id,
-      date: item.appointment_date,
+      date: item.appointment_date, // Mantém o nome do campo que seu frontend espera
       start_time: item.start_time,
       end_time: item.end_time,
       status: item.status,
-      created_at: item.created_at,
-      service_name: item.services?.name,
-      service_price: item.services?.price,
-      professional_name: item.employees?.name,
+      service_name: item.services?.name || 'Serviço não especificado',
+      price: item.services?.price || 0,
+      professional_name: item.employees?.name || 'Profissional não especificado',
       client_name: item.client_name,
       client_email: item.client_email,
       client_phone: item.client_phone

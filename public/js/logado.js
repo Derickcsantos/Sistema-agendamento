@@ -1,9 +1,28 @@
+// Adicione esta função no início do arquivo, antes do event listener
+function verificarPaginaAtual() {
+  const paginaInicial = document.getElementById('paginaInicial');
+  const paginaAgendamentos = document.getElementById('paginaAgendamentos');
+  
+  if (window.location.pathname.endsWith('/agendamentos')) {
+    paginaInicial.style.display = 'none';
+    paginaAgendamentos.style.display = 'block';
+    // Forçar recarregamento dos agendamentos
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+    if (user) carregarAgendamentos(user);
+  } else {
+    paginaInicial.style.display = 'block';
+    paginaAgendamentos.style.display = 'none';
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   // Verificar autenticação
   const user = JSON.parse(localStorage.getItem('currentUser'));
   if (!user || localStorage.getItem('isLoggedIn') !== 'true') {
     window.location.href = '/login';
     return;
+
+    verificarPaginaAtual();
   }
 
   // Elementos da UI
@@ -52,99 +71,164 @@ document.addEventListener('DOMContentLoaded', function() {
     perfilModal.show();
   }
   // Função para carregar agendamentos
-  async function carregarAgendamentos(user) {
-    try {
-      const response = await fetch(`/api/logado/appointments?email=${encodeURIComponent(user.email)}`);
-      if (!response.ok) throw new Error('Erro ao carregar agendamentos');
-      
-      const agendamentos = await response.json();
-      const tbody = document.querySelector('#tabelaAgendamentos tbody');
-      const semAgendamentos = document.getElementById('semAgendamentos');
-
-      if (!agendamentos || agendamentos.length === 0) {
-        tbody.innerHTML = '';
-        semAgendamentos.style.display = 'block';
-        document.getElementById('contagemRegressiva').style.display = 'none';
-        return;
-      }
-
-      semAgendamentos.style.display = 'none';
-      
-      // Ordenar por data mais próxima
-      agendamentos.sort((a, b) => new Date(a.date) - new Date(b.date));
-      
-      // Atualizar contagem regressiva
-      atualizarContagemRegressiva(agendamentos);
-
-      // Preencher tabela
-      tbody.innerHTML = agendamentos.map(agendamento => `
-        <tr>
-          <td>${formatarData(agendamento.date)}</td>
-          <td>${agendamento.professional_name || 'Não informado'}</td>
-          <td>${agendamento.start_time} - ${agendamento.end_time}</td>
-          <td>${agendamento.service_name}</td>
-          <td><span class="badge ${getStatusClass(agendamento.status)}">${formatarStatus(agendamento.status)}</span></td>
-          <td>R$ ${agendamento.price?.toFixed(2) || '0,00'}</td>
-          <td>
-            ${agendamento.status === 'confirmed' ? 
-              `<button class="btn btn-sm btn-outline-danger cancelar-agendamento" data-id="${agendamento.id}">
-                <i class="bi bi-x-circle"></i> Cancelar
-              </button>` : 
-              '<span class="text-muted">Nenhuma ação</span>'}
-          </td>
-        </tr>
-      `).join('');
-
-      // Adicionar eventos aos botões de cancelar
-      document.querySelectorAll('.cancelar-agendamento').forEach(btn => {
-        btn.addEventListener('click', (e) => cancelarAgendamento(e, user));
-      });
-
-    } catch (error) {
-      console.error('Erro ao carregar agendamentos:', error);
-      document.querySelector('#tabelaAgendamentos tbody').innerHTML = `
-        <tr>
-          <td colspan="7" class="text-center py-4 text-danger">
-            Erro ao carregar agendamentos. Tente recarregar a página.
-          </td>
-        </tr>
-      `;
-      showToast('Erro ao carregar agendamentos', 'error');
+  // Função para carregar agendamentos
+async function carregarAgendamentos(user) {
+  try {
+    const tbody = document.querySelector('#tabelaAgendamentos tbody');
+    const semAgendamentos = document.getElementById('semAgendamentos');
+    
+    // Mostrar estado de carregamento
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="text-center py-4">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Carregando...</span>
+          </div>
+          <p class="mt-2">Carregando agendamentos...</p>
+        </td>
+      </tr>
+    `;
+    
+    const response = await fetch(`/api/logado/appointments?email=${encodeURIComponent(user.email)}`);
+    
+    if (!response.ok) {
+      throw new Error(`Erro ${response.status}: ${response.statusText}`);
     }
-  }
+    
+    const agendamentos = await response.json();
 
-  // Função para atualizar contagem regressiva
-  function atualizarContagemRegressiva(agendamentos) {
+    if (!agendamentos || agendamentos.length === 0) {
+      tbody.innerHTML = '';
+      semAgendamentos.style.display = 'block';
+      document.getElementById('contagemRegressiva').style.display = 'none';
+      return;
+    }
+
+    semAgendamentos.style.display = 'none';
+    
+    // Ordenar por data mais próxima
+    agendamentos.sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    // Atualizar contagem regressiva
+    atualizarContagemRegressiva(agendamentos);
+
+    // Preencher tabela (ajustado para o novo formato de dados)
+    tbody.innerHTML = agendamentos.map(agendamento => `
+      <tr>
+        <td>${formatarData(agendamento.date)}</td>
+        <td>${agendamento.service_name}</td>
+        <td>${agendamento.professional_name}</td>
+        <td>${formatarHora(agendamento.start_time)} - ${formatarHora(agendamento.end_time)}</td>
+        <td><span class="badge ${getStatusClass(agendamento.status)}">${formatarStatus(agendamento.status)}</span></td>
+        <td>R$ ${agendamento.price?.toFixed(2) || '0,00'}</td>
+        <td>
+          ${agendamento.status === 'confirmed' ? 
+            `<button class="btn btn-sm btn-outline-danger cancelar-agendamento" data-id="${agendamento.id}">
+              <i class="bi bi-x-circle"></i> Cancelar
+            </button>` : 
+            '<span class="text-muted">Nenhuma ação</span>'}
+        </td>
+      </tr>
+    `).join('');
+
+    // Adicionar eventos aos botões de cancelar
+    document.querySelectorAll('.cancelar-agendamento').forEach(btn => {
+      btn.addEventListener('click', (e) => cancelarAgendamento(e, user));
+    });
+
+  } catch (error) {
+    console.error('Erro ao carregar agendamentos:', error);
+    document.querySelector('#tabelaAgendamentos tbody').innerHTML = `
+      <tr>
+        <td colspan="7" class="text-center py-4 text-danger">
+          <i class="bi bi-exclamation-triangle-fill"></i> Erro ao carregar agendamentos: ${error.message}
+          <button class="btn btn-sm btn-outline-primary mt-2" onclick="carregarAgendamentos(JSON.parse(localStorage.getItem('currentUser')))">
+            <i class="bi bi-arrow-repeat"></i> Tentar novamente
+          </button>
+        </td>
+      </tr>
+    `;
+  }
+}
+
+// Adicione esta função auxiliar para formatar horas
+function formatarHora(timeString) {
+  if (!timeString) return '';
+  const [hours, minutes] = timeString.split(':');
+  return `${hours}:${minutes}`;
+}
+
+ // Função para atualizar contagem regressiva
+function atualizarContagemRegressiva(agendamentos) {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
 
+    // Separar agendamentos futuros e passados
     const agendamentosFuturos = agendamentos
-      .filter(a => {
-        const dataAgendamento = new Date(a.date);
-        dataAgendamento.setHours(0, 0, 0, 0);
-        return dataAgendamento >= hoje && a.status === 'confirmed';
-      })
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
+        .filter(a => {
+            const dataAgendamento = new Date(a.date);
+            dataAgendamento.setHours(0, 0, 0, 0);
+            return dataAgendamento >= hoje && a.status === 'confirmed';
+        })
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    const agendamentosPassados = agendamentos
+        .filter(a => {
+            const dataAgendamento = new Date(a.date);
+            dataAgendamento.setHours(0, 0, 0, 0);
+            return dataAgendamento < hoje && a.status === 'confirmed';
+        })
+        .sort((a, b) => new Date(b.date) - new Date(a.date)); // Ordenar do mais recente para o mais antigo
+
+    const contagemElement = document.getElementById('contagemRegressiva');
+    const proximoServicoElement = document.getElementById('proximoServico');
+    const diasRestantesElement = document.getElementById('diasRestantes');
+    const dataAgendamentoElement = document.getElementById('dataProximoAgendamento');
 
     if (agendamentosFuturos.length > 0) {
-      const proximo = agendamentosFuturos[0];
-      const dataAgendamento = new Date(proximo.date);
-      dataAgendamento.setHours(0, 0, 0, 0);
+        // Mostrar próximo agendamento futuro
+        const proximo = agendamentosFuturos[0];
+        const dataAgendamento = new Date(proximo.date);
+        dataAgendamento.setHours(0, 0, 0, 0);
 
-      const diffTime = dataAgendamento - hoje;
-      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        const diffTime = dataAgendamento - hoje;
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-      document.getElementById('diasRestantes').textContent = 
-        diffDays === 0 ? 'hoje' : 
-        diffDays === 1 ? 'amanhã' : 
-        `em ${diffDays} dias`;
-      
-      document.getElementById('proximoServico').textContent = proximo.service_name;
-      document.getElementById('contagemRegressiva').style.display = 'flex';
+        // Formatar data e hora
+        const optionsDate = { day: '2-digit', month: '2-digit', year: 'numeric' };
+        const optionsTime = { hour: '2-digit', minute: '2-digit' };
+        const dataFormatada = new Date(proximo.date).toLocaleDateString('pt-BR', optionsDate);
+        const horaFormatada = new Date(proximo.start_time).toLocaleTimeString('pt-BR', optionsTime);
+
+        proximoServicoElement.textContent = 'Seu próximo serviço é ';
+        diasRestantesElement.textContent = 
+            diffDays === 0 ? 'hoje' : 
+            diffDays === 1 ? 'amanhã' : 
+            `em ${diffDays} dias`;
+        
+        dataAgendamentoElement.textContent = `${dataFormatada} às ${horaFormatada}`;
+        contagemElement.style.display = 'flex';
+        contagemElement.className = 'alert mb-4 alert-primary'; // Estilo para agendamentos futuros
+    } else if (agendamentosPassados.length > 0) {
+        // Mostrar mensagem para agendamentos passados
+        const ultimoAgendamento = agendamentosPassados[0];
+        
+        // Formatar data e hora
+        const optionsDate = { day: '2-digit', month: '2-digit', year: 'numeric' };
+        const optionsTime = { hour: '2-digit', minute: '2-digit' };
+        const dataFormatada = new Date(ultimoAgendamento.date).toLocaleDateString('pt-BR', optionsDate);
+        const horaFormatada = new Date(ultimoAgendamento.start_time).toLocaleTimeString('pt-BR', optionsTime);
+
+        proximoServicoElement.textContent = 'Seu último serviço foi ';
+        diasRestantesElement.textContent = 'realizado';
+        dataAgendamentoElement.textContent = `em ${dataFormatada} às ${horaFormatada}`;
+        contagemElement.style.display = 'flex';
+        contagemElement.className = 'alert mb-4 alert-secondary'; // Estilo diferente para agendamentos passados
     } else {
-      document.getElementById('contagemRegressiva').style.display = 'none';
+        // Sem agendamentos
+        contagemElement.style.display = 'none';
     }
-  }
+}
 
   // Função para cancelar agendamento
   async function cancelarAgendamento(e, user) {
@@ -350,4 +434,16 @@ document.addEventListener('DOMContentLoaded', function() {
         icon.className = type === 'password' ? 'bi bi-eye-slash-fill' : 'bi bi-eye-fill';
       });
     });
+});
+
+document.addEventListener('click', function(e) {
+  if (e.target.closest('a[href="/logado/agendamentos"]')) {
+    e.preventDefault();
+    window.history.pushState({}, '', '/logado/agendamentos');
+    verificarPaginaAtual();
+  } else if (e.target.closest('a[href="/logado"]')) {
+    e.preventDefault();
+    window.history.pushState({}, '', '/logado');
+    verificarPaginaAtual();
+  }
 });
