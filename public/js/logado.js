@@ -63,14 +63,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Função para carregar dados do perfil - CORRIGIDA
   function carregarDadosPerfil(user) {
-    document.getElementById('profileName').value = user.name || '';
+    document.getElementById('profileName').value = user.username || '';
     document.getElementById('profilePhone').value = user.phone || '';
     document.getElementById('profileEmail').value = user.email || '';
-    document.getElementById('profileBirthdate').value = user.birthdate || '';
+    document.getElementById('profileBirthdate').value = user.aniversario || '';
     document.getElementById('profileTipo').value = user.tipo || 'comum';
+    document.getElementById('profilePassword').value = user.password || '';
     perfilModal.show();
   }
-  // Função para carregar agendamentos
+  
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.toggle-password')) {
+      const button = e.target.closest('.toggle-password');
+      const input = button.parentElement.querySelector('.password-input');
+
+      if (input) {
+        const isHidden = input.type === 'password';
+        input.type = isHidden ? 'text' : 'password';
+
+        const icon = button.querySelector('i');
+        if (icon) {
+          icon.classList.toggle('bi-eye-fill', !isHidden);
+          icon.classList.toggle('bi-eye-slash-fill', isHidden);
+        }
+      }
+    }
+  });
+
   // Função para carregar agendamentos
 async function carregarAgendamentos(user) {
   try {
@@ -311,15 +330,22 @@ function atualizarContagemRegressiva(agendamentos) {
     const currentTheme = document.documentElement.getAttribute('data-bs-theme');
     const icon = themeToggle.querySelector('i');
     const banner = document.getElementById('bannerPrincipal');
+    const textoCorrecao = document.getElementsByClassName('textoCorrecao');
     
     if (currentTheme === 'dark') {
       icon.classList.remove('bi-moon-fill');
       icon.classList.add('bi-sun-fill');
       banner.style.backgroundColor = '#771bce'; // Cor escura
+          for (let i = 0; i < textoCorrecao.length; i++) {
+        textoCorrecao[i].style.color = "#fff";
+      }
     } else {
       icon.classList.remove('bi-sun-fill');
       icon.classList.add('bi-moon-fill');
       banner.style.backgroundColor = '#9c5cb8'; // Cor escura
+        for (let i = 0; i < textoCorrecao.length; i++) {
+        textoCorrecao[i].style.color = "#000";
+      }
     }
   }
 

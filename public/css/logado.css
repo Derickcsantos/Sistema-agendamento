@@ -282,7 +282,8 @@ footer a:hover {
 @media (max-width: 992px) {
   .navbar-collapse {
     padding-top: 1rem;
-    background-color: #128C7E;
+    padding-bottom: 1rem;
+    background-image: linear-gradient(to top, #771bce, #9c5cb8);
   }
   
   .d-flex {
