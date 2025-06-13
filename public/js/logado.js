@@ -342,7 +342,7 @@ function atualizarContagemRegressiva(agendamentos) {
     } else {
       icon.classList.remove('bi-sun-fill');
       icon.classList.add('bi-moon-fill');
-      banner.style.backgroundColor = '#9c5cb8'; // Cor escura
+      banner.style.backgroundColor = '#9c5cb8'; // Cor clara
         for (let i = 0; i < textoCorrecao.length; i++) {
         textoCorrecao[i].style.color = "#000";
       }

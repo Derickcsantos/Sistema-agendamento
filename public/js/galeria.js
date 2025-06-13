@@ -18,6 +18,28 @@ document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
   criarToastContainer();
 
+  // Função para alternar entre temas
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+}
+
+// Verifica o tema salvo ou preferência do sistema
+function loadTheme() {
+    const savedTheme = localStorage.getItem('theme') || 
+                      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', savedTheme);
+}
+
+// Carrega o tema quando a página é aberta
+document.addEventListener('DOMContentLoaded', loadTheme);
+
+// Adiciona o evento de clique ao botão de tema
+document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+document.getElementById('themeToggleSidebar').addEventListener('click', toggleTheme);
+
   // Função principal para carregar a galeria
   async function fetchGalleryImages() {
     try {
