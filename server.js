@@ -1168,13 +1168,13 @@ app.post('/api/register', async (req, res) => {
  *         description: Erro interno do servidor
  */
 app.post('/api/login', async (req, res) => {
-  const { username, password } = req.body;
+  const { login, password } = req.body;
 
   try {
     const { data: user, error } = await supabase
       .from('users')
       .select('id, username, email, password_plaintext, tipo')
-      .eq('username', username)
+      .or(`username.eq.${login},email.eq.${login}`)
       .single();
 
     if (error || !user || user.password_plaintext !== password) {

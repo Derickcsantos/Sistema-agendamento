@@ -107,11 +107,21 @@ function formatCurrency(value) {
     
     // Evento do botão Limpar Filtros
     const resetFilterBtn = document.getElementById('resetFilter');
+    const rechargePage = document.getElementById('rechargePage');
+
     if (resetFilterBtn) {
       resetFilterBtn.addEventListener('click', function() {
         document.getElementById('startDate').value = '';
         document.getElementById('endDate').value = '';
         loadRevenueData();
+      });
+    }
+
+    if (rechargePage) {
+      rechargePage.addEventListener('click', function() {
+        document.getElementById('startDate').value = '';
+        document.getElementById('endDate').value = '';
+        loadRevenueData(); // ou outra ação apropriada
       });
     }
     

@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function() {
   loginForm.addEventListener('submit', async function(e) {
     e.preventDefault();
 
-    const username = document.getElementById('username').value.trim();
+    const login = document.getElementById('login').value.trim();
     const password = document.getElementById('password').value;
 
     try {
@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ login, password }),
         credentials: 'include' // Envia cookies
       });
 

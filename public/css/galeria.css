@@ -67,13 +67,15 @@ body {
     color: var(--text-color);
 }
 
-.nav-links {
+.nav-links,
+.sidebar-links {
     display: flex;
     list-style: none;
     gap: 1.5rem;
 }
 
-.nav-links a {
+.nav-links a,
+.sidebar-links a {
     text-decoration: none;
     color: var(--text-color);
     font-weight: 500;
@@ -124,7 +126,7 @@ body {
 
 .sidebar-links a {
     text-decoration: none;
-    color: #333;
+    color: #ffffff;
     font-weight: 500;
     padding: 0.5rem 1rem;
     border-radius: 5px;
