@@ -2304,48 +2304,112 @@ cron.schedule('0 3 * * *', async () => {
  */
 // Rota para cancelar agendamento
 app.put('/api/admin/appointments/:id/cancel', async (req, res) => {
-  try {
-    const { id } = req.params;
+  const { id } = req.params;
+  const { cancel_reason } = req.body || null;
 
-    // Verificar o status atual do agendamento
-    const { data: appointmentData, error: fetchError } = await supabase
+  try {
+    // 1. Buscar agendamento pelo id
+    const { data: appointment, error: fetchError } = await supabase
       .from('appointments')
-      .select('status')
+      .select('*')
       .eq('id', id)
       .single();
 
     if (fetchError) throw fetchError;
-    if (!appointmentData) return res.status(404).json({ error: 'Agendamento não encontrado' });
+    if (!appointment) return res.status(404).json({ error: 'Agendamento não encontrado' });
 
-    // Verificar se o agendamento já está concluído ou cancelado
-    if (appointmentData.status === 'completed') {
+    // 2. Verificar se pode cancelar
+    if (appointment.status === 'completed') {
       return res.status(400).json({ error: 'Agendamento concluído não pode ser cancelado' });
     }
-    if (appointmentData.status === 'canceled') {
-      return res.status(400).json({ error: 'Agendamento já está cancelado' });
-    }
 
-    const { data, error } = await supabase
+    // (Não precisa verificar cancelado, pois vai remover da tabela)
+
+    // 3. Inserir dados na tabela canceled_appointments
+    const { data: canceledData, error: insertError } = await supabase
+      .from('canceled_appointments')
+      .insert([{
+        original_appointment_id: appointment.id,
+        client_name: appointment.client_name,
+        client_email: appointment.client_email,
+        client_phone: appointment.client_phone,
+        service_id: appointment.service_id,
+        employee_id: appointment.employee_id,
+        appointment_date: appointment.appointment_date,
+        start_time: appointment.start_time,
+        end_time: appointment.end_time,
+        status: appointment.status,
+        notes: appointment.notes,
+        created_at: appointment.created_at,
+        updated_at: appointment.updated_at,
+        final_price: appointment.final_price,
+        original_price: appointment.original_price,
+        coupon_code: appointment.coupon_code,
+        cancel_reason: cancel_reason || null,
+        canceled_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
+
+    if (insertError) throw insertError;
+
+    // 4. Apagar o agendamento original da tabela appointments
+    const { error: deleteError } = await supabase
       .from('appointments')
-      .update({ 
-        status: 'canceled'
-      })
-      .eq('id', id)
-      .select();
+      .delete()
+      .eq('id', id);
 
-    if (error) throw error;
+    if (deleteError) throw deleteError;
 
-    if (!data || data.length === 0) {
-      return res.status(404).json({ error: 'Agendamento não encontrado' });
-    }
+    // 5. Responder com os dados do cancelamento
+    res.json(canceledData);
 
-    res.json(data[0]);
   } catch (error) {
     console.error('Error canceling appointment:', error);
     res.status(500).json({ 
-      error: 'Internal server error',
-      details: error.message 
+      error: 'Erro interno no servidor',
+      details: error.message
     });
+  }
+});
+
+
+app.get('/api/admin/canceled_appointments', async (req, res) => {
+  try {
+    const { search, date, employee, start_date, end_date } = req.query;
+    let query = supabase
+      .from('canceled_appointments')
+      .select(`
+        *,
+        services(name, price),
+        employees(name)
+      `)
+      .order('appointment_date', { ascending: true })
+      .order('start_time', { ascending: true });
+
+    if (search) {
+      query = query.or(`client_name.ilike.%${search}%,client_email.ilike.%${search}%,client_phone.ilike.%${search}%`);
+    }
+
+    if (date) {
+      // Esperando data no formato YYYY-MM-DD
+      query = query.eq('appointment_date', date);
+    } else if (start_date && end_date) {
+      query = query.gte('appointment_date', start_date).lte('appointment_date', end_date);
+    }
+
+    if (employee) {
+      query = query.ilike('employees.name', `%${employee}%`);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (error) {
+    console.error('Erro ao buscar agendamentos cancelados:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
