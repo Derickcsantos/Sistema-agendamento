@@ -16,14 +16,20 @@ function verificarPaginaAtual() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  // Verificar autenticação
   const user = JSON.parse(localStorage.getItem('currentUser'));
+
   if (!user || localStorage.getItem('isLoggedIn') !== 'true') {
     window.location.href = '/login';
     return;
-
-    verificarPaginaAtual();
   }
+
+  verificarPaginaAtual(); // Agora será chamado corretamente
+
+  // Carrega agendamentos se estiver na página correta
+  if (document.getElementById('paginaAgendamentos')) {
+    carregarAgendamentos(user);
+  }
+
 
   // Elementos da UI
   const paginaInicial = document.getElementById('paginaInicial');
@@ -95,25 +101,19 @@ async function carregarAgendamentos(user) {
   try {
     const tbody = document.querySelector('#tabelaAgendamentos tbody');
     const semAgendamentos = document.getElementById('semAgendamentos');
-    
-    // Mostrar estado de carregamento
+
     tbody.innerHTML = `
       <tr>
         <td colspan="7" class="text-center py-4">
-          <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Carregando...</span>
-          </div>
+          <div class="spinner-border text-primary" role="status"></div>
           <p class="mt-2">Carregando agendamentos...</p>
         </td>
       </tr>
     `;
-    
+
     const response = await fetch(`/api/logado/appointments?email=${encodeURIComponent(user.email)}`);
-    
-    if (!response.ok) {
-      throw new Error(`Erro ${response.status}: ${response.statusText}`);
-    }
-    
+    if (!response.ok) throw new Error(`Erro ${response.status}: ${response.statusText}`);
+
     const agendamentos = await response.json();
 
     if (!agendamentos || agendamentos.length === 0) {
@@ -124,33 +124,34 @@ async function carregarAgendamentos(user) {
     }
 
     semAgendamentos.style.display = 'none';
-    
-    // Ordenar por data mais próxima
+
     agendamentos.sort((a, b) => new Date(a.date) - new Date(b.date));
-    
-    // Atualizar contagem regressiva
     atualizarContagemRegressiva(agendamentos);
 
-    // Preencher tabela (ajustado para o novo formato de dados)
-    tbody.innerHTML = agendamentos.map(agendamento => `
-      <tr>
-        <td>${formatarData(agendamento.date)}</td>
-        <td>${agendamento.service_name}</td>
-        <td>${agendamento.professional_name}</td>
-        <td>${formatarHora(agendamento.start_time)} - ${formatarHora(agendamento.end_time)}</td>
-        <td><span class="badge ${getStatusClass(agendamento.status)}">${formatarStatus(agendamento.status)}</span></td>
-        <td>R$ ${agendamento.price?.toFixed(2) || '0,00'}</td>
-        <td>
-          ${agendamento.status === 'confirmed' ? 
-            `<button class="btn btn-sm btn-outline-danger cancelar-agendamento" data-id="${agendamento.id}">
-              <i class="bi bi-x-circle"></i> Cancelar
-            </button>` : 
-            '<span class="text-muted">Nenhuma ação</span>'}
-        </td>
-      </tr>
-    `).join('');
+    tbody.innerHTML = agendamentos.map(agendamento => {
+      const dataHora = new Date(`${agendamento.date}T${agendamento.start_time}`);
+      const agora = new Date();
+      const diffHoras = (dataHora - agora) / (1000 * 60 * 60);
+      const podeCancelar = agendamento.status === 'confirmed' && diffHoras >= 24;
 
-    // Adicionar eventos aos botões de cancelar
+      return `
+        <tr>
+          <td>${formatarData(agendamento.date)}</td>
+          <td>${agendamento.service_name}</td>
+          <td>${agendamento.professional_name}</td>
+          <td>${formatarHora(agendamento.start_time)} - ${formatarHora(agendamento.end_time)}</td>
+          <td><span class="badge ${getStatusClass(agendamento.status)}">${formatarStatus(agendamento.status)}</span></td>
+          <td>R$ ${agendamento.price?.toFixed(2)}</td>
+          <td>
+            ${podeCancelar ? `
+              <button class="btn btn-sm btn-outline-danger cancelar-agendamento" data-id="${agendamento.id}" data-start="${agendamento.date}T${agendamento.start_time}">
+                <i class="bi bi-x-circle"></i> Cancelar
+              </button>
+            ` : '<span class="text-muted">Não disponível</span>'}
+          </td>
+        </tr>`;
+    }).join('');
+
     document.querySelectorAll('.cancelar-agendamento').forEach(btn => {
       btn.addEventListener('click', (e) => cancelarAgendamento(e, user));
     });
@@ -251,26 +252,35 @@ function atualizarContagemRegressiva(agendamentos) {
 
   // Função para cancelar agendamento
   async function cancelarAgendamento(e, user) {
-    const id = e.target.closest('button').dataset.id;
-    
-    if (!confirm('Tem certeza que deseja cancelar este agendamento?')) {
-      return;
-    }
+  const btn = e.target.closest('button');
+  const id = btn.dataset.id;
+  const dataHoraAgendamento = new Date(btn.dataset.start);
+  const agora = new Date();
+  const diffHoras = (dataHoraAgendamento - agora) / (1000 * 60 * 60);
 
-    try {
-      const response = await fetch(`/api/appointments/${id}/cancel`, {
-        method: 'PUT'
-      });
-
-      if (!response.ok) throw new Error('Falha ao cancelar agendamento');
-
-      showToast('Agendamento cancelado com sucesso!', 'success');
-      carregarAgendamentos(user);
-    } catch (error) {
-      console.error('Erro ao cancelar agendamento:', error);
-      showToast('Erro ao cancelar agendamento', 'error');
-    }
+  if (diffHoras < 24) {
+    showToast('Você só pode cancelar agendamentos com mais de 24h de antecedência.', 'warning');
+    return;
   }
+
+  if (!confirm('Tem certeza que deseja cancelar este agendamento?')) return;
+
+  try {
+    const response = await fetch(`/api/admin/appointments/${id}/cancel`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cancel_reason: 'Cancelado pelo cliente' })
+    });
+
+    if (!response.ok) throw new Error('Falha ao cancelar agendamento');
+
+    showToast('Agendamento cancelado com sucesso!', 'success');
+    carregarAgendamentos(user);
+  } catch (error) {
+    console.error('Erro ao cancelar agendamento:', error);
+    showToast('Erro ao cancelar agendamento', 'error');
+  }
+}
 
   // Função para atualizar perfil
   async function atualizarPerfil(user) {
