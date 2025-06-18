@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Redirecionando...</title>
+  <script src="https://cdn.auth0.com/js/auth0/9.19/auth0.min.js"></script>
+</head>
+<body>
+  <script>
+    const auth0 = new auth0.WebAuth({
+      domain: 'dev-oiws7fn4eujqvz83.us.auth0.com',
+      clientID: '8o9U0fNU4F3Q7hbdKUuRIliuwq7n9zN2'
+    });
+
+    auth0.parseHash((err, authResult) => {
+      if (err) {
+        alert('Erro no login: ' + err.errorDescription);
+        window.location.href = '/login';
+        return;
+      }
+
+      if (authResult && authResult.idTokenPayload) {
+        const user = authResult.idTokenPayload;
+
+        // Salvar usuário localmente
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('currentUser', JSON.stringify({
+          nome: user.name,
+          email: user.email,
+          imagem: user.picture,
+          tipo: 'cliente' // ou inferir do backend se necessário
+        }));
+
+        // Redireciona para página logada
+        window.location.href = '/logado';
+      }
+    });
+  </script>
+</body>
+</html>
