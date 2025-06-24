@@ -62,7 +62,9 @@ document.addEventListener('DOMContentLoaded', function() {
       // Salva dados do usuário no localStorage
       const userData = {
         ...result.user,
-        password: password // (Atenção: não recomendado salvar senha em localStorage)
+        password: password,
+        phone: result.user.phone || '',
+        aniversario: result.user.aniversario || '' 
       };
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.setItem('tentativaslogin', '0');
@@ -90,6 +92,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const username = document.getElementById('cadastroUsername').value.trim();
     const email = document.getElementById('cadastroEmail').value.trim();
     const aniversario = document.getElementById('cadastroAniversario').value.trim();
+    const phone = document.getElementById('cadastroPhone').value.trim();
     const password = document.getElementById('cadastroPassword').value;
     const confirmPassword = document.getElementById('confirmPassword').value;
 
@@ -113,6 +116,7 @@ document.addEventListener('DOMContentLoaded', function() {
           username, 
           email, 
           aniversario,
+          phone,
           password_plaintext: password
         })
       });

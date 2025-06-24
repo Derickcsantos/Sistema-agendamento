@@ -795,7 +795,7 @@ app.post('/api/users', async (req, res) => {
 app.put('/api/users/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { username, email, password_plaintext, tipo, id_employee } = req.body;
+    const { username, email, password_plaintext, phone, aniversario, tipo, id_employee } = req.body;
 
     if (!username || !email) {
       return res.status(400).json({ error: 'Nome de usuário e e-mail são obrigatórios' });
@@ -804,6 +804,8 @@ app.put('/api/users/:id', async (req, res) => {
     const updateData = {
       username,
       email,
+      phone,
+      aniversario,
       updated_at: new Date().toISOString(),
       ...(tipo && { tipo }),
       ...(password_plaintext && { password_plaintext }),
@@ -1049,7 +1051,7 @@ app.delete('/api/users/:id', async (req, res) => {
 
 // Rota de cadastro
 app.post('/api/register', async (req, res) => {
-  const { username, email, aniversario, password_plaintext } = req.body;
+  const { username, email, aniversario, phone, password_plaintext } = req.body;
 
   try {
     // Verifica se já existe usuário com mesmo username ou email
@@ -1075,11 +1077,12 @@ app.post('/api/register', async (req, res) => {
         username,
         email,
         aniversario,
+        phone,
         password_plaintext, // Em produção: criptografar
         tipo: 'comum',
         created_at: new Date().toISOString()
       }])
-      .select('id, username, email, aniversario, created_at')
+      .select('id, username, email, aniversario, phone, created_at')
       .single();
 
     if (insertError) {
@@ -1173,7 +1176,7 @@ app.post('/api/login', async (req, res) => {
   try {
     const { data: user, error } = await supabase
       .from('users')
-      .select('id, username, email, password_plaintext, tipo')
+      .select('id, username, email, aniversario, password_plaintext, phone, tipo')
       .or(`username.eq.${login},email.eq.${login}`)
       .single();
 
@@ -1185,7 +1188,9 @@ app.post('/api/login', async (req, res) => {
     const userData = {
       id: user.id,
       username: user.username,
+      aniversario: user.aniversario,
       email: user.email,
+      phone: user.phone,
       tipo: user.tipo
     };
 

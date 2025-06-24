@@ -218,7 +218,9 @@ function atualizarContagemRegressiva(agendamentos) {
         const optionsDate = { day: '2-digit', month: '2-digit', year: 'numeric' };
         const optionsTime = { hour: '2-digit', minute: '2-digit' };
         const dataFormatada = new Date(proximo.date).toLocaleDateString('pt-BR', optionsDate);
-        const horaFormatada = new Date(proximo.start_time).toLocaleTimeString('pt-BR', optionsTime);
+        const dataHoraCompleta = new Date(`${proximo.date}T${proximo.start_time}`);
+        const horaFormatada = dataHoraCompleta.toLocaleTimeString('pt-BR', optionsTime);
+
 
         proximoServicoElement.textContent = 'Seu próximo serviço é ';
         diasRestantesElement.textContent = 
@@ -284,12 +286,14 @@ function atualizarContagemRegressiva(agendamentos) {
 
   // Função para atualizar perfil
   async function atualizarPerfil(user) {
-    const username = document.getElementById('profileUsername').value;
+    const username = document.getElementById('profileName').value;
     const email = document.getElementById('profileEmail').value;
+    const aniversario = document.getElementById('profileBirthdate').value;
+    const phone = document.getElementById('profilePhone').value;
     const password = document.getElementById('profilePassword').value;
 
     try {
-      const updateData = { username, email };
+      const updateData = { username, email, phone, aniversario };
       if (password) updateData.password = password;
 
       const response = await fetch(`/api/users/${user.id}`, {
@@ -308,7 +312,9 @@ function atualizarContagemRegressiva(agendamentos) {
       localStorage.setItem('currentUser', JSON.stringify({
         ...user,
         username: updatedUser.username,
-        email: updatedUser.email
+        email: updatedUser.email,
+        phone: updatedUser.phone,
+        aniversario: updatedUser.aniversario
       }));
 
       showToast('Perfil atualizado com sucesso!', 'success');
