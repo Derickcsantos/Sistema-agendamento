@@ -2343,7 +2343,7 @@ app.put('/api/admin/appointments/:id/cancel', async (req, res) => {
         appointment_date: appointment.appointment_date,
         start_time: appointment.start_time,
         end_time: appointment.end_time,
-        status: appointment.status,
+        status: 'canceled',
         notes: appointment.notes,
         created_at: appointment.created_at,
         updated_at: appointment.updated_at,

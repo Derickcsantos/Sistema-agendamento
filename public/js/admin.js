@@ -509,6 +509,27 @@ async function initializeViews() {
       toggleViewBtn.disabled = false;
     }
   });
+
+  const viewCanceledBtn = document.getElementById('viewCanceled');
+
+if (viewCanceledBtn) {
+  viewCanceledBtn.addEventListener('click', async () => {
+    try {
+      isCalendarView = false; // Força modo tabela
+      tableView.classList.remove('d-none');
+      calendarView.classList.add('d-none');
+
+      // Altera o texto do botão de visualização se necessário
+      const toggleText = document.getElementById('toggleText');
+      if (toggleText) toggleText.textContent = 'Visualizar por Semana';
+
+      await loadCanceledAppointments();
+    } catch (error) {
+      console.error('Erro ao alternar para agendamentos cancelados:', error);
+    }
+  });
+}
+
 }
 
 function initializeCalendar(calendarEl) {
@@ -657,6 +678,32 @@ async function loadAppointments(filters = {}) {
     throw error;
   }
 }
+
+async function loadCanceledAppointments(filters = {}) {
+  try {
+    const queryParams = new URLSearchParams();
+
+    if (filters.search) queryParams.append('search', filters.search);
+    if (filters.date) {
+      const [year, month, day] = filters.date.split('-');
+      queryParams.append('date', `${day}-${month}-${year}`);
+    }
+    if (filters.employee) queryParams.append('employee', filters.employee);
+    if (filters.start_date) queryParams.append('start_date', filters.start_date);
+    if (filters.end_date) queryParams.append('end_date', filters.end_date);
+
+    const response = await fetch(`/api/admin/canceled_appointments?${queryParams.toString()}`);
+    if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status}`);
+
+    const data = await response.json();
+
+    renderAppointmentsTable(data); // Reutilize a função existente para montar a tabela
+  } catch (error) {
+    console.error('Erro ao carregar cancelados:', error);
+    showToast('Erro ao carregar cancelados. Tente novamente.', 'error');
+  }
+}
+
 
 // Função para formatar a URL do Google Calendar
 function createGoogleCalendarUrl(appointment) {
