@@ -83,8 +83,6 @@ const corsOptions = {
 };
 
 const mongoURI = process.env.MONGO_URI || 'mongodb+srv://derickcampos:Dede%4002%40@cluster0.zw6awrd.mongodb.net/galeria?retryWrites=true&w=majority'
-
-
 // Conexão com MongoDB
  mongoose.connect(process.env.MONGO_URI, {
    useNewUrlParser: true,
@@ -1995,9 +1993,7 @@ app.get('/api/admin/appointments', async (req, res) => {
 
     if (date) {
       // Converte DD-MM-YYYY para YYYY-MM-DD (formato do Supabase)
-      const [day, month, year] = date.split('-');
-      const dbDate = `${year}-${month}-${day}`;
-      query = query.eq('appointment_date', dbDate);
+      query = query.eq('appointment_date', date);
     } else if (start_date && end_date) {
       // Converte DD-MM-YYYY para YYYY-MM-DD
       const [startDay, startMonth, startYear] = start_date.split('-');

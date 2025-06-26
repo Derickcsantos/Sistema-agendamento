@@ -653,10 +653,7 @@ async function loadAppointments(filters = {}) {
     const queryParams = new URLSearchParams();
     
     if (filters.search) queryParams.append('search', filters.search);
-    if (filters.date) {
-      const [year, month, day] = filters.date.split('-');
-      queryParams.append('date', `${day}-${month}-${year}`);
-    }
+    if (filters.date) queryParams.append('date', filters.date);
     if (filters.employee) queryParams.append('employee', filters.employee);
     if (filters.start_date) queryParams.append('start_date', filters.start_date);
     if (filters.end_date) queryParams.append('end_date', filters.end_date);
@@ -883,7 +880,7 @@ function renderAppointmentsTable(appointments) {
     });
   });
 
-  // ... (outros event listeners se necessário)
+
 }
 
 
@@ -1037,7 +1034,8 @@ function setupEventListeners() {
   if (searchBtn) {
     searchBtn.addEventListener('click', async function() {
       try {
-        await searchAppointments();
+        const searchTerm = document.getElementById('appointmentSearch').value.trim();
+        await loadAppointments({ search: searchTerm });
       } catch (error) {
         console.error('Erro na pesquisa:', error);
         showToast(`Erro: ${error.message}`, 'error');
@@ -1045,17 +1043,44 @@ function setupEventListeners() {
     });
   }
   
-  const filterBtn = document.getElementById('filterByDate');
+  const filterBtn = document.getElementById('filterByDateBtn'); // ID correto do botão
   if (filterBtn) {
-    filterBtn.addEventListener('click', async function() {
+    filterBtn.addEventListener('click', async function () {
       try {
-        await filterAppointmentsByDate();
+        const dateInput = document.getElementById('appointmentDateFilter').value;
+
+        if (!dateInput) {
+          showToast('Selecione uma data válida', 'warning');
+          return;
+        }
+
+        await loadAppointments({ date: dateInput });
       } catch (error) {
-        console.error('Erro no filtro:', error);
+        console.error('Erro no filtro por data:', error);
         showToast(`Erro: ${error.message}`, 'error');
       }
     });
   }
+
+  const employeeFilterBtn = document.getElementById('filterByEmployee');
+  if (employeeFilterBtn) {
+    employeeFilterBtn.addEventListener('click', async function () {
+      try {
+        const employeeName = document.getElementById('employeeSearch').value.trim();
+
+        if (!employeeName) {
+          showToast('Por favor, digite um nome de funcionário', 'warning');
+          return;
+        }
+
+        await loadAppointments({ employee: employeeName });
+      } catch (error) {
+        console.error('Erro ao filtrar por funcionário:', error);
+        showToast(`Erro: ${error.message}`, 'error');
+      }
+    });
+  }
+
 
   // Delegation para botões dinâmicos
   document.addEventListener('click', function(e) {
