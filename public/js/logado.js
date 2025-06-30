@@ -217,8 +217,11 @@ function atualizarContagemRegressiva(agendamentos) {
         // Formatar data e hora
         const optionsDate = { day: '2-digit', month: '2-digit', year: 'numeric' };
         const optionsTime = { hour: '2-digit', minute: '2-digit' };
-        const dataFormatada = new Date(proximo.date).toLocaleDateString('pt-BR', optionsDate);
-        const dataHoraCompleta = new Date(`${proximo.date}T${proximo.start_time}`);
+        const [year, month, day] = proximo.date.split('-').map(Number);
+        const [hour, minute] = proximo.start_time.split(':').map(Number);
+        const dataHoraCompleta = new Date(year, month - 1, day, hour, minute);
+
+        const dataFormatada = dataHoraCompleta.toLocaleDateString('pt-BR', optionsDate);
         const horaFormatada = dataHoraCompleta.toLocaleTimeString('pt-BR', optionsTime);
 
 
