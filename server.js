@@ -84,7 +84,7 @@ const corsOptions = {
 
 const mongoURI = process.env.MONGO_URI || 'mongodb+srv://derickcampos:Dede%4002%40@cluster0.zw6awrd.mongodb.net/galeria?retryWrites=true&w=majority'
 // Conexão com MongoDB
- mongoose.connect(process.env.MONGO_URI, {
+ mongoose.connect('mongodb+srv://derickcampos:Dede%4002%40@cluster0.zw6awrd.mongodb.net/galeria?retryWrites=true&w=majority', {
    useNewUrlParser: true,
    useUnifiedTopology: true,
    serverSelectionTimeoutMS: 10000,
@@ -5600,5 +5600,5 @@ app.delete('/api/galeria/:id', async (req, res) => {
 // Iniciar o servidor
 app.listen(port, () => {
   console.log(`Servidor rodando em http://localhost:${port}`);
-  startWhatsappBot();
+  //startWhatsappBot();
 });
