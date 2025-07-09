@@ -246,6 +246,7 @@ async function loadCategories() {
         };
 
         loadServices(category.id);
+        setTimeout(() => navigateToStep(2), 100); 
       });
 
       container.appendChild(card);
@@ -311,6 +312,7 @@ async function loadCategories() {
           };
           
           loadEmployees(service.id);
+          setTimeout(() => navigateToStep(3), 100); 
         });
         
         container.appendChild(card);
@@ -372,6 +374,8 @@ async function loadEmployees(serviceId) {
           name: employee.name,
           photo: employee.imagem_funcionario,
         };
+
+        setTimeout(() => navigateToStep(4), 100); 
       });
       
       container.appendChild(card);
@@ -424,6 +428,8 @@ async function loadEmployees(serviceId) {
             start: this.dataset.start,
             end: this.dataset.end
           };
+
+          setTimeout(() => navigateToStep(6), 100); 
         });
         
         timeSlotsContainer.appendChild(slotElement);
