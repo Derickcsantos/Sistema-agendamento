@@ -1456,15 +1456,20 @@ async function openManageServicesModal() {
   }
 }
 
-// Função para renderizar a lista de serviços
+// ============= CORREÇÃO 5: FUNÇÃO RENDERSERVICESLIST CORRIGIDA =============
 function renderServicesList() {
-  const searchTerm = document.getElementById('serviceSearch').value.toLowerCase();
+  const searchTerm = document.getElementById('serviceSearch')?.value.toLowerCase() || '';
   const servicesList = document.getElementById('servicesList');
+  
+  if (!servicesList) {
+    console.error('Lista de serviços não encontrada');
+    return;
+  }
   
   // Filtrar serviços
   const filteredServices = allServices.filter(service => 
     service.name.toLowerCase().includes(searchTerm) ||
-    service.description.toLowerCase().includes(searchTerm)
+    (service.description && service.description.toLowerCase().includes(searchTerm))
   );
   
   // Gerar HTML
@@ -1546,30 +1551,51 @@ async function saveEmployeeServices() {
 // Adicionar evento ao botão de gerenciar horários
 document.getElementById('manageSchedulesBtn').addEventListener('click', openManageSchedulesModal);
 
-// Função para abrir o modal de horários
-async function openManageSchedulesModal() {
-  if (!currentEmployeeId) return;
-  
-  const modal = new bootstrap.Modal(document.getElementById('manageSchedulesModal'));
-  modal.show();
+// ============= CORREÇÃO 3: FUNÇÃO OPENMAGESERVICESMODAL CORRIGIDA =============
+async function openManageServicesModal() {
+  if (!currentEmployeeId) {
+    showToast('Selecione um funcionário para gerenciar serviços', 'warning');
+    return;
+  }
   
   try {
-    // Carregar horários do funcionário
-    const response = await fetch(`/schedules/${currentEmployeeId}`);
-    if (!response.ok) throw new Error('Erro ao carregar horários');
+    // Verificar se o modal existe, se não, criar dinamicamente
+    let modal = document.getElementById('manageServicesModal');
+    if (!modal) {
+      createManageServicesModal();
+      modal = document.getElementById('manageServicesModal');
+    }
     
-    workSchedules = await response.json();
-    renderSchedulesList();
+    const bootstrapModal = new bootstrap.Modal(modal);
+    bootstrapModal.show();
     
-    // Configurar botão de adicionar
-    document.getElementById('addScheduleBtnModal').onclick = addNewSchedule;
+    // Carregar todos os serviços
+    const servicesResponse = await fetch('/api/services');
+    if (!servicesResponse.ok) throw new Error('Erro ao carregar serviços');
+    allServices = await servicesResponse.json();
+    
+    // Carregar serviços do funcionário
+    const employeeServicesResponse = await fetch(`/api/employee-services/${currentEmployeeId}`);
+    if (!employeeServicesResponse.ok) throw new Error('Erro ao carregar serviços do funcionário');
+    employeeServices = await employeeServicesResponse.json();
+    
+    renderServicesList();
+    
+    // Configurar busca
+    const searchInput = document.getElementById('serviceSearch');
+    if (searchInput) {
+      searchInput.addEventListener('input', renderServicesList);
+    }
     
     // Configurar botão de salvar
-    document.getElementById('saveSchedulesBtn').onclick = saveWorkSchedules;
+    const saveBtn = document.getElementById('saveServicesBtn');
+    if (saveBtn) {
+      saveBtn.onclick = saveEmployeeServices;
+    }
     
   } catch (error) {
-    console.error('Erro ao abrir modal de horários:', error);
-    showToast('Erro ao carregar horários', 'error');
+    console.error('Erro ao abrir modal de serviços:', error);
+    showToast('Erro ao carregar serviços', 'error');
   }
 }
 
@@ -1599,26 +1625,62 @@ function renderSchedulesList() {
 }
 
 // Função para adicionar novo horário
+// ============= CORREÇÃO 2: FUNÇÃO ADDNEWSCHEDULE CORRIGIDA =============
 function addNewSchedule(schedule = {}) {
   const container = document.getElementById('workSchedulesContainer');
-  const template = document.getElementById('scheduleItemTemplate').cloneNode(true);
-  const scheduleItem = template.querySelector('.schedule-item');
+  
+  if (!container) {
+    console.error('Container workSchedulesContainer não encontrado');
+    return;
+  }
+
+  // Criar o elemento do horário dinamicamente
+  const scheduleItem = document.createElement('div');
+  scheduleItem.className = 'schedule-item row mb-3 border p-3 rounded';
   
   // Definir ID único para o item
   const scheduleId = schedule.id || `new-${Date.now()}`;
   scheduleItem.dataset.id = scheduleId;
   
+  // HTML do item de horário
+  scheduleItem.innerHTML = `
+    <div class="col-md-4">
+      <label class="form-label">Dia da Semana</label>
+      <select class="form-select day-select" required>
+        <option value="">Selecione um dia</option>
+        <option value="0">Domingo</option>
+        <option value="1">Segunda-feira</option>
+        <option value="2">Terça-feira</option>
+        <option value="3">Quarta-feira</option>
+        <option value="4">Quinta-feira</option>
+        <option value="5">Sexta-feira</option>
+        <option value="6">Sábado</option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Horário de Início</label>
+      <input type="time" class="form-control start-time" value="08:00" required>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Horário de Fim</label>
+      <input type="time" class="form-control end-time" value="18:00" required>
+    </div>
+    <div class="col-md-2 d-flex align-items-end">
+      <button type="button" class="btn btn-outline-danger btn-sm remove-schedule">
+        <i class="bi bi-trash"></i> Remover
+      </button>
+    </div>
+  `;
+  
   // Preencher dados se for edição
   if (schedule.day_of_week !== undefined) {
     scheduleItem.querySelector('.day-select').value = schedule.day_of_week;
-  } else {
-    // Deixar sem valor selecionado por padrão
-    scheduleItem.querySelector('.day-select').value = '';
   }
   
   if (schedule.start_time) {
     scheduleItem.querySelector('.start-time').value = formatTimeForInput(schedule.start_time);
   }
+  
   if (schedule.end_time) {
     scheduleItem.querySelector('.end-time').value = formatTimeForInput(schedule.end_time);
   }
@@ -1728,6 +1790,42 @@ function collectSchedulesFromForm() {
   });
   
   return schedules;
+}
+
+// ============= CORREÇÃO 4: CRIAR MODAL DE SERVIÇOS DINAMICAMENTE =============
+function createManageServicesModal() {
+  const modalHTML = `
+    <div class="modal fade" id="manageServicesModal" tabindex="-1" aria-labelledby="manageServicesModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="manageServicesModalLabel">Gerenciar Serviços do Funcionário</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="serviceSearch" class="form-label">Pesquisar Serviços</label>
+              <input type="text" class="form-control" id="serviceSearch" placeholder="Digite para filtrar serviços...">
+            </div>
+            
+            <div class="list-group" id="servicesList">
+              <div class="text-center py-3">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden">Carregando...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            <button type="button" class="btn btn-primary" id="saveServicesBtn">Salvar Alterações</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
 }
 
 // Atualize a função editEmployee para mostrar o botão de gerenciar serviços
@@ -1869,11 +1967,43 @@ function toggleTheme() {
 }
 
 // Helper function to show toast notifications
-function showToast(type, message) {
-  console.log(`${type.toUpperCase()}: ${message}`);
-  // In a real app, you would implement a proper toast notification system
-  // Example: bootstrap.Toast or similar
+function showToast(message, type = 'info') {
+  // Implementação básica de toast - substitua pela sua implementação
+  if (typeof window.showToast === 'function') {
+    window.showToast(message, type);
+  } else {
+    // Fallback para alert
+    alert(message);
+  }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Evento para o botão de adicionar horário
+  const addScheduleBtn = document.getElementById('addScheduleBtn');
+  if (addScheduleBtn) {
+    addScheduleBtn.addEventListener('click', () => {
+      addNewSchedule();
+    });
+  }
+
+  // Evento para o botão de gerenciar serviços
+  const manageServicesBtn = document.getElementById('manageServicesBtn');
+  if (manageServicesBtn) {
+    manageServicesBtn.addEventListener('click', openManageServicesModal);
+  }
+
+  // Evento para o botão de gerenciar horários
+  const manageSchedulesBtn = document.getElementById('manageSchedulesBtn');
+  if (manageSchedulesBtn) {
+    manageSchedulesBtn.addEventListener('click', openManageSchedulesModal);
+  }
+
+  // Evento para cancelar edição
+  const cancelBtn = document.getElementById('cancelEmployeeEdit');
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', cancelEmployeeEdit);
+  }
+});
 
 // Visibilidade da senha:
 

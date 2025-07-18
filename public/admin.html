@@ -590,6 +590,64 @@
           </div>
         </div>
       </div>
+      <!-- Adicione este modal após o modal de confirmação de exclusão -->
+    <div class="modal fade" id="manageSchedulesModal" tabindex="-1" aria-labelledby="manageSchedulesModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="manageSchedulesModalLabel">Gerenciar Horários do Funcionário</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div id="schedulesListContainer">
+              <!-- Lista de horários será carregada aqui -->
+            </div>
+            
+            <div class="mt-3">
+              <button type="button" class="btn btn-outline-primary btn-sm" id="addScheduleBtnModal">
+                <i class="bi bi-plus"></i> Adicionar Horário
+              </button>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            <button type="button" class="btn btn-primary" id="saveSchedulesBtn">Salvar Alterações</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Template para itens de horário (adicione após os modais) -->
+    <template id="scheduleItemTemplate">
+      <div class="schedule-item row mb-3 border p-3 rounded">
+        <div class="col-md-4">
+          <label class="form-label">Dia da Semana</label>
+          <select class="form-select day-select" required>
+            <option value="">Selecione um dia</option>
+            <option value="0">Domingo</option>
+            <option value="1">Segunda-feira</option>
+            <option value="2">Terça-feira</option>
+            <option value="3">Quarta-feira</option>
+            <option value="4">Quinta-feira</option>
+            <option value="5">Sexta-feira</option>
+            <option value="6">Sábado</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Horário de Início</label>
+          <input type="time" class="form-control start-time" value="08:00" required>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Horário de Fim</label>
+          <input type="time" class="form-control end-time" value="18:00" required>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <button type="button" class="btn btn-outline-danger btn-sm remove-schedule">
+            <i class="bi bi-trash"></i> Remover
+          </button>
+        </div>
+      </div>
+    </template>
 
       <!-- Agendamento Rápido -->
       <div class="tab-pane fade" id="quickBooking">
