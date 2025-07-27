@@ -37,8 +37,8 @@ document.addEventListener('DOMContentLoaded', function() {
       dateFormat: 'd/m/Y',
       disable: [
         function(date) {
-          // Desabilita todas as datas antes de 01/06/2025
-          return date < new Date(2025, 5, 1); // Mês é 0-based (5 = junho)
+          // Desabilita todas as datas depois de 01/012/2025
+          return date >= new Date(2025, 11, 1); // Mês é 0-based (11 = dezembro)
         }
       ]
     });

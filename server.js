@@ -16,6 +16,8 @@ const swaggerUi = require('swagger-ui-express');
 const upload = multer();
 const schedule = require('node-schedule');
 const cron = require('node-cron');
+const sharp = require('sharp');
+const { v4: uuidv4 } = require('uuid');
 
 
 // Configuração do Swagger personalizada
@@ -2619,7 +2621,12 @@ app.post('/api/admin/categories', upload.single('image'), async (req, res) => {
 
     // Se houver arquivo, converte para buffer
     if (req.file) {
-      imageData = req.file.buffer.toString('base64');
+      const buffer = await sharp(req.file.buffer)
+        .resize({ width: 600 }) // opcional: redimensiona para largura máxima de 600px
+        .webp({ quality: 80 }) // converte para webp com qualidade razoável
+        .toBuffer();
+
+      imageData = buffer.toString('base64'); // se ainda quiser salvar como base64
     }
 
     const { data, error } = await supabase
@@ -2690,7 +2697,12 @@ app.put('/api/admin/categories/:id', upload.single('image'), async (req, res) =>
 
     // Se enviou nova imagem, converte para base64
     if (req.file) {
-      imageData = req.file.buffer.toString('base64');
+      const buffer = await sharp(req.file.buffer)
+        .resize({ width: 600 }) // opcional: redimensiona para largura máxima de 600px
+        .webp({ quality: 80 }) // converte para webp com qualidade razoável
+        .toBuffer();
+
+      imageData = buffer.toString('base64'); // se ainda quiser salvar como base64
     }
 
     const updateData = { 
@@ -2937,7 +2949,12 @@ app.post('/api/admin/services', upload.single('image'), async (req, res) => {
 
     // Se houver arquivo, converte para base64
     if (req.file) {
-      imageData = req.file.buffer.toString('base64');
+      const buffer = await sharp(req.file.buffer)
+        .resize({ width: 600 }) // opcional: redimensiona para largura máxima de 600px
+        .webp({ quality: 80 }) // converte para webp com qualidade razoável
+        .toBuffer();
+
+      imageData = buffer.toString('base64'); // se ainda quiser salvar como base64
     }
 
     const { data, error } = await supabase
@@ -3066,7 +3083,12 @@ app.put('/api/admin/services/:id', upload.single('image'), async (req, res) => {
 
     // Se enviou nova imagem, converte para base64
     if (req.file) {
-      imageData = req.file.buffer.toString('base64');
+    const buffer = await sharp(req.file.buffer)
+      .resize({ width: 600 }) // opcional: redimensiona para largura máxima de 600px
+      .webp({ quality: 80 }) // converte para webp com qualidade razoável
+      .toBuffer();
+
+      imageData = buffer.toString('base64'); // se ainda quiser salvar como base64
     }
 
     const updateData = { 
@@ -3381,7 +3403,12 @@ app.post('/api/admin/employees', upload.single('image'), async (req, res) => {
 
     // Se houver arquivo, converte para base64
     if (req.file) {
-      imageData = req.file.buffer.toString('base64');
+      const buffer = await sharp(req.file.buffer)
+        .resize({ width: 600 }) // opcional: redimensiona para largura máxima de 600px
+        .webp({ quality: 80 }) // converte para webp com qualidade razoável
+        .toBuffer();
+
+        imageData = buffer.toString('base64'); // se ainda quiser salvar como base64
     }
 
     const { data, error } = await supabase
@@ -3463,7 +3490,12 @@ app.put('/api/admin/employees/:id', upload.single('image'), async (req, res) => 
 
     // Se enviou nova imagem, converte para base64
     if (req.file) {
-      imageData = req.file.buffer.toString('base64');
+      const buffer = await sharp(req.file.buffer)
+        .resize({ width: 600 }) // opcional: redimensiona para largura máxima de 600px
+        .webp({ quality: 80 }) // converte para webp com qualidade razoável
+        .toBuffer();
+
+        imageData = buffer.toString('base64'); // se ainda quiser salvar como base64
     }
 
     const updateData = { 
