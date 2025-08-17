@@ -604,7 +604,6 @@ function initializeCalendar(calendarEl) {
     }
   });
 }
-  calendar.render();
 
   // Função auxiliar para formatar data para a API
   function formatDateForAPI(date) {
@@ -1027,6 +1026,21 @@ function setupEventListeners() {
     
     const cancelEmployeeBtn = document.getElementById('cancelEmployeeEdit');
     if (cancelEmployeeBtn) cancelEmployeeBtn.addEventListener('click', cancelEmployeeEdit);
+
+    const manageServicesBtn = document.getElementById('manageServicesBtn');
+    if (manageServicesBtn) {
+      manageServicesBtn.addEventListener('click', function() {
+        openManageServicesModal();
+      });
+    }
+    
+    // Adicionar event listener para o botão de adicionar dia
+    const addScheduleBtn = document.getElementById('addScheduleBtn');
+    if (addScheduleBtn) {
+      addScheduleBtn.addEventListener('click', function() {
+        addNewSchedule();
+      });
+    }
   }
 
   // Pesquisa e Filtros
@@ -1404,11 +1418,6 @@ async function handleEmployeeSubmit(e) {
   }
 }
 
-// Adicione evento ao botão de adicionar horário
-document.getElementById('addScheduleBtn').addEventListener('click', () => {
-  addNewSchedule();
-});
-
 // Função para cancelar edição
 function cancelEmployeeEdit() {
   document.getElementById('employeeForm').reset();
@@ -1421,17 +1430,24 @@ function cancelEmployeeEdit() {
   currentEmployeeId = null;
 }
 
-// Adicionar evento ao botão de gerenciar serviços
-document.getElementById('manageServicesBtn').addEventListener('click', openManageServicesModal);
-
 // Função para abrir o modal de serviços
 async function openManageServicesModal() {
-  if (!currentEmployeeId) return;
-  
-  const modal = new bootstrap.Modal(document.getElementById('manageServicesModal'));
-  modal.show();
+  if (!currentEmployeeId) {
+    showToast('Selecione um funcionário para gerenciar serviços', 'warning');
+    return;
+  }
   
   try {
+    // Verificar se o modal existe
+    let modal = document.getElementById('manageServicesModal');
+    if (!modal) {
+      console.error('Modal de serviços não encontrado');
+      return;
+    }
+    
+    const bootstrapModal = new bootstrap.Modal(modal);
+    bootstrapModal.show();
+    
     // Carregar todos os serviços
     const servicesResponse = await fetch('/api/services');
     if (!servicesResponse.ok) throw new Error('Erro ao carregar serviços');
@@ -1445,10 +1461,17 @@ async function openManageServicesModal() {
     renderServicesList();
     
     // Configurar busca
-    document.getElementById('serviceSearch').addEventListener('input', renderServicesList);
+    const searchInput = document.getElementById('serviceSearch');
+    if (searchInput) {
+      searchInput.value = ''; // Limpar busca anterior
+      searchInput.addEventListener('input', renderServicesList);
+    }
     
     // Configurar botão de salvar
-    document.getElementById('saveServicesBtn').onclick = saveEmployeeServices;
+    const saveBtn = document.getElementById('saveServicesBtn');
+    if (saveBtn) {
+      saveBtn.onclick = saveEmployeeServices;
+    }
     
   } catch (error) {
     console.error('Erro ao abrir modal de serviços:', error);
@@ -1548,56 +1571,36 @@ async function saveEmployeeServices() {
   }
 }
 
-// Adicionar evento ao botão de gerenciar horários
-document.getElementById('manageSchedulesBtn').addEventListener('click', openManageSchedulesModal);
-
-// ============= CORREÇÃO 3: FUNÇÃO OPENMAGESERVICESMODAL CORRIGIDA =============
-async function openManageServicesModal() {
-  if (!currentEmployeeId) {
-    showToast('Selecione um funcionário para gerenciar serviços', 'warning');
-    return;
-  }
-  
-  try {
-    // Verificar se o modal existe, se não, criar dinamicamente
-    let modal = document.getElementById('manageServicesModal');
-    if (!modal) {
-      createManageServicesModal();
-      modal = document.getElementById('manageServicesModal');
+function openManageSchedulesModal() {
+    if (!currentEmployeeId) {
+        showToast('Selecione um funcionário para gerenciar horários', 'warning');
+        return;
     }
     
-    const bootstrapModal = new bootstrap.Modal(modal);
-    bootstrapModal.show();
-    
-    // Carregar todos os serviços
-    const servicesResponse = await fetch('/api/services');
-    if (!servicesResponse.ok) throw new Error('Erro ao carregar serviços');
-    allServices = await servicesResponse.json();
-    
-    // Carregar serviços do funcionário
-    const employeeServicesResponse = await fetch(`/api/employee-services/${currentEmployeeId}`);
-    if (!employeeServicesResponse.ok) throw new Error('Erro ao carregar serviços do funcionário');
-    employeeServices = await employeeServicesResponse.json();
-    
-    renderServicesList();
-    
-    // Configurar busca
-    const searchInput = document.getElementById('serviceSearch');
-    if (searchInput) {
-      searchInput.addEventListener('input', renderServicesList);
+    try {
+        // Verificar se o modal existe
+        let modal = document.getElementById('manageSchedulesModal');
+        if (!modal) {
+            console.error('Modal de horários não encontrado');
+            return;
+        }
+        
+        const bootstrapModal = new bootstrap.Modal(modal);
+        bootstrapModal.show();
+        
+        // Carregar horários do funcionário
+        loadEmployeeSchedules(currentEmployeeId);
+        
+    } catch (error) {
+        console.error('Erro ao abrir modal de horários:', error);
+        showToast('Erro ao carregar horários', 'error');
     }
-    
-    // Configurar botão de salvar
-    const saveBtn = document.getElementById('saveServicesBtn');
-    if (saveBtn) {
-      saveBtn.onclick = saveEmployeeServices;
-    }
-    
-  } catch (error) {
-    console.error('Erro ao abrir modal de serviços:', error);
-    showToast('Erro ao carregar serviços', 'error');
-  }
 }
+
+// Adicionar evento ao botão de gerenciar horários
+// document.getElementById('manageSchedulesBtn').addEventListener('click', openManageSchedulesModal);
+
+
 
 // Função para renderizar a lista de horários
 function renderSchedulesList() {
@@ -1626,89 +1629,66 @@ function renderSchedulesList() {
 
 // Função para adicionar novo horário
 // ============= CORREÇÃO 2: FUNÇÃO ADDNEWSCHEDULE CORRIGIDA =============
-function addNewSchedule(schedule = {}) {
+function addNewSchedule(day = '', startTime = '08:00', endTime = '17:00') {
   const container = document.getElementById('workSchedulesContainer');
+  const scheduleId = Date.now();
   
-  if (!container) {
-    console.error('Container workSchedulesContainer não encontrado');
-    return;
-  }
-
-  // Criar o elemento do horário dinamicamente
-  const scheduleItem = document.createElement('div');
-  scheduleItem.className = 'schedule-item row mb-3 border p-3 rounded';
+  const dayOptions = [
+    'Domingo',
+    'Segunda-feira', 
+    'Terça-feira',
+    'Quarta-feira',
+    'Quinta-feira',
+    'Sexta-feira',
+    'Sábado'
+  ];
   
-  // Definir ID único para o item
-  const scheduleId = schedule.id || `new-${Date.now()}`;
-  scheduleItem.dataset.id = scheduleId;
-  
-  // HTML do item de horário
-  scheduleItem.innerHTML = `
-    <div class="col-md-4">
-      <label class="form-label">Dia da Semana</label>
-      <select class="form-select day-select" required>
-        <option value="">Selecione um dia</option>
-        <option value="0">Domingo</option>
-        <option value="1">Segunda-feira</option>
-        <option value="2">Terça-feira</option>
-        <option value="3">Quarta-feira</option>
-        <option value="4">Quinta-feira</option>
-        <option value="5">Sexta-feira</option>
-        <option value="6">Sábado</option>
-      </select>
-    </div>
-    <div class="col-md-3">
-      <label class="form-label">Horário de Início</label>
-      <input type="time" class="form-control start-time" value="08:00" required>
-    </div>
-    <div class="col-md-3">
-      <label class="form-label">Horário de Fim</label>
-      <input type="time" class="form-control end-time" value="18:00" required>
-    </div>
-    <div class="col-md-2 d-flex align-items-end">
-      <button type="button" class="btn btn-outline-danger btn-sm remove-schedule">
-        <i class="bi bi-trash"></i> Remover
-      </button>
+  const scheduleHtml = `
+    <div class="schedule-day" id="schedule-${scheduleId}">
+      <span class="remove-schedule" onclick="removeScheduleDay('${scheduleId}')">
+        <i class="bi bi-x-circle"></i>
+      </span>
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <label class="form-label">Dia da semana</label>
+          <select class="form-select schedule-day-select">
+            <option value="">Selecione um dia</option>
+            ${dayOptions.map((d, index) => 
+              `<option value="${index}" ${d === day ? 'selected' : ''}>${d}</option>`
+            ).join('')}
+          </select>
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="form-label">Horário de entrada</label>
+          <input type="time" class="form-control schedule-start-time" value="${startTime}">
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="form-label">Horário de saída</label>
+          <input type="time" class="form-control schedule-end-time" value="${endTime}">
+        </div>
+      </div>
     </div>
   `;
   
-  // Preencher dados se for edição
-  if (schedule.day_of_week !== undefined) {
-    scheduleItem.querySelector('.day-select').value = schedule.day_of_week;
-  }
-  
-  if (schedule.start_time) {
-    scheduleItem.querySelector('.start-time').value = formatTimeForInput(schedule.start_time);
-  }
-  
-  if (schedule.end_time) {
-    scheduleItem.querySelector('.end-time').value = formatTimeForInput(schedule.end_time);
-  }
-  
-  // Adicionar evento de remoção
-  scheduleItem.querySelector('.remove-schedule').addEventListener('click', () => {
-    scheduleItem.remove();
-  });
-  
-  container.appendChild(scheduleItem);
+  container.insertAdjacentHTML('beforeend', scheduleHtml);
 }
 
 // Função para formatar hora para input type="time"
-function formatTimeForInput(timeStr) {
-  if (!timeStr) return '08:00';
+function formatTimeForInput(timeString) {
+  if (!timeString) return '08:00';
   
   // Se já estiver no formato HH:MM
-  if (typeof timeStr === 'string' && timeStr.includes(':')) {
-    return timeStr.length === 5 ? timeStr : `${timeStr.substr(0, 2)}:${timeStr.substr(3, 2)}`;
+  if (typeof timeString === 'string' && timeString.includes(':')) {
+    return timeString;
   }
   
-  // Se for um número (como 800 para 08:00)
-  if (typeof timeStr === 'number') {
-    const timeStrPadded = String(timeStr).padStart(4, '0');
-    return `${timeStrPadded.substr(0, 2)}:${timeStrPadded.substr(2, 2)}`;
+  // Se for um número (como 100000 para 10:00:00)
+  if (typeof timeString === 'number') {
+    const timeStr = String(timeString).padStart(6, '0');
+    return `${timeStr.substr(0, 2)}:${timeStr.substr(2, 2)}`;
   }
   
-  return '08:00';
+  return '08:00'; // Valor padrão
 }
 
 // Função para carregar horários ao editar funcionário
@@ -1769,22 +1749,34 @@ async function saveWorkSchedules() {
   }
 }
 
+// Remover dia de trabalho do formulário
+function removeScheduleDay(scheduleId) {
+  const element = document.getElementById(`schedule-${scheduleId}`);
+  if (element) element.remove();
+}
+
+
 function collectSchedulesFromForm() {
   const schedules = [];
-  const scheduleElements = document.querySelectorAll('.schedule-item');
+  const scheduleElements = document.querySelectorAll('.schedule-day');
   
   scheduleElements.forEach(element => {
-    const daySelect = element.querySelector('.day-select');
-    const startTimeInput = element.querySelector('.start-time');
-    const endTimeInput = element.querySelector('.end-time');
-    
-    // Verificar se todos os campos existem e se um dia foi selecionado
-    if (daySelect && startTimeInput && endTimeInput && daySelect.value !== '') {
+    const daySelect = element.querySelector('.schedule-day-select');
+    const startTimeInput = element.querySelector('.schedule-start-time');
+    const endTimeInput = element.querySelector('.schedule-end-time');
+  
+    if (daySelect && startTimeInput && endTimeInput && daySelect.value) {
+      // Garantir formato HH:MM
+      const startTime = startTimeInput.value.includes(':') ? startTimeInput.value : 
+                     `${startTimeInput.value.substr(0, 2)}:${startTimeInput.value.substr(2, 2)}`;
+      const endTime = endTimeInput.value.includes(':') ? endTimeInput.value : 
+                   `${endTimeInput.value.substr(0, 2)}:${endTimeInput.value.substr(2, 2)}`;
+      
       schedules.push({
-        id: element.dataset.id.startsWith('new-') ? undefined : element.dataset.id,
         day_of_week: parseInt(daySelect.value),
-        start_time: startTimeInput.value.replace(':', ''),
-        end_time: endTimeInput.value.replace(':', '')
+        start_time: startTime,
+        end_time: endTime,
+        is_available: true
       });
     }
   });
@@ -1832,46 +1824,69 @@ function createManageServicesModal() {
 async function editEmployee(id) {
   try {
     if (!id) throw new Error('ID do funcionário não fornecido');
-    currentEmployeeId = id;
     
-    const response = await fetch(`/api/admin/employees/${id}`);
-    if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status}`);
+    currentEmployeeId = id; // Define o ID do funcionário atual
     
-    const employee = await response.json();
+    const container = document.getElementById('workSchedulesContainer');
+    container.innerHTML = '<div class="text-center py-3">Carregando...</div>';
+    
+    const [employeeResponse, schedulesResponse] = await Promise.all([
+      fetch(`/api/admin/employees/${id}`),
+      fetch(`/schedules/${id}`)
+    ]);
+    
+    if (!employeeResponse.ok || !schedulesResponse.ok) {
+      throw new Error('Erro ao carregar dados do funcionário');
+    }
+    
+    const employee = await employeeResponse.json();
+    const schedules = await schedulesResponse.json();
     
     // Preencher dados básicos
     document.getElementById('employeeId').value = employee.id;
     document.getElementById('employeeName').value = employee.name;
-    document.getElementById('employeeEmail').value = employee.email;
+    document.getElementById('employeeEmail').value = employee.email || '';
     document.getElementById('employeePhone').value = employee.phone || '';
     document.getElementById('employeeComissao').value = employee.comissao || '';
     document.getElementById('employeeStatus').checked = employee.is_active !== false;
+    
+    // Mostrar botão de gerenciar serviços
+    const manageServicesBtn = document.getElementById('manageServicesBtn');
+    if (manageServicesBtn) manageServicesBtn.style.display = 'block';
+    
+    const manageSchedulesBtn = document.getElementById('manageSchedulesBtn');
+    if (manageSchedulesBtn) manageSchedulesBtn.style.display = 'block';
 
-    // Atualizar preview da imagem
-    const imagePreview = document.getElementById('employeeImagePreview');
-    if (employee.imagem_funcionario) {
-      imagePreview.innerHTML = `<img src="${employee.imagem_funcionario}" class="img-thumbnail" style="max-height: 150px;">`;
+    // Adicionar horários ao formulário
+    container.innerHTML = '';
+    
+    if (schedules.length > 0) {
+      schedules.forEach(schedule => {
+        const startTime = formatTimeForInput(schedule.start_time);
+        const endTime = formatTimeForInput(schedule.end_time);
+        
+        // Verifica se o dia existe antes de adicionar
+        if (schedule.day && schedule.day !== 'Dia inválido') {
+          addNewSchedule(schedule.day, startTime, endTime);
+        } else {
+          console.error('Dia inválido encontrado:', schedule);
+        }
+      });
     } else {
-      imagePreview.innerHTML = '<img src="img/LogoClara.jpg" class="img-thumbnail" style="max-height: 150px;">';
+      addNewSchedule(); // Adiciona um dia vazio por padrão
     }
     
-    // Mostrar ambos os botões de gerenciamento
-    document.getElementById('manageServicesBtn').style.display = 'block';
-    document.getElementById('manageSchedulesBtn').style.display = 'block';
-    
-    // Carregar horários do funcionário
-    await loadEmployeeSchedules(id);
-    
-    // Mudar o texto do botão para "Atualizar"
+    // Atualizar botão de submit
     const submitBtn = document.querySelector('#employeeForm button[type="submit"]');
     if (submitBtn) submitBtn.textContent = 'Atualizar';
     
-    // Rolar até o formulário
     document.getElementById('employeeForm').scrollIntoView({ behavior: 'smooth' });
     
   } catch (error) {
     console.error('Erro ao editar funcionário:', error);
     showToast('Erro ao carregar dados do funcionário', 'error');
+    document.getElementById('workSchedulesContainer').innerHTML = '';
+    addNewSchedule();
   }
 }
 
@@ -1979,24 +1994,28 @@ function showToast(message, type = 'info') {
 
 document.addEventListener('DOMContentLoaded', function() {
   // Evento para o botão de adicionar horário
-  const addScheduleBtn = document.getElementById('addScheduleBtn');
-  if (addScheduleBtn) {
-    addScheduleBtn.addEventListener('click', () => {
-      addNewSchedule();
-    });
-  }
-
-  // Evento para o botão de gerenciar serviços
   const manageServicesBtn = document.getElementById('manageServicesBtn');
-  if (manageServicesBtn) {
-    manageServicesBtn.addEventListener('click', openManageServicesModal);
-  }
+    if (manageServicesBtn) {
+        manageServicesBtn.addEventListener('click', function() {
+            openManageServicesModal();
+        });
+    }
+    
+    // Adicionar event listener para o botão de adicionar dia
+    // const addScheduleBtn = document.getElementById('addScheduleBtn');
+    // if (addScheduleBtn) {
+    //     addScheduleBtn.addEventListener('click', function() {
+    //         addNewSchedule();
+    //     });
+    // }
 
   // Evento para o botão de gerenciar horários
   const manageSchedulesBtn = document.getElementById('manageSchedulesBtn');
-  if (manageSchedulesBtn) {
-    manageSchedulesBtn.addEventListener('click', openManageSchedulesModal);
-  }
+    if (manageSchedulesBtn) {
+        manageSchedulesBtn.addEventListener('click', function() {
+            openManageSchedulesModal();
+        });
+    }
 
   // Evento para cancelar edição
   const cancelBtn = document.getElementById('cancelEmployeeEdit');
