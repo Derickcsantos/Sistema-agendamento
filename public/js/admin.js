@@ -1499,11 +1499,15 @@ function renderServicesList() {
   servicesList.innerHTML = filteredServices.length > 0 ? '' : 
     '<div class="text-center py-3">Nenhum serviço encontrado</div>';
   
+  // Criar um mapa de serviços atribuídos para consulta rápida
+  const assignedServiceIds = new Set(employeeServices.map(s => s.service_id));
+  
   filteredServices.forEach(service => {
-    const isAssigned = employeeServices.some(s => s.service_id === service.id);
+    const isAssigned = assignedServiceIds.has(service.id);
     
     const serviceItem = document.createElement('div');
     serviceItem.className = 'list-group-item service-item';
+    serviceItem.dataset.serviceId = service.id;
     serviceItem.innerHTML = `
       <div class="d-flex justify-content-between align-items-center">
         <div>
@@ -1526,38 +1530,71 @@ function renderServicesList() {
   document.querySelectorAll('.service-actions button').forEach(btn => {
     btn.addEventListener('click', function() {
       const serviceId = parseInt(this.dataset.serviceId);
-      toggleServiceAssignment(serviceId);
+      toggleServiceAssignment(serviceId, this);
     });
   });
 }
 
 // Função para alternar atribuição de serviço
-function toggleServiceAssignment(serviceId) {
+function toggleServiceAssignment(serviceId, buttonElement) {
   const index = employeeServices.findIndex(s => s.service_id === serviceId);
   
   if (index >= 0) {
     // Remover serviço
     employeeServices.splice(index, 1);
+    
+    // Atualizar apenas o botão, sem recriar toda a lista
+    if (buttonElement) {
+      buttonElement.classList.remove('btn-outline-danger');
+      buttonElement.classList.add('btn-outline-success');
+      const icon = buttonElement.querySelector('i');
+      if (icon) {
+        icon.classList.remove('bi-x-lg');
+        icon.classList.add('bi-check-lg');
+      }
+    }
   } else {
     // Adicionar serviço
     employeeServices.push({
       employee_id: currentEmployeeId,
       service_id: serviceId
     });
+    
+    // Atualizar apenas o botão, sem recriar toda a lista
+    if (buttonElement) {
+      buttonElement.classList.remove('btn-outline-success');
+      buttonElement.classList.add('btn-outline-danger');
+      const icon = buttonElement.querySelector('i');
+      if (icon) {
+        icon.classList.remove('bi-check-lg');
+        icon.classList.add('bi-x-lg');
+      }
+    }
   }
   
-  renderServicesList();
+  // Não chamamos renderServicesList() aqui para evitar recriar toda a lista
 }
 
 // Função para salvar os serviços do funcionário
 async function saveEmployeeServices() {
   try {
+    if (!currentEmployeeId) {
+      showToast('ID do funcionário não encontrado', 'error');
+      return;
+    }
+    
+    // Garantir que todos os serviços tenham o employee_id correto
+    const servicesToSave = employeeServices.map(service => ({
+      employee_id: currentEmployeeId,
+      service_id: service.service_id
+    }));
+    
     const response = await fetch(`/api/employee-services/${currentEmployeeId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(employeeServices)
+      body: JSON.stringify(servicesToSave)
     });
     
     if (!response.ok) throw new Error('Erro ao salvar serviços');

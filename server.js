@@ -3782,6 +3782,15 @@ app.put('/api/employee-services/:employeeId', async (req, res) => {
     const { employeeId } = req.params;
     const services = req.body;
 
+    // Validar que todos os serviços têm employee_id
+    const validServices = services.filter(service => {
+      // Se não tiver employee_id, usar o da URL
+      if (!service.employee_id) {
+        service.employee_id = parseInt(employeeId);
+      }
+      return service.service_id; // Garantir que pelo menos tem service_id
+    });
+
     // Primeiro deletar todos os serviços atuais
     const { error: deleteError } = await supabase
       .from('employee_services')
@@ -3790,13 +3799,18 @@ app.put('/api/employee-services/:employeeId', async (req, res) => {
 
     if (deleteError) throw deleteError;
 
-    // Depois inserir os novos serviços (se houver)
-    if (services.length > 0) {
-      const { error: insertError } = await supabase
-        .from('employee_services')
-        .insert(services);
+    // Depois inserir os novos serviços (se houver) em lotes
+    if (validServices.length > 0) {
+      // Dividir em lotes de 10 serviços para evitar sobrecarga
+      const batchSize = 10;
+      for (let i = 0; i < validServices.length; i += batchSize) {
+        const batch = validServices.slice(i, i + batchSize);
+        const { error: insertError } = await supabase
+          .from('employee_services')
+          .insert(batch);
 
-      if (insertError) throw insertError;
+        if (insertError) throw insertError;
+      }
     }
 
     res.json({ success: true });
