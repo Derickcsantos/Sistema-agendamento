@@ -68,7 +68,7 @@ const port = process.env.PORT || 3000;
 
 // Configuração do Supabase
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 app.use(cookieParser());
 
@@ -151,6 +151,63 @@ const checkAuth = (req, res, next) => {
     return res.status(403).send('Acesso negado');
   }
 };
+
+async function migrateImages() {
+  const { data: services, error } = await supabase
+    .from("services")
+    .select("id, imagem_service");
+
+  if (error) {
+    console.error("Erro buscando serviços:", error);
+    return;
+  }
+
+  for (const service of services) {
+    if (!service.imagem_service) continue; // não tem imagem base64
+
+    try {
+      const buffer = Buffer.from(service.imagem_service, "base64");
+
+      // converte para webp
+      const optimized = await sharp(buffer)
+        .resize({ width: 600 })
+        .webp({ quality: 80 })
+        .toBuffer();
+
+      const fileName = `service-${service.id}.webp`;
+
+      // upload para bucket
+      const { error: uploadError } = await supabase.storage
+        .from("services-images")
+        .upload(fileName, optimized, {
+          contentType: "image/webp",
+          upsert: true,
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrl } = supabase.storage
+        .from("services-images")
+        .getPublicUrl(fileName);
+
+      // atualiza tabela
+      const { error: updateError } = await supabase
+        .from("services")
+        .update({ imagem_service: publicUrl.publicUrl })
+        .eq("id", service.id);
+
+      if (updateError) throw updateError;
+
+      console.log(`Migrado serviço ${service.id}`);
+    } catch (err) {
+      console.error(`Erro migrando serviço ${service.id}:`, err);
+    }
+  }
+
+  console.log("✅ Migração concluída!");
+}
+
+// migrateImages();
 
 // Integração com Express (coloque isto ANTES das outras rotas)
 app.use(
@@ -1345,7 +1402,7 @@ app.get('/api/categories', async (req, res) => {
       return {
         ...category,
         imagem_category: category.imagem_category 
-          ? `data:image/jpeg;base64,${category.imagem_category}`
+          ? category.imagem_category
           : null
       };
     });
@@ -1421,7 +1478,7 @@ app.get('/api/services/:categoryId', async (req, res) => {
       return {
         ...service,
         imagem_service: service.imagem_service 
-          ? `data:image/jpeg;base64,${service.imagem_service}`
+          ? service.imagem_service
           : null
       };
     });
@@ -2617,23 +2674,42 @@ app.get('/api/admin/categories/:id', async (req, res) => {
 app.post('/api/admin/categories', upload.single('image'), async (req, res) => {
   try {
     const { name } = req.body;
-    let imageData = null;
+    let imagePath = null;
 
-    // Se houver arquivo, converte para buffer
     if (req.file) {
+      // processa a imagem
       const buffer = await sharp(req.file.buffer)
-        .resize({ width: 600 }) // opcional: redimensiona para largura máxima de 600px
-        .webp({ quality: 80 }) // converte para webp com qualidade razoável
+        .resize({ width: 600 }) // redimensiona
+        .webp({ quality: 80 }) // converte para webp
         .toBuffer();
 
-      imageData = buffer.toString('base64'); // se ainda quiser salvar como base64
+      // cria um nome único para a imagem
+      const fileName = `${uuidv4()}.webp`;
+
+      // faz upload para o Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('category-images')
+        .upload(fileName, buffer, {
+          contentType: 'image/webp',
+          upsert: false, // evita sobrescrever
+        });
+
+      if (uploadError) throw uploadError;
+
+      // gera a URL pública (se o bucket for público)
+      const { data: publicUrl } = supabase.storage
+        .from('category-images')
+        .getPublicUrl(fileName);
+
+      imagePath = publicUrl.publicUrl;
     }
 
+    // salva no banco só o caminho/URL
     const { data, error } = await supabase
       .from('categories')
       .insert([{ 
         name, 
-        imagem_category: imageData 
+        imagem_category: imagePath 
       }])
       .select();
 
@@ -2644,7 +2720,6 @@ app.post('/api/admin/categories', upload.single('image'), async (req, res) => {
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
-
 
 /**
  * @swagger
@@ -2693,21 +2768,40 @@ app.put('/api/admin/categories/:id', upload.single('image'), async (req, res) =>
   try {
     const { id } = req.params;
     const { name } = req.body;
-    let imageData = null;
+    let imageUrl = null;
 
-    // Se enviou nova imagem, converte para base64
+    // Se enviou nova imagem → salva no Storage
     if (req.file) {
       const buffer = await sharp(req.file.buffer)
-        .resize({ width: 600 }) // opcional: redimensiona para largura máxima de 600px
-        .webp({ quality: 80 }) // converte para webp com qualidade razoável
+        .resize({ width: 600 }) // redimensiona
+        .webp({ quality: 80 }) // converte para webp
         .toBuffer();
 
-      imageData = buffer.toString('base64'); // se ainda quiser salvar como base64
+      // Gera nome único
+      const fileName = `${uuidv4()}.webp`;
+
+      // Upload no bucket
+      const { error: uploadError } = await supabase.storage
+        .from('category-images')
+        .upload(fileName, buffer, {
+          contentType: 'image/webp',
+          upsert: false,
+        });
+
+      if (uploadError) throw uploadError;
+
+      // URL pública
+      const { data: publicUrl } = supabase.storage
+        .from('category-images')
+        .getPublicUrl(fileName);
+
+      imageUrl = publicUrl.publicUrl;
     }
 
+    // Atualiza no banco
     const updateData = { 
       name,
-      ...(imageData && { imagem_category: imageData })
+      ...(imageUrl && { imagem_category: imageUrl }) // só troca se veio imagem
     };
 
     const { data, error } = await supabase
@@ -2717,6 +2811,10 @@ app.put('/api/admin/categories/:id', upload.single('image'), async (req, res) =>
       .select();
 
     if (error) throw error;
+    if (!data || data.length === 0) {
+      return res.status(404).json({ error: 'Categoria não encontrada' });
+    }
+
     res.json(data[0]);
   } catch (error) {
     console.error('Error updating category:', error);
@@ -2945,16 +3043,33 @@ app.get('/api/admin/services', async (req, res) => {
 app.post('/api/admin/services', upload.single('image'), async (req, res) => {
   try {
     const { category_id, name, description, duration, price } = req.body;
-    let imageData = null;
+    let imageUrl = null;
 
-    // Se houver arquivo, converte para base64
     if (req.file) {
       const buffer = await sharp(req.file.buffer)
-        .resize({ width: 600 }) // opcional: redimensiona para largura máxima de 600px
-        .webp({ quality: 80 }) // converte para webp com qualidade razoável
+        .resize({ width: 600 })
+        .webp({ quality: 80 })
         .toBuffer();
 
-      imageData = buffer.toString('base64'); // se ainda quiser salvar como base64
+      // nome único do arquivo
+      const fileName = `service-${Date.now()}.webp`;
+
+      // upload para o bucket "services-image"
+      const { error: uploadError } = await supabase.storage
+        .from('services-images')
+        .upload(fileName, buffer, {
+          contentType: 'image/webp',
+          upsert: false, // evita sobrescrever
+        });
+
+      if (uploadError) throw uploadError;
+
+      // gera a URL pública
+      const { data: publicUrl } = supabase.storage
+        .from('services-images')
+        .getPublicUrl(fileName);
+
+      imageUrl = publicUrl.publicUrl;
     }
 
     const { data, error } = await supabase
@@ -2965,7 +3080,7 @@ app.post('/api/admin/services', upload.single('image'), async (req, res) => {
         description, 
         duration, 
         price,
-        imagem_service: imageData
+        imagem_service: imageUrl // agora salva só a URL pública
       }])
       .select();
 
@@ -2976,6 +3091,7 @@ app.post('/api/admin/services', upload.single('image'), async (req, res) => {
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
+
 
 /**
  * @swagger

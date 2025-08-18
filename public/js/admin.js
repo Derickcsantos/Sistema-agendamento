@@ -1192,7 +1192,7 @@ async function editCategory(id) {
     
     if (category.imagem_category) {
       // Cria uma URL de dados para exibir a imagem
-      const imageUrl = `data:image/jpeg;base64,${category.imagem_category}`;
+      const imageUrl = category.imagem_category;
       previewDiv.innerHTML = `<img src="${imageUrl}" class="img-thumbnail" style="max-height: 150px;">`;
     }
     
@@ -1296,7 +1296,7 @@ async function editService(id) {
     
     if (service.imagem_service) {
       // Cria uma URL de dados para exibir a imagem
-      const imageUrl = `data:image/jpeg;base64,${service.imagem_service}`;
+      const imageUrl = service.imagem_service;
       previewDiv.innerHTML = `<img src="${imageUrl}" class="img-thumbnail" style="max-height: 150px;">`;
     }
     
